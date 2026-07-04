@@ -59,7 +59,12 @@
 13. Sound effects (key press, tile reveal, win jingle, loss tone) play via expo-av; haptic feedback (light impact on key press and tile reveal) via expo-haptics
 14. Loading screen with branded splash shows while dictionary loads and initializes
 15. Daily puzzle seed securely obfuscated — split across multiple sources (native layer, app signing key); ProGuard/R8 enabled
-**Plans:** TBD
+**Plans:** 4 plans (02-01, 02-02, 02-03, 02-04)
+**Plan list:**
+1. **02-01** (Wave 1) — Dictionary preprocessing update (valid-{N}.json + defs-{N}.json), wordLogic.ts (evaluateGuess, validateHardMode), dailySeed.ts, sound.ts stub, dictionaryStore dual-source, gameStore real submitGuess
+2. **02-02** (Wave 2) — Tile/GuessRow/GameBoard components, Keyboard (QWERTY + per-key colors + Enter/Backspace), GameScreen full replacement, ResultModal basic, Confetti
+3. **02-03** (Wave 2) — LengthPickerModal, HomeScreen mode routing (Free/Random/Daily/Endless), daily completion tracking, Endless "Play Next", definition display
+4. **02-04** (Wave 3) — Reanimated tile animations (200ms flip, 50ms stagger, correct bounce), keyboard color update delay, input queue, Hard Mode shake/toast, AppState persistence, LoadingScreen, haptics
 **UI hint:** yes
 
 ### Phase 3: Stats & Settings
@@ -131,7 +136,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | Phase 1: Foundation | 3/3 | ✅ Complete | 2026-07-04 |
-| Phase 2: Core Gameplay | 0/0 | Not started | — |
+| Phase 2: Core Gameplay | 0/4 | Not started | — |
 | Phase 3: Stats & Settings | 0/0 | Not started | — |
 | Phase 4: Monetization | 0/0 | Not started | — |
 | Phase 5: Cloud & Social | 0/0 | Not started | — |
