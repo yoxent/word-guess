@@ -1,7 +1,7 @@
 # Tech Stack
 updated: 2026-07-04
 tags: [stack, dependencies, versions, compat]
-related: [architecture, storage-strategy, project-overview]
+related: [architecture, storage-strategy, project-overview, android-build-setup]
 
 ## Core
 | Layer | Choice | Version | Why |
@@ -84,6 +84,12 @@ Prefers `npx expo install` for Expo SDK packages (handles version alignment auto
 
 ### Postinstall script bootstrapping
 If `package.json` has a `postinstall` script referencing a file that doesn't exist yet, `npm install` fails. Workaround: temporarily remove or rename the postinstall hook during initial setup, create the script, then restore it.
+
+### AGP version — RN 0.86 ships 8.12.0, AS may not support it
+RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.toml`. Older Android Studio versions error `Latest supported version is AGP 8.9.1`. Fix: pin version explicitly in `android/build.gradle` — see [android-build-setup](android-build-setup.md).
+
+### react-native-mmkv needs react-native-nitro-modules installed separately
+`react-native-mmkv@4.3.2` has `react-native-nitro-modules` as a **peer dep** (not auto-installed). Fix: `npx expo install react-native-nitro-modules && npx expo prebuild`. Without this, Gradle fails with `Project with path ':react-native-nitro-modules' could not be found`.
 
 ## Metro bundler limitations
 - `@/` alias is TypeScript-only — Metro cannot resolve it. Use relative paths for `require()`.

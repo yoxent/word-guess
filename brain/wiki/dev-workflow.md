@@ -1,7 +1,7 @@
 # dev-workflow
 updated: 2026-07-04
 tags: [workflow, android-studio, metro, emulator, dev-loop]
-related: [tech-stack]
+related: [tech-stack, android-build-setup]
 
 ## Daily dev loop
 ```bash
@@ -38,3 +38,11 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 
 ## Asset icons
 Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 (Pre-Launch & Polish).
+
+## Android Studio standalone run (alternative)
+Workaround to run everything from AS without a separate terminal:
+1. Run → Edit Configurations → + → Shell Script
+2. Script: `npx expo run:android`
+3. Working dir: project root
+
+Now ▶ starts Metro + build + install + hot reload from AS Run tab. Tradeoff: Metro + build output share one tab. See [android-build-setup](android-build-setup.md) for details.
