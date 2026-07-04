@@ -1,72 +1,68 @@
 # dictionary-preprocessing
 updated: 2026-07-04
 tags: [dictionary, preprocessing, build-tools, metro]
-related: [phase-structure, tech-stack, key-risks]
+related: [tech-stack, architecture, game-modes, daily-seed]
 
-## Source data
-- File: `dictionary.full.enriched.json` (3.4MB after compression, 34MB raw)
-- Format: JSON with per-word definitions, synonyms, antonyms
-- 12,319 words total across lengths 5-10 (after cleanup)
+## Two-tier dictionary system
+Two source files, both preprocessed into three output files per length:
+
+| Source | Format | Purpose |
+|--------|--------|---------|
+| `dictionary.full.enriched.json` | `{word,definition,synonyms,antonyms}[]` | Target word selection + definitions (curated, ~12K words) |
+| `dictionary.full.json` | `string[]` | Player guess validation (broader, ~184K words) |
+
+**Cross-check:** All enriched words are subset of full.json — every target word is also a valid guess.
+
+## Source file cleanup (2026-07-04)
+- 3-4 letter entries removed from both files (not used in game)
+- 1,455 blocklisted words removed from full.json
+- Enriched.json had 0 blocklisted words (already clean)
+
+## Blocklist
+Two text files in project root, filtered to 5-10 letter words only:
+- `profanity-blocklist.txt` — 2,617 entries (profanity, slurs)
+- `manual-blocklist.txt` — 976 entries (proper nouns, names, brands, non-English)
+
+Preprocessing script reads both files and applies combined filter.
 
 ## Build-time script
 - Location: `scripts/preprocess-dictionary.mjs`
-- Input: `dictionary.full.enriched.json`
-- Output: 6 files at `assets/dictionary/{5,6,7,8,9,10}.json`
-- Each file: flat JSON array of uppercase word strings only
+- Trigger: `"postinstall": "node scripts/preprocess-dictionary.mjs"` in package.json
+- Inputs: enriched.json, full.json, profanity-blocklist.txt, manual-blocklist.txt
 
-## Clean filter (applied during preprocessing)
-| Filter | Description |
-|--------|-------------|
-| Length | 5-10 letters only (3-4 and 11+ removed) |
-| Offensive/slur words | Blocklist-based removal |
-| Proper nouns | Capitalized non-first-letter words stripped |
-| Archaic/obscure | Flagged by dictionary metadata |
-| Definitions | Stripped entirely — game doesn't need them |
+## Output files (all at `assets/dictionary/`)
 
-## Word count after cleanup
-| Length | Count |
-|--------|-------|
-| 5 | ~2,540 |
-| 6 | ~2,588 |
-| 7 | ~2,439 |
-| 8 | ~2,105 |
-| 9 | ~1,602 |
-| 10 | ~1,045 |
-| Total | ~12,319 |
+| Output | Source | Format | Use |
+|--------|--------|--------|-----|
+| `{N}.json` | enriched.json | `string[]` of words | Target word selection (Free Play, Random, Daily) |
+| `defs-{N}.json` | enriched.json | `Record<string,string>` | Word definition lookup (Result modal) |
+| `valid-{N}.json` | full.json | `string[]` of words | Player guess validation (isValidWord) |
 
-## Git strategy
-- Source `dictionary.full.enriched.json` and generated `assets/dictionary/*.json` both ignored
-- Regenerated via `"postinstall": "node scripts/preprocess-dictionary.mjs"` in package.json
-- Migration path: switching to committed files is a 2-min change (rm .gitignore entry, git add, remove postinstall)
-- Initial generation: run script manually first to verify, then add to .gitignore
-- New clones obtain source file separately (not in repo)
+All output files in `.gitignore` — regenerated on postinstall.
 
 ## Metro bundler constraint (CRITICAL)
-Metro cannot:
-1. Resolve `@/` path aliases (tsconfig paths are TypeScript-only)
-2. Bundle dynamic `require()` with template literals
+Static `require()` with relative paths only. No dynamic require, no `@/` alias:
 
-**Correct approach:** Static `require()` with relative paths pre-imported at module level:
 ```typescript
 // Correct — Metro bundles static require() at build time
 const wordList5: string[] = require('../../assets/dictionary/5.json');
-const wordList6: string[] = require('../../assets/dictionary/6.json');
-// ... all 6 lengths pre-imported
+const valid5: string[] = require('../../assets/dictionary/valid-5.json');
+const defs5: Record<string, string> = require('../../assets/dictionary/defs-5.json');
 
-const WORD_LISTS: Record<number, string[]> = { 5: wordList5, 6: wordList6, ... };
-
-// In store — synchronous access, no loading states
-getWordList: (length) => WORD_LISTS[length] || [],
-isValidWord: (length, word) => new Set(WORD_LISTS[length]).has(word.toUpperCase()),
+// In dictionaryStore:
+isValidWord → check valid-{N}.json (broader list, permissive)
+getRandomWord → pick from {N}.json (curated list, clean)
 ```
 
-**Why this works:**
-- Static require path is a string literal → Metro bundles at build time
-- All word lists bundled into APK (~150KB total compressed, negligible)
-- Synchronous access — no async loading, no race conditions
-- Word sets for O(1) lookup created once per call (tiny lists)
+## Word counts after cleanup
+| Length | Target (enriched) | Valid guesses (full) |
+|--------|-------------------|---------------------|
+| 5 | ~2,540 | ~11,965 |
+| 6 | ~2,588 | ~21,678 |
+| 7 | ~2,439 | ~32,639 |
+| 8 | ~2,105 | ~40,257 |
+| 9 | ~1,602 | ~41,044 |
+| 10 | ~1,045 | ~35,781 |
 
-**Wrong (will crash):
-```typescript
-const words = require(`@/assets/dictionary/${length}.json`); // Metro crash
-```
+## Endless mode pool
+Endless target = valid guess pool **minus today's daily words** (1 per length, max 6). Same-day exclusion only — daily words return to pool next UTC day.

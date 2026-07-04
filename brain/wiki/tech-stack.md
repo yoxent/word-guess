@@ -96,6 +96,19 @@ RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.t
 - Dynamic `require()` with template literals crashes Metro. Use static require() with string literal paths.
 - All word list files bundled via static require() at build time (~150KB total).
 
+## Bonus dependencies (evaluated, deferred)
+| Library | Use | Verdict |
+|---------|-----|--------|
+| typegpu-confetti | GPU-accelerated confetti particles | DEFERRED — v0.3.0, WebGPU on Android experimental. Use Reanimated worklet confetti instead |
+
+## Source data files
+| File | Purpose |
+|------|---------|
+| `dictionary.full.enriched.json` | Target word selection + definitions (curated, ~12K words) |
+| `dictionary.full.json` | Player guess validation (broader, ~184K words) |
+| `profanity-blocklist.txt` | Profanity filter (5-10 letter entries only) |
+| `manual-blocklist.txt` | Manual exclusion list — proper nouns, names, non-English (5-10 letter entries only) |
+
 ## Anti-picks
 - ❌ Bare RN CLI — android/ directory maintenance overhead
 - ❌ Redux Toolkit — overkill for 5 simple stores

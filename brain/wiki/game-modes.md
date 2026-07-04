@@ -1,48 +1,56 @@
-# Game Modes
+# game-modes
 updated: 2026-07-04
 tags: [gameplay, modes, game-design]
-related: [architecture, daily-seed, project-overview]
+related: [architecture, daily-seed, project-overview, dictionary-preprocessing]
 
 ## Four modes
 
 ### Free Play
-- Player picks letter count 5-10 before game
-- Random word from chosen length's dictionary
+- Player picks letter count 5-10 via modal/grid picker before game
+- Random target word from enriched dictionary (curated, clean)
+- Guess validated against full dictionary (broader, permissive)
 - Unlimited plays, no daily reset
-- Streak tracked separately? (deferred — v1 treats as standalone)
 
 ### Random
-- Auto-assigned random letter count each game
+- Auto-assigned random letter count (5-10) each game
+- Target word from enriched dictionary
 - Discovery mechanic — player tries lengths they wouldn't pick
-- All other mechanics identical to Free Play
 
 ### Daily Challenge
-- One word per day, same for all players
-- Deterministic from UTC date + private seed (see daily-seed.md)
+- **6 puzzles per day** (one per word length 5-10)
+- Deterministic from UTC date + length + private seed (see daily-seed)
+- Length picker shown with already-completed lengths disabled (greyed + checkmark)
+- Completed = reached win or loss state → consumed for the day
+- In-progress game persists on exit, resumes on return (same daily, same length)
 - Resets at UTC midnight
-- Same word shown regardless of letter count selection? TBD — could rotate or fix to one length
-- Streak tracked per player (cloud-synced)
-- Leaderboard ranking by daily streak
 
 ### Endless
-- After win/loss, immediately start new word
-- Tracks consecutive correct streak
-- Separate leaderboard for consecutive correct + total words ever
-- No daily reset
+- After win/loss, result modal with "Play Next" → immediately starts new word
+- Tracks consecutive correct streak (displayed in header)
+- Target word pool = full dictionary words **minus today's daily words** (1-6 words)
+- Same-day exclusion only — daily words return to pool next UTC day
+- Player guesses validated against full dictionary (no exclusions)
 
 ## Universal toggle: Hard Mode
-- Applies to ANY mode (toggle in settings, per-game in Free Play)
+- Applies to ANY mode (per-game toggle)
+- Enforced at submit time (not input time) — shake + toast on violation
 - Must reuse green tiles in same position
 - Must include yellow tiles somewhere in guess
 - NYT Wordle exact rules (including duplicate letter handling)
 - 20+ unit test edge cases required before integration
-- Invalid guess blocked at submit time (not silently accepted)
+- Pure function in `services/wordLogic.ts` — trivially testable
+
+## Result flow (all modes — Phase 2 change)
+- Result displayed as **modal overlay** (not navigation to ResultScreen)
+- Shows: win/loss state, target word, word definition, emoji grid
+- Endless: "Play Next" button → next word (same length)
+- Other modes: "Back to Menu" → HomeScreen
 
 ## Attempt system
 | Factor | Value |
 |--------|-------|
 | Base attempts | letterCount + 1 |
-| Rewarded ad bonus | +1 per ad, max 2/game |
+| Rewarded ad bonus | +1 per ad, max 2/game (Phase 4) |
 | Total max (10 letters) | 11 + 2 = 13 |
 
 ## Tile feedback rules (Wordle)
@@ -50,3 +58,12 @@ related: [architecture, daily-seed, project-overview]
 2. Second pass: for remaining letters, mark in-word YELLOW (decrementing count per occurrence)
 3. Remaining: GRAY
 4. Duplicate handling: if guess has 3 'O's but answer has 1, only 1 'O' shows yellow/green
+
+## Animation timing
+| Action | Duration | Detail |
+|--------|----------|--------|
+| Tile flip | 200ms | Rotate-X, UI thread (Reanimated worklet) |
+| Stagger | 50-80ms | Left-to-right per tile |
+| Correct tile bounce | 1.0→1.15→1.0 | After flip, scale bounce |
+| Keyboard update | After last reveal | Delayed to avoid flicker |
+| Confetti (win) | ~1.5s | Reanimated particle burst, gravity + fade |
