@@ -1,0 +1,40 @@
+# dev-workflow
+updated: 2026-07-04
+tags: [workflow, android-studio, metro, emulator, dev-loop]
+related: [tech-stack]
+
+## Daily dev loop
+```bash
+cd E:\Projects\Indie\word-guess
+npx expo run:android
+```
+Single command starts Metro bundler + Gradle build + install on emulator/device. Hot reload and Fast Refresh work out of the box.
+
+## Android Studio setup
+Open `E:\Projects\Indie\word-guess\android\` (NOT the root project folder — no Gradle files at root).
+
+### AS provides:
+- Emulator / connected device
+- Logcat (native crash debugging)
+- Gradle task runner (clean, build, assembleRelease)
+- Device File Explorer
+- APK/AAB output inspection
+
+### AS alone is not enough
+Running ▶ from Android Studio installs the app but **cannot start Metro** → blank screen ("No bundle URL"). Keep a terminal with `npx expo run:android` for the JS bundle.
+
+## Dual-tool coexistence
+Both Android Studio's emulator and `npx expo run:android` use the **same** running emulator instance. Start the emulator from AS, then run `npx expo run:android` from terminal — they share the device with no conflict.
+
+| Tool | Role | Start command |
+|------|------|---------------|
+| Terminal (root) | Metro bundler + JS hot reload | `npx expo run:android` |
+| Android Studio (`android/`) | Emulator, Logcat, native build inspection | Open android/ folder |
+
+## Native edits & prebuild
+- Direct edits to `android/` files are **overwritten** on next `npx expo prebuild`
+- For permanent native changes: use Expo config plugins in `app.json` instead
+- After adding a new Expo plugin: `npx expo prebuild` re-generates android/ with plugin applied
+
+## Asset icons
+Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 (Pre-Launch & Polish).

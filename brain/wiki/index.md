@@ -18,3 +18,4 @@ related: []
 | phase-structure | 6-phase roadmap, dependencies, dev workflow | roadmap, phases, planning |
 | google-signin | Google Sign-In setup, SHA-1 triple registration, known pain points | auth, firebase, google |
 | git-conventions | Gitignore design, tracked vs ignored files, brain vs CLAUDE.md | git, workflow, conventions |
+| dev-workflow | Android Studio setup, Metro dev loop, dual-tool coexistence | workflow, android-studio, metro, dev-loop |
