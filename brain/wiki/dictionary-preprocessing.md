@@ -35,10 +35,11 @@ related: [phase-structure, tech-stack, key-risks]
 | Total | ~12,319 |
 
 ## Git strategy
-- Generated files added to `.gitignore`
+- Source `dictionary.full.enriched.json` and generated `assets/dictionary/*.json` both ignored
 - Regenerated via `"postinstall": "node scripts/preprocess-dictionary.mjs"` in package.json
 - Migration path: switching to committed files is a 2-min change (rm .gitignore entry, git add, remove postinstall)
 - Initial generation: run script manually first to verify, then add to .gitignore
+- New clones obtain source file separately (not in repo)
 
 ## Metro bundler constraint (CRITICAL)
 Metro cannot:
