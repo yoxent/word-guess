@@ -12,7 +12,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** — Scaffold, dictionary, theme, types, navigation, storage
+- [x] **Phase 1: Foundation** — Scaffold, dictionary, theme, types, navigation, storage
 - [ ] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
 - [ ] **Phase 3: Stats & Settings** — Persistent stats, settings screen, share results, local persistence
 - [ ] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
@@ -130,7 +130,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| Phase 1: Foundation | 3 plans written | Planned | — |
+| Phase 1: Foundation | 3/3 | ✅ Complete | 2026-07-04 |
 | Phase 2: Core Gameplay | 0/0 | Not started | — |
 | Phase 3: Stats & Settings | 0/0 | Not started | — |
 | Phase 4: Monetization | 0/0 | Not started | — |
