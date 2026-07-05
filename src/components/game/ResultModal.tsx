@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Modal, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/types';
-import { useGameStore } from '@/stores';
+import { useGameStore, useSettingsStore } from '@/stores';
+import { useDictionaryStore } from '@/stores/dictionaryStore';
 import { colors } from '@/constants/colors';
 import { Button } from '@/components/ui';
 import { Confetti } from './Confetti';
+import {
+  clearActiveGame,
+  getEndlessStreak,
+  setEndlessStreak as persistEndlessStreak,
+  markDailyCompleted,
+} from '@/services/storage';
+import { getDailyDateString } from '@/services/dailySeed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,6 +29,47 @@ export function ResultModal() {
   const navigation = useNavigation<Nav>();
   const session = useGameStore((s) => s.session);
   const resetGame = useGameStore((s) => s.resetGame);
+  const [endlessStreak, setEndlessStreakState] = useState(0);
+
+  // Compute definition from session data (static lookup, no reactivity needed)
+  const definition = useMemo(() => {
+    if (!session) return undefined;
+    return useDictionaryStore.getState().getDefinition(
+      session.letterCount,
+      session.word
+    );
+  }, [session]);
+
+  // Track daily completions and endless streak
+  useEffect(() => {
+    if (!session) return;
+
+    if (session.status === 'won' || session.status === 'lost') {
+      // Daily completion tracking (D-40, D-41)
+      if (session.mode === 'daily') {
+        const dateStr = getDailyDateString();
+        markDailyCompleted(dateStr, session.letterCount);
+      }
+
+      // Endless streak tracking (D-47)
+      if (session.mode === 'endless') {
+        if (session.status === 'won') {
+          const prev = getEndlessStreak();
+          const next = prev + 1;
+          persistEndlessStreak(next);
+          setEndlessStreakState(next);
+        } else {
+          const finalStreak = getEndlessStreak();
+          setEndlessStreakState(finalStreak);
+          persistEndlessStreak(0);
+        }
+      }
+
+      // Clear active game state (D-58)
+      clearActiveGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.status]);
 
   if (!session || session.status === 'playing') {
     return null;
@@ -36,6 +85,29 @@ export function ResultModal() {
   });
   const emojiText = emojiRows.join('\n');
 
+  const handlePlayNext = () => {
+    if (!session) return;
+
+    const hardMode = useSettingsStore.getState().hardModeEnabled;
+    const length = session.letterCount;
+    const dictStore = useDictionaryStore.getState();
+
+    // Get today's daily words to exclude (D-52)
+    const todayDailyWords = dictStore.getTodayDailyWords().words;
+    const excludeWord = todayDailyWords[length];
+
+    // Get pool of target words excluding today's daily word
+    const allTargets = dictStore.getWordList(length);
+    const pool = excludeWord
+      ? allTargets.filter((w) => w !== excludeWord)
+      : allTargets;
+    const nextWord = pool[Math.floor(Math.random() * pool.length)];
+
+    // Start new endless game
+    clearActiveGame();
+    useGameStore.getState().startGame('endless', nextWord, length, hardMode);
+  };
+
   const handleBackToMenu = () => {
     resetGame();
     navigation.navigate('Home');
@@ -46,23 +118,46 @@ export function ResultModal() {
       <View style={styles.overlay}>
         {isWin && <Confetti />}
         <View style={styles.card}>
-          <Text style={[styles.title, { color: isWin ? colors.success : colors.danger }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: isWin ? colors.success : colors.danger },
+            ]}
+          >
             {isWin ? 'You Won!' : 'Game Over'}
           </Text>
 
           <Text style={styles.word}>{session.word.toUpperCase()}</Text>
 
-          {/*
-           * Definition will show here after Plan 02-03
-           * when dictionaryStore.getDefinition() is wired up.
-           */}
+          {definition && (
+            <Text style={styles.definition}>{definition}</Text>
+          )}
+
+          {session.mode === 'endless' && (
+            <Text
+              style={[
+                styles.streak,
+                { color: isWin ? colors.accent : colors.textSecondary },
+              ]}
+            >
+              {isWin ? `Streak: ${endlessStreak}` : `Final Streak: ${endlessStreak}`}
+            </Text>
+          )}
 
           <View style={styles.emojiContainer}>
             <Text style={styles.emojiText}>{emojiText}</Text>
           </View>
 
           <View style={styles.buttonContainer}>
-            <Button title="Back to Menu" onPress={handleBackToMenu} />
+            {session.mode === 'endless' ? (
+              <Button
+                title="Play Next"
+                onPress={handlePlayNext}
+                style={styles.playNextButton}
+              />
+            ) : (
+              <Button title="Back to Menu" onPress={handleBackToMenu} />
+            )}
           </View>
         </View>
       </View>
@@ -98,6 +193,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 2,
   },
+  definition: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  streak: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
   emojiContainer: {
     marginVertical: 16,
     alignItems: 'center',
@@ -112,5 +222,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     alignItems: 'center',
+  },
+  playNextButton: {
+    width: '100%',
   },
 });
