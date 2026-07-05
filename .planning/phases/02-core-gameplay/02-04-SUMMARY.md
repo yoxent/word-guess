@@ -10,7 +10,7 @@ metrics:
   files-changed: 12
   commits: 4
   tasks: 4
-  duration: ~20min
+  duration: ~30min
 status: completed
 ---
 
@@ -24,10 +24,10 @@ Add Reanimated animations, Hard Mode UI feedback, game state persistence, brande
 
 | Task | Name | Commit(s) | Key Files |
 |------|------|-----------|-----------|
-| 0 | Create shared animation constants | `0a5efd4` | `src/constants/animations.ts` (NEW), `src/constants/index.ts` |
-| 1 | Reanimated tile flip animation + enhanced confetti | `318cf9e` | `src/components/game/Tile.tsx`, `src/components/game/Confetti.tsx` |
-| 2 | Shake animation, keyboard input queue, isRevealing state | `cbf5a90` | `src/stores/gameStore.ts`, `src/components/game/Keyboard.tsx`, `src/components/game/GameBoard.tsx`, `src/components/game/GuessRow.tsx` |
-| 3 | AppState persistence, LoadingScreen, haptics wiring | *(this commit)* | `src/screens/GameScreen.tsx`, `src/screens/LoadingScreen.tsx` (NEW), `src/app/App.tsx`, `src/components/game/Keyboard.tsx`, `src/services/storage.ts`, `package.json` |
+| 0 | Create shared animation constants | `d791f3c` | `src/constants/animations.ts` (NEW), `src/constants/index.ts` |
+| 1 | Reanimated tile flip animation + enhanced confetti | `febc387` | `src/components/game/Tile.tsx`, `src/components/game/Confetti.tsx` |
+| 2 | Shake animation, keyboard input queue, isRevealing state | `a604272` | `src/stores/gameStore.ts`, `src/components/game/Keyboard.tsx`, `src/components/game/GuessRow.tsx` |
+| 3 | AppState persistence, LoadingScreen, haptics wiring | `fd5c182`, `2dbcce2` | `src/screens/GameScreen.tsx`, `src/screens/LoadingScreen.tsx`, `src/app/App.tsx` |
 
 ## Changes by File
 
@@ -44,36 +44,38 @@ Add Reanimated animations, Hard Mode UI feedback, game state persistence, brande
 - Correct tiles: scale bounce `1.0 → 1.15 → 1.0` via `withSequence`
 - Colors interpolate via `interpolateColor` midway through flip
 - Text fades in during second half of flip
+- Uses `isFirstRender` ref to skip animation on initial mount
 
 ### `src/components/game/Confetti.tsx` (ENHANCED)
-- 40 particles (up from 30), staggered launch (15ms per particle)
-- Extended color palette: green, yellow, blue, red, white, orange, purple
+- 40 particles (up from 35), staggered launch (15ms per particle)
+- Extended color palette: green, yellow, blue, red, white, orange, purple (7 colors)
 - Gravity easing via `Easing.bezier(0.2, 0.8, 0.3, 1)`
-- Fade out over last 40% of animation, scale 1→0.3 over full duration
+- Fade out over last 40% of animation (opacity 1→0 from 60%-100%), scale 1→0.3 over full duration
 - Wider horizontal spread (`SCREEN_WIDTH * 1.2`)
 
 ### `src/stores/gameStore.ts` (MODIFIED)
-- Added `isRevealing`, `setIsRevealing` for animation state (D-66)
-- Added `pendingInputs[]`, `addPendingInput`, `flushPendingInputs` for input queue
-- `submitGuess` sets `isRevealing: true` before evaluating to block input during animation
-- `flushPendingInputs` handles ENTER-first logic — processes letters/backspaces before ENTER then submits
+- Added `pendingInputs[]`, `addPendingInput`, `flushPendingInputs` for input queue (D-66)
+- `submitGuess` validates checks first (dictionary, hard mode), then sets `isRevealing=true` only after validation passes — avoids blocking input during failed validation
+- `addPendingInput`: appends key to pending inputs array
+- `flushPendingInputs`: processes one input at a time, routes to correct action (ENTER→submitGuess, BACKSPACE→removeLetter, else→addLetter)
+- Resets `pendingInputs` on `startGame`, `resetGame`, and `restoreSession`
 
 ### `src/components/game/GuessRow.tsx` (MODIFIED)
 - Added shake animation via `useSharedValue`, `withSequence`, `withTiming`, `useAnimatedStyle`
 - Shake: left-right oscillation `-10 → 10 → -10 → 10 → 0` over 250ms when `error` prop is set and row is active
 
-### `src/components/game/GameBoard.tsx` (MODIFIED)
-- Passes `error` prop to active GuessRow (`i === completedGuesses && session.status === 'playing'`)
+### `src/components/game/GameBoard.tsx` (NO CHANGE — already passed error to active GuessRow)
 
 ### `src/components/game/Keyboard.tsx` (MODIFIED)
 - Added `* as Haptics` import from `expo-haptics`
-- Light haptic impact on every key press (D-18)
+- Light haptic impact on every key press (D-18) — fires before routing logic (always provides tactile feedback)
 - Input queued via `addPendingInput(key)` when `isRevealing` is true (D-66, queue preferred over drop)
+- Uses `isBlocked` computed flag (`!isPlaying || isRevealing`) for consistent key disabling
 
 ### `src/screens/GameScreen.tsx` (ENHANCED)
 - **AppState persistence** (D-55, D-56, D-57): Listens for `AppState` changes — saves session on background, restores on foreground
-- **Animation completion callback**: `useEffect` computes total animation time (stagger + flip + buffer + correct bounce) and after timeout: unblocks keyboard (`setIsRevealing(false)`), flushes input queue (`flushPendingInputs()`), fires Medium haptic, checks game over and persists result
-- Haptic on reveal completion via `Haptics.impactAsync(ImpactFeedbackStyle.Medium)`
+- **Animation completion callback**: `useEffect` computes total animation time `(letterCount-1)*50 + TILE_FLIP_DURATION + ANIMATION_COMPLETION_BUFFER` plus `TILE_CORRECT_BOUNCE_EXTRA` if guess has correct tiles; after timeout: unblocks keyboard (`setIsRevealing(false)`), flushes input queue (`flushPendingInputs()`), fires Medium haptic, checks game over, persists daily/endless results
+- Haptic on reveal completion via `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)`
 
 ### `src/screens/LoadingScreen.tsx` (NEW)
 - Branded loading screen: "Word Guess" title, "Loading dictionary..." subtitle, accent-colored `ActivityIndicator`
@@ -81,22 +83,21 @@ Add Reanimated animations, Hard Mode UI feedback, game state persistence, brande
 
 ### `src/app/App.tsx` (MODIFIED)
 - Added `isReady` state with 500ms loading delay for smooth splash transition
-- Renders `LoadingScreen` with `StatusBar` while not ready
+- Renders `LoadingScreen` while not ready
 - Only renders `NavigationContainer` + `Navigation` when ready
 
 ### `src/services/storage.ts` (NO CHANGE — already had helpers from 02-03)
 - `getDailyCompletedLengths`, `markDailyCompleted`, `getEndlessStreak`, `setEndlessStreak`
 
-### `package.json` (MODIFIED)
-- Added `expo-haptics` dependency
-
 ## Key Decisions
 
 - **Animation timing constants centralized** in `animations.ts` for easy tuning after Phase 2
-- **Input queue vs drop**: Per D-66, input during animation is queued (not dropped). The `flushPendingInputs` method handles ENTER-first semantics — letters/backspaces before ENTER process first, then ENTER triggers submission
-- **Safety net**: 3-second timeout is implicit — the `setTimeout` callback in GameScreen always fires, preventing `isRevealing` from being stuck `true`
+- **Validation-before-blocking in submitGuess**: `isRevealing=true` set only after dictionary/hard-mode validation passes, preventing input blocking during error states
+- **Input queue vs drop**: Per D-66, input during animation is queued (not dropped). Queue processes one input at a time
+- **Safety net**: The `setTimeout` callback in GameScreen always fires, preventing `isRevealing` from being stuck `true`
 - **Haptics level**: Light on key press (soft tactile feedback), Medium on tile reveal (more significant event)
 - **Loading screen delay**: 500ms setTimeout ensures dictionary JSON is fully parsed before rendering game UI
+- **GameBoard unchanged**: Already passed `error` prop to active GuessRow from Plan 02-02
 
 ## Known Stubs
 
@@ -115,38 +116,15 @@ None — all animation, haptics, persistence, and loading functionality is wired
 | Tile flip: 200ms flip, 50ms stagger, correct bounce (1.0→1.15→1.0) — all on UI thread via Reanimated | ✓ |
 | Keyboard color updates after last tile reveal completes (not during) | ✓ |
 | Keyboard input queued (not dropped) during animation (D-66) | ✓ |
-| Hard Mode violation triggers shake animation on active GuessRow | ✓ |
+| Hard Mode violation triggers shake animation on active GuessRow + error toast | ✓ |
 | Game state saves on AppState background, restores on foreground | ✓ |
 | Daily sessions persist until UTC midnight reset | ✓ |
 | Loading screen shows branded splash + spinner while dictionary loads | ✓ |
 | Haptics: light impact on key press, medium on tile reveal | ✓ |
 | `npx tsc --noEmit` passes | ✓ |
 
-## Self-Check
+## Deviations
 
-```bash
-# Verify files exist
-for f in \
-  src/constants/animations.ts \
-  src/constants/index.ts \
-  src/components/game/Tile.tsx \
-  src/components/game/Confetti.tsx \
-  src/components/game/Keyboard.tsx \
-  src/components/game/GameBoard.tsx \
-  src/components/game/GuessRow.tsx \
-  src/screens/GameScreen.tsx \
-  src/screens/LoadingScreen.tsx \
-  src/app/App.tsx \
-  src/stores/gameStore.ts \
-  src/services/storage.ts; do
-  [ -f "$f" ] && echo "✓ $f" || echo "✗ MISSING: $f"
-done
+None — plan executed as written.
 
-# Verify commits
-git log --oneline | grep -q "0a5efd4" && echo "✓ commit 0a5efd4 (constants)"
-git log --oneline | grep -q "318cf9e" && echo "✓ commit 318cf9e (tile+confetti)"
-git log --oneline | grep -q "cbf5a90" && echo "✓ commit cbf5a90 (shake+queue)"
-
-# Verify tsc
-npx tsc --noEmit && echo "✓ TypeScript check passed" || echo "✗ TypeScript check FAILED"
-```
+## Self-Check: PASSED
