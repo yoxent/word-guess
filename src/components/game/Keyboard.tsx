@@ -1,9 +1,9 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useGameStore } from '@/stores';
 import { colors } from '@/constants/colors';
 import { layout } from '@/constants/layout';
+import * as Haptics from 'expo-haptics';
 import type { TileFeedback } from '@/types';
 
 const ROWS = [
@@ -29,16 +29,17 @@ function KeyboardComponent() {
   const addPendingInput = useGameStore((s) => s.addPendingInput);
 
   const isPlaying = session?.status === 'playing';
+  const isBlocked = !isPlaying || isRevealing;
 
   const handlePress = useCallback(
     (key: string) => {
-      if (!isPlaying) return;
-
       // Light haptic on any key press (D-18)
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
-      // During animation, queue input instead of dropping (D-66)
+      if (!isPlaying) return;
+
       if (isRevealing) {
+        // Queue input instead of dropping it (D-66: queue preferred)
         addPendingInput(key);
         return;
       }
@@ -64,7 +65,7 @@ function KeyboardComponent() {
   };
 
   const isKeyDisabled = (key: string): boolean => {
-    if (!isPlaying) return true;
+    if (isBlocked) return true;
     if (key === 'ENTER') {
       return currentGuess.length < (session?.letterCount ?? 5);
     }

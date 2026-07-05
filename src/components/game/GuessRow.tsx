@@ -23,7 +23,7 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error
 
   useEffect(() => {
     if (error && isActive) {
-      // Shake animation: left-right oscillation over 250ms
+      // Shake animation: left-right oscillation (D-68)
       shakeX.value = withSequence(
         withTiming(-10, { duration: 50 }),
         withTiming(10, { duration: 50 }),

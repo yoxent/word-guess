@@ -53,7 +53,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       maxAttempts: letterCount + 1,
       startedAt: new Date().toISOString(),
     };
-    set({ session, currentGuess: '', error: null });
+    set({ session, currentGuess: '', error: null, pendingInputs: [] });
   },
 
   addLetter: (letter) => {
@@ -70,26 +70,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
   },
 
   submitGuess: () => {
-    const { session, currentGuess } = get();
-    if (!session || session.status !== 'playing') return;
-
-    // Block input during animation (D-66)
-    set({ isRevealing: true });
+    const { session, currentGuess, isRevealing } = get();
+    if (!session || session.status !== 'playing' || isRevealing) return;
 
     const word = session.word;
     const guess = currentGuess.toUpperCase();
     const len = session.letterCount;
 
     // Validate word length (safety guard — UI should enforce this)
-    if (guess.length !== len) {
-      set({ isRevealing: false });
-      return;
-    }
+    if (guess.length !== len) return;
 
     // Validate guess is in dictionary (D-49)
     const dictStore = useDictionaryStore.getState();
     if (!dictStore.isValidGuess(len, guess)) {
-      set({ error: 'Not in word list', isRevealing: false });
+      set({ error: 'Not in word list' });
       return;
     }
 
@@ -97,10 +91,13 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (session.hardMode && session.guesses.length > 0) {
       const hardModeCheck = validateHardMode(session.feedback, guess);
       if (!hardModeCheck.valid) {
-        set({ error: hardModeCheck.reason || 'Must reuse confirmed tiles', isRevealing: false });
+        set({ error: hardModeCheck.reason || 'Must reuse confirmed tiles' });
         return;
       }
     }
+
+    // Block input during tile reveal animation
+    set({ isRevealing: true });
 
     // Evaluate feedback
     const feedback = evaluateGuess(word, guess);
@@ -137,12 +134,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     });
   },
 
-  resetGame: () => set({ session: null, currentGuess: '', error: null }),
+  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [] }),
 
   setCurrentGuess: (guess) => set({ currentGuess: guess }),
 
   restoreSession: (session) => {
-    set({ session, currentGuess: '', error: null });
+    set({ session, currentGuess: '', error: null, pendingInputs: [] });
   },
 
   clearError: () => set({ error: null }),
@@ -157,39 +154,14 @@ export const useGameStore = create<GameState>()((set, get) => ({
   flushPendingInputs: () => {
     const { pendingInputs } = get();
     if (pendingInputs.length === 0) return;
-
-    // Find ENTER position — if present, process letters/backspaces
-    // before it, then submit the ENTER (which triggers a new animation cycle).
-    // If no ENTER, process all inputs immediately.
-    const enterIndex = pendingInputs.indexOf('ENTER');
-
-    if (enterIndex === -1) {
-      // No ENTER — process all letters/backspaces at once
-      for (const key of pendingInputs) {
-        const state = get();
-        if (key === 'BACKSPACE') {
-          state.removeLetter();
-        } else {
-          state.addLetter(key);
-        }
-      }
-      set({ pendingInputs: [] });
-    } else {
-      // Process letters/backspaces before the ENTER
-      const beforeEnter = pendingInputs.slice(0, enterIndex);
-      for (const key of beforeEnter) {
-        const state = get();
-        if (key === 'BACKSPACE') {
-          state.removeLetter();
-        } else {
-          state.addLetter(key);
-        }
-      }
-      // Keep ENTER + anything after it for the submission
-      const remaining = pendingInputs.slice(enterIndex);
-      set({ pendingInputs: remaining });
-      // Submit the ENTER (sets isRevealing again for next animation cycle)
-      get().submitGuess();
-    }
+    // Process first pending input
+    const key = pendingInputs[0];
+    const rest = pendingInputs.slice(1);
+    set({ pendingInputs: rest });
+    // Route to appropriate action
+    const state = get();
+    if (key === 'ENTER') state.submitGuess();
+    else if (key === 'BACKSPACE') state.removeLetter();
+    else state.addLetter(key);
   },
 }));
