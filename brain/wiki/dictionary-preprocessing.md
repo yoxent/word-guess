@@ -1,5 +1,5 @@
 # dictionary-preprocessing
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [dictionary, preprocessing, build-tools, metro]
 related: [tech-stack, architecture, game-modes, daily-seed, phase-structure]
 
@@ -44,6 +44,7 @@ All output files in `.gitignore` — regenerated on postinstall. 6 lengths × 3 
 1. Reads `dictionary.full.json` (flat word array) → filter by length + blocklist → `valid-{N}.json`
 2. Reads `dictionary.full.enriched.json` (objects with word+definition) → extract words → `{N}.json`, extract defs → `defs-{N}.json`
 3. Both blocklist txt files read at build time, not at runtime — words removed from all outputs
+4. Blocklist entries filtered to 5-10 letters only; case-insensitive matching
 
 ## Metro bundler constraint (CRITICAL)
 Static `require()` with relative paths only. No dynamic require, no `@/` alias:
@@ -59,15 +60,18 @@ isValidWord → check valid-{N}.json (broader list, permissive)
 getRandomWord → pick from {N}.json (curated list, clean)
 ```
 
-## Word counts after cleanup
-| Length | Target (enriched) | Valid guesses (full) |
-|--------|-------------------|---------------------|
-| 5 | ~2,540 | ~11,965 |
-| 6 | ~2,588 | ~21,678 |
-| 7 | ~2,439 | ~32,639 |
-| 8 | ~2,105 | ~40,257 |
-| 9 | ~1,602 | ~41,044 |
-| 10 | ~1,045 | ~35,781 |
+## Word counts after Phase 2 preprocessing
+| Length | Target (enriched) | Valid guesses (full) | Definitions |
+|--------|-------------------|---------------------|-------------|
+| 5 | 2,540 | 11,965 | 2,540 |
+| 6 | 2,588 | 21,678 | 2,588 |
+| 7 | 2,439 | 32,639 | 2,439 |
+| 8 | 2,105 | 40,257 | 2,105 |
+| 9 | 1,602 | 41,044 | 1,602 |
+| 10 | 1,045 | 35,781 | 1,045 |
+| **Total** | **12,319** | **183,364** | **12,319** |
+
+Blocklist: 3,597 unique entries (2,767 profanity + 826 manual + 18 hardcoded fallback), applied to both enriched and full outputs.
 
 ## Endless mode pool
 Endless target = valid guess pool **minus today's daily words** (1 per length, max 6). Same-day exclusion only — daily words return to pool next UTC day.

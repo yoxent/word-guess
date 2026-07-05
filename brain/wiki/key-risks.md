@@ -1,19 +1,22 @@
 # Key Risks
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [risks, pitfalls, critical]
 related: [daily-seed, google-signin, phase-structure, tech-stack]
 
 ## Critical risks (rewrite / store rejection / abandonment)
 
-### P1: JS-thread tile animations stutter
+### P1: JS-thread tile animations stutter (MITIGATED)
 - Cause: Using RN's Animated API (bridges JS thread per frame)
-- Mitigation: Use react-native-reanimated worklets from day one. UI thread only.
+- Mitigation: react-native-reanimated 4.x worklets used exclusively — Tile flip via useSharedValue/useAnimatedStyle, all on UI thread. No JS thread frames during animation.
+- Status: Mitigated in Phase 2. Implementation uses interpolateColor, interpolate for rotateX, withSequence for bounce.
 - Detection: Profile with Flipper during tile reveal. JS thread >16ms frames = fail.
 - Phase: 2 (Core Gameplay)
 
-### P2: Daily seed extraction via APK decompilation
+### P2: Daily seed extraction via APK decompilation (ACCEPTED RISK, SIMPLIFIED)
 - Cause: Private seed as plain JS string. apktool + strings reveals in minutes.
-- Mitigation: Split across native layers (JNI). Derive from app signing key. ProGuard.
+- Decision: Accepted deterministic multi-source hash (DJB2) + ProGuard/R8 minification instead of JNI. No native layer for seed — adequate for casual cheating prevention.
+- Mitigation: Multi-source hash: `APP_SEED + ':' + dateStr + ':' + length` → DJB2 → index. Seed constant `wg-v1-seed-2026` obfuscated via ProGuard.
+- Future: Server-side validation (Phase 5+) to verify submitted daily word.
 - Detection: `apktool d app-release.apk && strings ./ | grep -i seed`
 - Phase: 2 (Core Gameplay)
 
@@ -63,8 +66,10 @@ related: [daily-seed, google-signin, phase-structure, tech-stack]
 - Deferred score queue with retry (3x, exponential backoff). Visible sync status.
 - Phase: 5
 
-### P10: Keyboard flicker during tile reveal
-- Separate component trees. Delayed keyboard color update (after animation completes).
+### P10: Keyboard flicker during tile reveal (MITIGATED)
+- Keyboard wrapped in React.memo (D-63) — prevents re-render during tile animation.
+- Keyboard color update fires after setTimeout matching total animation time.
+- Input queued during animation (D-66) via pendingInputs array, flushed after animation completion.
 - Phase: 2
 
 ### P11: Android back button during animation/ad/IAP

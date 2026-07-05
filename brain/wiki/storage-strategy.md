@@ -1,5 +1,5 @@
 # Storage Strategy
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [storage, persistence, sqlite, mmkv]
 related: [architecture, tech-stack, phase-structure]
 
@@ -65,5 +65,23 @@ Settings store uses persist middleware with this adapter. Game store is session-
 | settingsStore | Yes — MMKV (sync) | MMKV via Zustand adapter |
 | statsStore | No — SQLite-backed (async) | expo-sqlite via storage service |
 | authStore | Yes — AsyncStorage (async) | AsyncStorage via Zustand adapter |
-| gameStore | No — session only | MMKV (active game save/restore only) |
+| gameStore | No — session only | MMKV (active game save/restore via AppState listener) |
 | dictionaryStore | No — in-memory from static require | Pre-bundled JSON at build time |
+
+## MMKV keys added in Phase 2
+| Key | Type | Purpose |
+|-----|------|---------|
+| `daily_completed_<YYYY-MM-DD>` | `number[]` (JSON) | Per-date array of completed daily challenge lengths |
+| `endless_streak` | `number` | Consecutive correct Endless streak count |
+
+### Storage helper functions (in `src/services/storage.ts`)
+- `getDailyCompletedLengths(dateStr): number[]` — reads MMKV, returns array
+- `markDailyCompleted(dateStr, length): void` — appends to array, deduplicates
+- `getEndlessStreak(): number` — reads MMKV number, defaults 0
+- `setEndlessStreak(streak): void` — writes to MMKV
+
+### AppState persistence flow
+- GameScreen registers `AppState.addEventListener('change', ...)` on mount
+- Backgrounding → `saveActiveGame(currentSession)` to MMKV
+- Foregrounding → `getActiveGame()` if session null, calls `restoreSession(saved)`
+- On game completion → `clearActiveGame()` to remove stale session

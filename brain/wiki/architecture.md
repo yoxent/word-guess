@@ -1,16 +1,17 @@
 # architecture
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure]
 
 ## Layer stack
 ```
-Navigation (React Navigation 7.x stack)
-  → Screens (6 route-level components)
-    → Feature Components (GameBoard, Keyboard, ResultModal, LengthPickerModal, etc.)
-      → State Layer (Zustand, 5 stores)
-        → Service Layer (pure logic + SDK wrappers)
-          → Persistence (MMKV / SQLite / AsyncStorage / Firestore)
+App (LoadingScreen → NavigationContainer)
+  → Navigation (React Navigation 7.x stack)
+    → Screens (route-level)
+      → Feature Components (GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti)
+        → State Layer (Zustand, 5 stores)
+          → Service Layer (pure logic + SDK wrappers)
+            → Persistence (MMKV / SQLite / AsyncStorage / Firestore)
 ```
 
 ## Constants layer
@@ -28,15 +29,14 @@ Animation constants tunable after Phase 2 per D-31 — change values in one file
 ## Project structure
 ```
 src/
-├── app/           # App.tsx, providers, Navigation.tsx
-├── screens/       # Home, Game, Result, Stats, Settings, Leaderboard
+├── app/           # App.tsx (loading state → NavigationContainer), providers, Navigation.tsx
+├── screens/       # Home, Game, Loading, Stats, Settings, Leaderboard
 ├── components/
-│   ├── game/      # GameBoard, GuessRow, Tile, Keyboard, ResultModal, LengthPickerModal, Confetti
+│   ├── game/      # Tile, GuessRow, GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti
 │   ├── ui/        # Button, NavMenuButton, etc.
 ├── stores/        # gameStore, statsStore, authStore, settingsStore, dictionaryStore
-├── types/         # game.ts, stats.ts, settings.ts, auth.ts, daily.ts, leaderboard.ts
 ├── services/      # storage.ts, wordLogic.ts, dailySeed.ts, sound.ts (stub)
-├── constants/     # colors.ts, layout.ts, config.ts
+├── constants/     # colors.ts, layout.ts, config.ts, animations.ts
 └── assets/        # dictionary/ (generated .json), sounds/, images/
 ```
 
@@ -59,23 +59,24 @@ src/
 ## Screens
 | Screen | Route | Composed of |
 |--------|-------|-------------|
-| Home | / | ModeSelector, DailyCard, LengthPickerModal |
-| Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay) |
+| Home | / | Mode buttons (Free/Random/Daily/Endless), Hard Mode toggle, LengthPickerModal, nav to Stats/Settings/Leaderboard |
+| Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
+| Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
 | Stats | /stats | StatsCard, GuessDistribution |
 | Settings | /settings | ToggleRow, AccountSection, RestoreButton |
 | Leaderboard | /leaderboard | LeaderboardRow[], AuthPrompt |
-| Result | (unused) | Replaced by ResultModal overlay in Phase 2 |
+| Result | (unused) | Replaced by ResultModal overlay — screen file exists but never navigated to |
 
 ## Game components (Phase 2)
 | Component | Role | Communication |
 |-----------|------|---------------|
-| GameBoard | Grid of GuessRow components | Reads guesses, feedback from gameStore |
-| GuessRow | Single row of Tiles | Receives letter array, feedback array |
-| Tile | Single letter tile with flip animation | Reanimated worklet (useSharedValue, withTiming, withSequence) |
-| Keyboard | On-screen QWERTY with per-key color | Calls gameStore.addLetter/removeLetter/submitGuess |
-| ResultModal | Post-game overlay with definition | Reads game result, loads definition from dictionary |
-| LengthPickerModal | Length selection grid (5-10) | Calls navigation.navigate('Game', {mode, length}) |
-| Confetti | Win-state particle burst | Reanimated worklet, ~30 particles with gravity |
+| GameBoard | Grid of GuessRow components | Reads guesses, feedback, currentGuess, error from gameStore |
+| GuessRow | Single row of Tiles | Receives letter array, feedback array; shake animation on error |
+| Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX |
+| Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press |
+| ResultModal | Post-game overlay | Shows win/loss, target word, definition (defs-{N}.json), emoji grid; Endless "Play Next"; daily completion tracking |
+| LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
+| Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |
 
 ## Services (Phase 2 additions)
 | Service | File | Responsibility |

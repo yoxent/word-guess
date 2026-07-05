@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system]
 
@@ -59,11 +59,13 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 3. Remaining: GRAY
 4. Duplicate handling: if guess has 3 'O's but answer has 1, only 1 'O' shows yellow/green
 
-## Animation timing
+## Animation timing (implemented via constants in src/constants/animations.ts)
 | Action | Duration | Detail |
 |--------|----------|--------|
-| Tile flip | 200ms | Rotate-X, UI thread (Reanimated worklet) |
-| Stagger | 50-80ms | Left-to-right per tile |
-| Correct tile bounce | 1.0→1.15→1.0 | After flip, scale bounce |
-| Keyboard update | After last reveal | Delayed to avoid flicker |
-| Confetti (win) | ~1.5s | Reanimated particle burst, gravity + fade |
+| Tile flip | 200ms | Rotate-X via interpolate(progress, [0,0.5,1], [0,-90,0]), Easing.inOut(Easing.ease) |
+| Stagger | 50ms | Left-to-right per tile, `index * TILE_STAGGER_DELAY` |
+| Correct tile bounce | 100ms up + 100ms down | `withSequence(withTiming(1.15), withTiming(1.0))` after flip |
+| Keyboard update | After last reveal | setTimeout matching total animation time; calls setIsRevealing(false) + flushPendingInputs |
+| Confetti (win) | ~1.5-1.8s | 40 particles, staggered by 15ms, gravity easing, 7 colors |
+| Haptics (key press) | Instant | Haptics.impactAsync(Light) on every key press, fire-and-forget |
+| Haptics (tile reveal) | After animation | Haptics.impactAsync(Medium) after last tile flips |

@@ -1,5 +1,5 @@
 # animation-system
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [animation, reanimated, tile-flip, confetti, performance]
 related: [architecture, game-modes, tech-stack]
 
@@ -35,6 +35,7 @@ related: [architecture, game-modes, tech-stack]
                                                           ↓
                                           Keyboard color update fires here
                                           isRevealing = false (unblock input)
+                                          Haptics.medium fires here
 ```
 
 ## Animation completion timing
@@ -48,9 +49,14 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 
 ### Tile (Reanimated worklet)
 - `useSharedValue(0)` for `flipProgress`, `useSharedValue(1)` for `scale`
-- `useAnimatedStyle()` — `interpolateColor` for background (empty→correct/present/absent midway), `interpolate` for rotateX (0→-90→0)
-- Correct tiles get `withSequence(withTiming(1.15), withTiming(1.0))` after flip
-- Text opacity 0 during flip, 1 after (visible only in final state)
+- `useEffect` on `isRevealing`:
+  - stagger = `index * TILE_STAGGER_DELAY`
+  - Flip: `withDelay(stagger, withTiming(1, {duration: TILE_FLIP_DURATION, easing: Easing.inOut(Easing.ease)}))`
+  - Correct: `withDelay(stagger + TILE_FLIP_DURATION, withSequence(withTiming(1.15, {d:100}), withTiming(1.0, {d:100})))`
+- `useAnimatedStyle()` — `interpolateColor` for background (empty→feedback color midway), `interpolate` for rotateX (0→-90→0)
+- Text opacity: `interpolate(progress, [0,0.5,1], [0,0,1])` — invisible during flip, visible after
+- Uses `isFirstRender` ref to skip initial animation trigger
+- Animated.View + Animated.Text
 
 ### Confetti (Reanimated particle burst)
 - 40 particles, each a colored circle (6-14px random)

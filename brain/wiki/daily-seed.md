@@ -1,13 +1,13 @@
 # daily-seed
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [daily-puzzle, seed, cryptography, offline]
 related: [architecture, game-modes, dictionary-preprocessing, tech-stack]
 
 ## Purpose
 Deterministic daily word generation — same word for all players on same day, no server needed, works offline.
 
-## Implementation (Phase 2, D-25/D-26/D-27)
-**Multi-source hash** with DJB2 (not SHA256 — `crypto` not available in React Native Hermes).
+## Implementation (Phase 2 completed, D-25/D-26/D-27)
+**Multi-source hash** with DJB2 (not SHA256 — `crypto` not available in React Native Hermes). Code lives in `src/services/dailySeed.ts`.
 
 ```
 APP_SEED = 'wg-v1-seed-2026'  # fixed before first release, immutable after
@@ -70,3 +70,4 @@ Phase 1 planned JNI native layer split (Kotlin/C++ + app signing key). Phase 2 s
 - `src/services/dailySeed.ts` — pure JS functions (no RN/expo imports, testable)
 - Called by `dictionaryStore.getTodayDailyWords()` at game start
 - Seed constant `APP_SEED` defined as module-level constant in dailySeed.ts
+- Return type: `{ date: string, words: Record<number, string> }` — 6 words keyed by length 5-10

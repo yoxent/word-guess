@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -26,17 +26,18 @@ Phase 1 (Foundation)
 - **Out:** No game logic, no stats UI
 - **Plan checker found:** Metro requires static require(), VALIDATION.md required for Nyquist
 
-### Phase 2: Core Gameplay
+### Phase 2: Core Gameplay (COMPLETED 2026-07-05)
 - **Goal:** Full playable game — all 4 modes, tile feedback, keyboard, animations, sound stubs, haptics, Hard Mode, daily seed
 - **Reqs:** GAME-01 → GAME-19 (19 reqs — largest phase)
 - **Critical:** Reanimated from day one, seed security (multi-source hash, no JNI), NYT Hard Mode rules with 20+ unit tests
 - **Scope adjustments:** GAME-16 (sound) deferred to no-op stub — actual expo-av files added later by dev. GAME-19 (seed) simplified to multi-source hash + ProGuard, no JNI layer (accepted risk)
 - **Phase 1 dependency:** scaffold, types, dictionary ready
-- **Status:** Planned (4 plans, 3 waves)
-- **Wave 1:** Core logic — dictionary preprocessing update (valid-{N}.json + defs-{N}.json), wordLogic.ts, dailySeed.ts, sound.ts stub, dictionaryStore + gameStore updates (plan 02-01)
-- **Wave 2 (parallel):** Game UI components — Tile/GuessRow/GameBoard/Keyboard/ResultModal/Confetti + GameScreen (02-02). Mode routing — LengthPickerModal, HomeScreen (Free/Random/Daily/Endless), daily completion tracking, Endless "Play Next", definition lookup (02-03)
-- **Wave 3:** Polish — Reanimated animations, animation constants (tunable per D-31), AppState persistence, LoadingScreen, haptics, Hard Mode shake/toast (02-04)
+- **Status:** Complete (4 plans, 3 waves, 16 commits, 23 source files)
+- **Wave 1:** Core logic — dictionary preprocessing update (valid-{N}.json + defs-{N}.json), wordLogic.ts, dailySeed.ts, sound.ts stub, dictionaryStore + gameStore updates (plan 02-01) — 3 tasks
+- **Wave 2 (sequential — overlap on ResultModal.tsx):** Game UI components — Tile/GuessRow/GameBoard/Keyboard/ResultModal/Confetti + GameScreen (02-02). Mode routing — LengthPickerModal, HomeScreen (Free/Random/Daily/Endless), daily completion tracking, Endless "Play Next", definition lookup (02-03) — 6 tasks
+- **Wave 3:** Polish — Reanimated animations, animation constants (tunable per D-31), AppState persistence, LoadingScreen, haptics, Hard Mode shake/toast (02-04) — 4 tasks
 - **Out:** No stats tracking (Phase 3), no ads/IAP (Phase 4), no cloud sync (Phase 5)
+- **Key artifacts:** 7 game components, LoadingScreen, wordLogic/dailySeed/sound services, animation constants, AppState persistence, haptics wiring
 
 ### Phase 3: Stats & Settings
 - **Goal:** Persistent stats, settings screen, share results
