@@ -1,7 +1,7 @@
 # dictionary-preprocessing
-updated: 2026-07-05
+updated: 2026-07-05 (case sensitivity fix)
 tags: [dictionary, preprocessing, build-tools, metro]
-related: [tech-stack, architecture, game-modes, daily-seed, phase-structure]
+related: [tech-stack, architecture, game-modes, daily-seed, phase-structure, key-risks]
 
 ## Two-tier dictionary system
 Two source files, both preprocessed into three output files per length:
@@ -59,6 +59,16 @@ const defs5: Record<string, string> = require('../../assets/dictionary/defs-5.js
 isValidWord → check valid-{N}.json (broader list, permissive)
 getRandomWord → pick from {N}.json (curated list, clean)
 ```
+
+## Case sensitivity (critical)
+All JSON output files store words in **lowercase**. Lookups must use `.toLowerCase()` to match.
+
+| File | Stored Case | Lookup Method | Reason |
+|------|-------------|---------------|--------|
+| `{N}.json`, `valid-{N}.json` | lowercase | `.toLowerCase()` | Preprocessing script uses `.toLowerCase().trim()` on all words |
+| `defs-{N}.json` | UPPERCASE keys | `.toUpperCase()` | Definition map keys are uppercased for quick direct access |
+
+**Bug history:** P14-era fix (2026-07-05) — `isValidGuess`/`isValidWord` in dictionaryStore used `.toUpperCase()` against lowercase lists, causing all guesses to fail as "Not in word list". Fixed by changing to `.toLowerCase()`.
 
 ## Word counts after Phase 2 preprocessing
 | Length | Target (enriched) | Valid guesses (full) | Definitions |

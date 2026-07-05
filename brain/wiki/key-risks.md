@@ -1,7 +1,7 @@
 # Key Risks
-updated: 2026-07-05 (UI review findings)
+updated: 2026-07-05 (added P21 dictionary case fix)
 tags: [risks, pitfalls, critical]
-related: [daily-seed, google-signin, phase-structure, tech-stack]
+related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing]
 
 ## Critical risks (rewrite / store rejection / abandonment)
 
@@ -80,6 +80,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack]
 - Cause: `gameStore.flushPendingInputs()` dequeued and processed exactly 1 item per call, then stopped. If user typed N keys during tile reveal animation, only the first was applied.
 - Impact: Silent dropped keystrokes — user types during animation, letters vanish.
 - Fix: `setTimeout(() => get().flushPendingInputs(), 0)` after each non-ENTER input — recursively drains queue until empty. ENTER stops draining (triggers new animation → submission path handles re-flush).
+- Phase: 2 (Core Gameplay)
+
+### P21: Dictionary case mismatch — all guesses rejected as "Not in word list" (FIXED 2026-07-05)
+- Cause: `isValidGuess`/`isValidWord` in dictionaryStore used `.toUpperCase()` for set lookup, but valid-{N}.json and {N}.json files store words in **lowercase** (from preprocessing script). Set.has() is case-sensitive, so every word failed.
+- Impact: All guesses rejected. Game unplayable.
+- Fix: Changed lookups to `.toLowerCase()`. Also normalized `session.word.toUpperCase()` in `submitGuess` for `evaluateGuess()` case-sensitive character comparison.
+- Detection: Word-level validation always fails regardless of input.
 - Phase: 2 (Core Gameplay)
 
 ### P15: White confetti particles invisible on dark overlay (UNFIXED)

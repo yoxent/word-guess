@@ -1,15 +1,11 @@
 # game-modes
-updated: 2026-07-05 (streak rules)
+updated: 2026-07-05 (removed Free Play, added continue-game prompt)
 tags: [gameplay, modes, game-design]
-related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system]
+related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup]
 
-## Four modes
+## Three modes
 
-### Free Play
-- Player picks letter count 5-10 via modal/grid picker before game
-- Random target word from enriched dictionary (curated, clean)
-- Guess validated against full dictionary (broader, permissive)
-- Unlimited plays, no daily reset
+**Free Play removed (2026-07-05):** Functionally identical to Endless (pick length, unlimited plays). Merged into Endless mode.
 
 ### Random
 - Auto-assigned random letter count (5-10) each game
@@ -31,10 +27,16 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Same-day exclusion only — daily words return to pool next UTC day
 - Player guesses validated against full dictionary (no exclusions)
 
+## Continue game prompt
+When selecting a game mode from Home, if a saved in-progress game exists with matching `mode` + `letterCount`, an Alert prompts: "Continue Game?" with Continue / New Game / Cancel options.
+- **Continue:** navigates to Game → init code detects saved game via `getActiveGame()` and restores it
+- **New Game:** `clearActiveGame()` then navigates fresh
+- Saved on back nav (GameScreen `handleBack`), unmount cleanup, and AppState background
+
 ## Streak tracking (per-mode, Phase 3)
-- **Per-mode:** Daily Challenge streak tracked separately from non-daily modes (Free Play + Random share a streak). Endless has its own streak (existing MMKV key, Phase 2).
+- **Per-mode:** Daily Challenge streak tracked separately from non-daily modes (Random + Free Play share a streak). Endless has its own streak (existing MMKV key, Phase 2).
 - **Reset:** Streak resets to 0 when player reaches `lost` state. Win keeps streak going; loss breaks it.
-- **Endless:** Endless streak (consecutive correct words) stored in MMKV via `getEndlessStreak`/`setEndlessStreak`, tracked independently of Daily/Free/Random streaks.
+- **Endless:** Endless streak (consecutive correct words) stored in MMKV via `getEndlessStreak`/`setEndlessStreak`, tracked independently of Daily/Random streaks.
 - **Overview streak display:** When viewing stats generically, shows last-played mode's streak.
 - **SQLite storage:** Game history table records won/lost per game. Streak computed by SQL aggregation queries ordering by `completed_at DESC` and grouping consecutive wins.
 

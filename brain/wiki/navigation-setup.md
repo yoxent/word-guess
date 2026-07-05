@@ -1,7 +1,7 @@
 # navigation-setup
-updated: 2026-07-05
+updated: 2026-07-05 (Home icon bar reorder/medal, Game header redesign)
 tags: [navigation, react-navigation, screens, stack]
-related: [architecture, phase-structure, tech-stack]
+related: [architecture, phase-structure, tech-stack, game-modes]
 
 ## Stack
 - Library: `@react-navigation/native-stack` v7.17.9 (NOT 8.x — verified against npm registry)
@@ -20,16 +20,17 @@ related: [architecture, phase-structure, tech-stack]
 
 ## Game loop flow (D-17)
 ```
-Home → Game → Result → Home (Free/Random/Daily modes)
+Home → Game → Result → Home (Random/Daily modes)
                        → Game (Endless mode — auto-advance)
 ```
+Free Play removed (merged into Endless).
 
 ## NavMenuButton pattern (D-18, modified 2026-07-05)
 - `NavMenuButton` renders in `headerRight` of Stats, Settings, Leaderboard screens
 - Home screen: `headerShown: false` — navigation header removed entirely
-- Home navigation replaced by top-right icon bar with MaterialIcons: bar-chart (Stats), settings (Settings), leaderboard (Leaderboard)
+- Home navigation replaced by top-right icon bar with MaterialIcons (order left→right): `emoji-events` (Stats/medal), `leaderboard` (Leaderboard), `settings` (Settings)
 - Uses `@expo/vector-icons/MaterialIcons` — installed as explicit dependency
-- Game screen: `headerShown: false`, custom header with arrow-back-ios icon button (40×40, borderRadius 20, circular)
+- Game screen: `headerShown: false`, custom header with arrow-back-ios icon (40×40, default nav style). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: 20`. Header spans full width via `marginHorizontal: -20`. No attempts counter (shown in GameBoard).
 - Result screen: `headerShown: false` — clean reveal experience
 
 ## TypeScript setup — RootStackParamList

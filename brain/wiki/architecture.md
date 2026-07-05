@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-05 (keyboard flex layout, Tile opacity fix)
+updated: 2026-07-05 (dynamic tile sizing, safe area, error toast overlay)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
 
@@ -18,7 +18,7 @@ App (LoadingScreen → NavigationContainer)
 ```
 src/constants/
 ├── colors.ts       # Tile/key colors (correct=#6aaa64, present=#c9b458, absent=#787c7e, etc.)
-├── layout.ts       # Tile/key dimensions (tileSize, keyboardKeyHeight, gaps)
+├── layout.ts       # Base tile/key constants (tileGap, tileBorderRadius, keyboardKeyHeight, gaps). Actual tileSize computed dynamically per-word-length
 ├── config.ts       # Game config (base attempts = letterCount+1, word length range 5-10)
 ├── animations.ts   # Animation timing (TILE_FLIP_DURATION=200, TILE_STAGGER_DELAY=50, bounce params, confetti count)
 └── index.ts        # Barrel re-export
@@ -62,11 +62,13 @@ src/
 9. **Keyboard flex layout** — Keys use `flex: 1` distribution (not minWidth/justifyContent:center). Row fills width evenly, action keys get `flex: 1.5`. Row 2 (9 keys) uses a `flex: 0.5` spacer for QWERTY centering. `screenPadding` reduced to 6px for more game space.
 10. **Tile text visibility during flip** — Opacity interpolation `[0, 0.5, 1] → [1, 0, 1]` — letter visible before flip (progress 0, active typing), hidden mid-flip (progress 0.5, rotation orthogonal), visible after (progress 1, revealed). `isEmpty` only checks letter value, not feedback status — active row tiles show letters even with `feedback='empty'`.
 11. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
+12. **Dynamic tile sizing** — `tileSize` not a fixed constant. Computed in GameBoard from `screenWidth`, `wordLength`, `tileGap`, and container padding. Passed as prop through `GameBoard → GuessRow → Tile`. Font scales proportionally (`tileSize × 0.48`). Caps at 56px max, floors at 32px min. Fits all word lengths 5-10 on any screen width.
+13. **Safe area insets** — Home and Game screens use `useSafeAreaInsets()` from `react-native-safe-area-context`. Top offset for status bar, bottom for gesture bar. Container applies `paddingHorizontal: 20` centrally (GameScreen) or `padding: 24` (HomeScreen). Headers use negative margins to span full-width behind the padding.
 
 ## Screens
 | Screen | Route | Composed of |
 |--------|-------|-------------|
-| Home | / | Mode buttons (Free/Random/Daily/Endless), Hard Mode toggle, LengthPickerModal, nav to Stats/Settings/Leaderboard |
+| Home | / | Mode buttons (Daily/Endless/Random), Hard Mode toggle, LengthPickerModal, nav to Stats/Leaderboard/Settings via top-right icon bar (medal, leaderboard, settings) |
 | Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
 | Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
 | Stats | /stats | StatsCard, GuessDistribution |
@@ -77,10 +79,10 @@ src/
 ## Game components (Phase 2)
 | Component | Role | Communication |
 |-----------|------|---------------|
-| GameBoard | Grid of GuessRow components | Reads guesses, feedback, currentGuess, error from gameStore |
-| GuessRow | Single row of Tiles | Receives letter array, feedback array; shake animation on error |
-| Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX |
-| Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press |
+| GameBoard | Grid of GuessRow components | Reads guesses, feedback, currentGuess, error from gameStore. Computes dynamic `tileSize` from screen width + wordLength + tileGap. Passes to GuessRow. |
+| GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. |
+| Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX. Uses `tileSize` prop for width/height + font size. |
+| Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
 | ResultModal | Post-game overlay | Shows win/loss, target word, definition (defs-{N}.json), emoji grid; Endless "Play Next"; daily completion tracking |
 | LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
 | Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |

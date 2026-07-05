@@ -1,7 +1,7 @@
 # Storage Strategy
-updated: 2026-07-05 (stats aggregation)
+updated: 2026-07-05 (3 persistence triggers, continue-game prompt)
 tags: [storage, persistence, sqlite, mmkv]
-related: [architecture, tech-stack, phase-structure]
+related: [architecture, tech-stack, phase-structure, game-modes]
 
 ## Three-tier split
 | Store | Technology | Why |
@@ -101,12 +101,23 @@ SELECT letter_count, COUNT(*) as played, SUM(won) as won FROM game_history GROUP
 ### Per-mode streak computation
 - Query `completed_at DESC`, group by `mode`
 - Daily Challenge: filter `mode = 'daily'`, count consecutive wins
-- Non-daily (Free Play + Random): filter `mode IN ('free', 'random')`, count consecutive wins
+- Non-daily (Random + Free Play — Free Play removed from UI but type preserved): filter `mode IN ('free', 'random')`, count consecutive wins
 - Endless: uses separate MMKV `endless_streak` key (not SQLite)
 - Streak resets to 0 on first `won = 0` row in the consecutive chain
 
-### AppState persistence flow
-- GameScreen registers `AppState.addEventListener('change', ...)` on mount
-- Backgrounding → `saveActiveGame(currentSession)` to MMKV
-- Foregrounding → `getActiveGame()` if session null, calls `restoreSession(saved)`
-- On game completion → `clearActiveGame()` to remove stale session
+### Game persistence (3 triggers)
+| Trigger | Action | When |
+|---------|--------|------|
+| AppState background | `saveActiveGame()` | App goes to background (phone lock, switch apps) |
+| Back navigation | `saveActiveGame()` | User taps back arrow from GameScreen (via `handleBack`) |
+| Component unmount | `saveActiveGame()` | Android hardware back, swipe gesture, or screen unmount |
+
+Restore: GameScreen init checks `getActiveGame()` for saved session matching `mode`. If found, restores via `restoreSession()`.
+
+Clear: `clearActiveGame()` called on game completion (win/loss) or explicit "New Game" from Home prompt.
+
+### Continue game prompt
+Home screen checks for saved game when user selects a mode+length. If saved game exists with matching `mode` + `letterCount` + `status === 'playing'`, shows Alert:
+> Continue Game? [Continue] [New Game] [Cancel]
+- **Continue** → navigates, GameScreen restores saved session
+- **New Game** → `clearActiveGame()` then navigates fresh
