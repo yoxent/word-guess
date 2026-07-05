@@ -7,6 +7,7 @@ interface GameState {
   session: GameSession | null;
   currentGuess: string;
   error: string | null;
+  isRevealing: boolean;
 
   startGame: (mode: GameMode, word: string, letterCount: number, hardMode: boolean) => void;
   addLetter: (letter: string) => void;
@@ -16,6 +17,7 @@ interface GameState {
   setCurrentGuess: (guess: string) => void;
   restoreSession: (session: GameSession) => void;
   clearError: () => void;
+  setIsRevealing: (revealing: boolean) => void;
 }
 
 // Priority order for key color accumulation: correct > present > absent > empty
@@ -30,6 +32,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   session: null,
   currentGuess: '',
   error: null,
+  isRevealing: false,
 
   startGame: (mode, word, letterCount, hardMode) => {
     const session: GameSession = {
@@ -133,4 +136,6 @@ export const useGameStore = create<GameState>()((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  setIsRevealing: (revealing) => set({ isRevealing: revealing }),
 }));
