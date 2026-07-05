@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { mmkvZustandStorage } from '@/services/storage';
-import type { AppSettings } from '@/types';
+import { mmkvZustandStorage } from '../services/storage';
+import type { AppSettings } from '../types';
 
 interface SettingsState extends AppSettings {
   toggleHardMode: () => void;

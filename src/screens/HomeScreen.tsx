@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList, GameMode } from '@/types';
-import { colors } from '@/constants/colors';
-import { Button } from '@/components/ui';
-import { LengthPickerModal } from '@/components/game';
-import { useSettingsStore } from '@/stores';
-import { getDailyDateString, getDailyCompletedLengths } from '@/services';
+import type { RootStackParamList, GameMode } from '../types';
+import { colors } from '../constants/colors';
+import { Button } from '../components/ui';
+import { LengthPickerModal } from '../components/game';
+import { useSettingsStore } from '../stores';
+import { getDailyDateString, getDailyCompletedLengths } from '../services';
 
 type HomeNav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 

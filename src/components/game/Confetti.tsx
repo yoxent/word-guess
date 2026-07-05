@@ -12,7 +12,7 @@ import {
   CONFETTI_PARTICLE_COUNT,
   CONFETTI_DURATION,
   CONFETTI_STAGGER_DELAY,
-} from '@/constants/animations';
+} from '../../constants/animations';
 
 const PARTICLE_COLORS = [
   '#6aaa64',

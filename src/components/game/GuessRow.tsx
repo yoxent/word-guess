@@ -6,8 +6,8 @@ import Animated, {
   withTiming,
   useAnimatedStyle,
 } from 'react-native-reanimated';
-import type { GuessFeedback } from '@/types';
-import { layout } from '@/constants/layout';
+import type { GuessFeedback } from '../../types';
+import { layout } from '../../constants/layout';
 import { Tile } from './Tile';
 
 interface GuessRowProps {

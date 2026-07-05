@@ -1,10 +1,10 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useGameStore } from '@/stores';
-import { colors } from '@/constants/colors';
-import { layout } from '@/constants/layout';
+import { useGameStore } from '../../stores';
+import { colors } from '../../constants/colors';
+import { layout } from '../../constants/layout';
 import * as Haptics from 'expo-haptics';
-import type { TileFeedback } from '@/types';
+import type { TileFeedback } from '../../types';
 
 const ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],

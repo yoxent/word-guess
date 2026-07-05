@@ -2,19 +2,19 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Modal, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types';
-import { useGameStore, useSettingsStore } from '@/stores';
-import { useDictionaryStore } from '@/stores/dictionaryStore';
-import { colors } from '@/constants/colors';
-import { Button } from '@/components/ui';
+import type { RootStackParamList } from '../../types';
+import { useGameStore, useSettingsStore } from '../../stores';
+import { useDictionaryStore } from '../../stores/dictionaryStore';
+import { colors } from '../../constants/colors';
+import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
 import {
   clearActiveGame,
   getEndlessStreak,
   setEndlessStreak as persistEndlessStreak,
   markDailyCompleted,
-} from '@/services/storage';
-import { getDailyDateString } from '@/services/dailySeed';
+} from '../../services/storage';
+import { getDailyDateString } from '../../services/dailySeed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 

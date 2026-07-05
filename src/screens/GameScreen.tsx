@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, AppState, AppStateStatus, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import type { ScreenProps } from '@/types';
-import { colors } from '@/constants/colors';
-import { useGameStore, useDictionaryStore } from '@/stores';
+import type { ScreenProps } from '../types';
+import { colors } from '../constants/colors';
+import { useGameStore, useDictionaryStore } from '../stores';
 import {
   getActiveGame,
   saveActiveGame,
@@ -11,18 +11,18 @@ import {
   markDailyCompleted,
   getEndlessStreak,
   setEndlessStreak as persistEndlessStreak,
-} from '@/services/storage';
-import { getDailyDateString } from '@/services/dailySeed';
+} from '../services/storage';
+import { getDailyDateString } from '../services/dailySeed';
 import {
   TILE_FLIP_DURATION,
   TILE_STAGGER_DELAY,
   ANIMATION_COMPLETION_BUFFER,
   TILE_CORRECT_BOUNCE_EXTRA,
-} from '@/constants/animations';
-import { GameBoard } from '@/components/game/GameBoard';
-import { Keyboard } from '@/components/game/Keyboard';
-import { ResultModal } from '@/components/game/ResultModal';
-import type { GameMode } from '@/types';
+} from '../constants/animations';
+import { GameBoard } from '../components/game/GameBoard';
+import { Keyboard } from '../components/game/Keyboard';
+import { ResultModal } from '../components/game/ResultModal';
+import type { GameMode } from '../types';
 
 type Props = ScreenProps<'Game'>;
 

@@ -8,7 +8,7 @@
  * @see brain/wiki/architecture.md
  */
 
-import type { GuessFeedback, TileFeedback } from '@/types';
+import type { GuessFeedback, TileFeedback } from '../types';
 
 /**
  * Evaluates a guess against the target word using Wordle duplicate-letter rules.

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '@/types';
-import { evaluateGuess, validateHardMode } from '@/services/wordLogic';
+import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../types';
+import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { useDictionaryStore } from './dictionaryStore';
 
 interface GameState {

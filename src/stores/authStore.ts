@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setAuthToken } from '@/services/storage';
-import type { AuthState } from '@/types';
+import { setAuthToken } from '../services/storage';
+import type { AuthState } from '../types';
 
 interface AuthStoreState extends AuthState {
   setPlayer: (playerId: string, playerName: string, token: string) => Promise<void>;

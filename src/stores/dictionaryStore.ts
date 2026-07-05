@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDailyDateString, getDailyWordIndex } from '@/services/dailySeed';
+import { getDailyDateString, getDailyWordIndex } from '../services/dailySeed';
 
 // ── Target words (enriched dictionary, curated ~12K total) ──
 const wordList5: string[] = require('../../assets/dictionary/5.json');

@@ -3,7 +3,7 @@ import type { MMKV } from 'react-native-mmkv';
 import type { StateStorage } from 'zustand/middleware';
 import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AppSettings, GameSession, PlayerStats } from '@/types';
+import type { AppSettings, GameSession, PlayerStats } from '../types';
 
 // ── MMKV: synchronous KV for settings + active game state (D-21) ──
 const mmkv: MMKV = createMMKV({ id: 'app-settings' });

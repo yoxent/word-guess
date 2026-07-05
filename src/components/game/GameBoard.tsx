@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useGameStore } from '@/stores';
-import { colors } from '@/constants/colors';
-import { layout } from '@/constants/layout';
+import { useGameStore } from '../../stores';
+import { colors } from '../../constants/colors';
+import { layout } from '../../constants/layout';
 import { GuessRow } from './GuessRow';
-import type { GuessFeedback } from '@/types';
+import type { GuessFeedback } from '../../types';
 
 export function GameBoard() {
   const session = useGameStore((s) => s.session);

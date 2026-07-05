@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { TouchableOpacity, Text, Alert, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/types';
+import type { RootStackParamList } from '../types';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   HomeScreen,
@@ -11,8 +11,8 @@ import {
   StatsScreen,
   SettingsScreen,
   LeaderboardScreen,
-} from '@/screens';
-import { colors } from '@/constants/colors';
+} from '../screens';
+import { colors } from '../constants/colors';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 

@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors } from '@/constants/colors';
+import { colors } from '../../constants/colors';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 

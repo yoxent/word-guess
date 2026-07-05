@@ -10,9 +10,9 @@ import Animated, {
   interpolateColor,
   Easing,
 } from 'react-native-reanimated';
-import type { TileFeedback } from '@/types';
-import { colors } from '@/constants/colors';
-import { layout } from '@/constants/layout';
+import type { TileFeedback } from '../../types';
+import { colors } from '../../constants/colors';
+import { layout } from '../../constants/layout';
 import {
   TILE_FLIP_DURATION,
   TILE_STAGGER_DELAY,
@@ -20,7 +20,7 @@ import {
   TILE_BOUNCE_SCALE_DOWN,
   TILE_BOUNCE_MAX,
   TILE_BOUNCE_NORMAL,
-} from '@/constants/animations';
+} from '../../constants/animations';
 
 interface TileProps {
   letter: string;

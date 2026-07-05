@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { getStats, saveGameResult, initDatabase } from '@/services/storage';
-import type { PlayerStats } from '@/types';
+import { getStats, saveGameResult, initDatabase } from '../services/storage';
+import type { PlayerStats } from '../types';
 
 interface StatsState {
   stats: PlayerStats | null;

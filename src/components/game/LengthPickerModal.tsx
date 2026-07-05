@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import type { GameMode } from '@/types';
-import { colors } from '@/constants/colors';
+import type { GameMode } from '../../types';
+import { colors } from '../../constants/colors';
 
 const LENGTHS = [5, 6, 7, 8, 9, 10];
 

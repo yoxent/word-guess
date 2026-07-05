@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ScreenProps, RootStackParamList } from '@/types';
-import { colors } from '@/constants/colors';
-import { Button } from '@/components/ui';
+import type { ScreenProps, RootStackParamList } from '../types';
+import { colors } from '../constants/colors';
+import { Button } from '../components/ui';
 
 type Props = ScreenProps<'Result'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
