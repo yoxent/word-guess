@@ -76,11 +76,10 @@ related: [daily-seed, google-signin, phase-structure, tech-stack]
 - BackHandler listener per screen. Block during critical states. Graceful skip on back.
 - Phase: 1 (Foundation) + Phase 4 (Monetization)
 
-### P14: Input queue processing bug — flushPendingInputs drains only 1 item (UNFIXED)
-- Cause: `gameStore.flushPendingInputs()` dequeues and processes exactly 1 item per call, then stops. If user types N keys during tile reveal animation, only the first is applied. Remaining inputs stay in `pendingInputs[]` indefinitely.
+### P14: Input queue processing bug — flushPendingInputs drains only 1 item (FIXED 2026-07-05)
+- Cause: `gameStore.flushPendingInputs()` dequeued and processed exactly 1 item per call, then stopped. If user typed N keys during tile reveal animation, only the first was applied.
 - Impact: Silent dropped keystrokes — user types during animation, letters vanish.
-- Detection: Type rapidly during tile reveal; only first letter survives.
-- Fix: Loop-drain all queued inputs, stopping only on ENTER (triggers new submitGuess → new animation → re-flush).
+- Fix: `setTimeout(() => get().flushPendingInputs(), 0)` after each non-ENTER input — recursively drains queue until empty. ENTER stops draining (triggers new animation → submission path handles re-flush).
 - Phase: 2 (Core Gameplay)
 
 ### P15: White confetti particles invisible on dark overlay (UNFIXED)

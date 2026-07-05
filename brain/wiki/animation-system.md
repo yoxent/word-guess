@@ -79,11 +79,11 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 - `gameStore.flushPendingInputs()` — process queue after animation completes
 - Timer managed via `setTimeout` in GameScreen `useEffect` (with `clearTimeout` cleanup)
 
-## Input queue bug (July 2026 — UNFIXED)
-- `flushPendingInputs()` processes **only 1 queued item** per call, then returns. Remaining inputs stay in `pendingInputs[]` indefinitely.
-- Impact: User typing N keys during animation loses N-1 characters silently.
-- Fix: Loop-drain all queued inputs, stopping on ENTER only (ENTER triggers new submitGuess → new animation → re-flush).
-- Tracked as P14 in key-risks.md.
+## Input queue bug (FIXED 2026-07-05)
+- `flushPendingInputs()` originally processed only 1 queued item per call (P14).
+- Fix: `setTimeout(() => get().flushPendingInputs(), 0)` after each non-ENTER input — recursively drains queue on next tick.
+- ENTER: processed once, then stops (ENTER triggers new submitGuess → new animation → `flushPendingInputs()` called again after animation completes).
+- Now fully drains rapid typing during animation.
 
 ## typegpu-confetti (evaluated, deferred)
 - v0.3.0, WebGPU on Android experimental

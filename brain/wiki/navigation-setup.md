@@ -1,5 +1,5 @@
 # navigation-setup
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [navigation, react-navigation, screens, stack]
 related: [architecture, phase-structure, tech-stack]
 
@@ -11,7 +11,7 @@ related: [architecture, phase-structure, tech-stack]
 ## 6 screens
 | Screen | Route Name | headerShown | Notes |
 |--------|-----------|-------------|-------|
-| Home | Home | yes + headerRight NavMenuButton | Mode selection |
+| Home | Home | no (headerShown: false) | Mode selection + top-right icon bar |
 | Game | Game | no (full-screen game) | Tile board + keyboard |
 | Result | Result | no | Win/loss reveal |
 | Stats | Statistics | yes + headerRight NavMenuButton | Personal stats |
@@ -24,12 +24,13 @@ Home → Game → Result → Home (Free/Random/Daily modes)
                        → Game (Endless mode — auto-advance)
 ```
 
-## NavMenuButton pattern (D-18)
-- `NavMenuButton` component renders in `headerRight` of all non-game screens (Home, Stats, Settings, Leaderboard)
-- Uses `Alert.alert()` with action-sheet-style options: Home, Statistics, Settings, Leaderboard, Cancel
-- Implementation: `useNavigation<NativeStackNavigationProp<RootStackParamList>>()` for type-safe navigation
-- Game screen has `headerShown: false` — no header, full concentration on gameplay
-- Result screen also has `headerShown: false` — clean reveal experience
+## NavMenuButton pattern (D-18, modified 2026-07-05)
+- `NavMenuButton` renders in `headerRight` of Stats, Settings, Leaderboard screens
+- Home screen: `headerShown: false` — navigation header removed entirely
+- Home navigation replaced by top-right icon bar with MaterialIcons: bar-chart (Stats), settings (Settings), leaderboard (Leaderboard)
+- Uses `@expo/vector-icons/MaterialIcons` — installed as explicit dependency
+- Game screen: `headerShown: false`, custom header with arrow-back-ios icon button (40×40, borderRadius 20, circular)
+- Result screen: `headerShown: false` — clean reveal experience
 
 ## TypeScript setup — RootStackParamList
 ```typescript

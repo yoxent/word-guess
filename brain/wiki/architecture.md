@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-05 (@/ alias removed, root App.tsx)
+updated: 2026-07-05 (keyboard flex layout, Tile opacity fix)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
 
@@ -59,7 +59,9 @@ src/
 6. **Barrel files** — each directory has `index.ts` re-exporting all exports. Import via relative paths (no `@/` alias — Metro can't resolve TypeScript path aliases).
 7. **Static require() for bundled assets** — Metro cannot resolve dynamic require(). Always use static require() with relative paths.
 8. **Separate component subtrees** — Keyboard isolated as distinct subtree (React.memo) to prevent re-render interference with tile reveal animations.
-9. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
+9. **Keyboard flex layout** — Keys use `flex: 1` distribution (not minWidth/justifyContent:center). Row fills width evenly, action keys get `flex: 1.5`. Row 2 (9 keys) uses a `flex: 0.5` spacer for QWERTY centering. `screenPadding` reduced to 6px for more game space.
+10. **Tile text visibility during flip** — Opacity interpolation `[0, 0.5, 1] → [1, 0, 1]` — letter visible before flip (progress 0, active typing), hidden mid-flip (progress 0.5, rotation orthogonal), visible after (progress 1, revealed). `isEmpty` only checks letter value, not feedback status — active row tiles show letters even with `feedback='empty'`.
+11. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
 
 ## Screens
 | Screen | Route | Composed of |

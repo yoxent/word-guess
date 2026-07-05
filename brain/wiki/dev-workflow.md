@@ -1,5 +1,5 @@
 # dev-workflow
-updated: 2026-07-05 (port mgmt, stop)
+updated: 2026-07-05 (prebuild wipe, version check)
 tags: [workflow, android-studio, metro, emulator, dev-loop]
 related: [tech-stack, android-build-setup]
 
@@ -46,6 +46,13 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 - Direct edits to `android/` files are **overwritten** on next `npx expo prebuild`
 - For permanent native changes: use Expo config plugins in `app.json` instead
 - After adding a new Expo plugin: `npx expo prebuild` re-generates android/ with plugin applied
+- **`npx expo prebuild --clean` wipes `local.properties`** — must recreate after each clean prebuild (see android-build-setup.md)
+
+## Version alignment check
+- Run `npx expo install --check` after any package.json changes to verify native module SDK compatibility
+- Fix mismatches with `npx expo install <package>` (handles version alignment automatically)
+- Never `npm install expo-*` packages directly — always use `npx expo install`
+- Symptom of mismatched versions: `NoClassDefFoundError` at runtime (native Kotlin/Java classes missing from expo-modules-core)
 
 ## Asset icons
 Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 (Pre-Launch & Polish).

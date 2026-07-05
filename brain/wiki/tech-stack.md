@@ -19,9 +19,9 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | Navigation | @react-navigation/native | ^7.3.7 | NOT 7.17.0 — that version doesn't exist on npm |
 | Native Stack | @react-navigation/native-stack | ^7.17.9 | Latest 7.x |
 | Screens | react-native-screens | 4.25.2 | 4.26+ only nightly |
-| Safe area | react-native-safe-area-context | 5.8.0 | Latest stable |
-| Animations | react-native-reanimated | ~4.5.1 | 4.6 only nightly |
-| Gestures | react-native-gesture-handler | ~3.0.2 | Latest stable (v3 line) |
+| Safe area | react-native-safe-area-context | 5.7.0 | Aligned with Expo SDK 57 |
+| Animations | react-native-reanimated | 4.5.0 | Aligned with Expo SDK 57 |
+| Gestures | react-native-gesture-handler | 2.32.0 | Latest stable (v2 line, compatible with SDK 57) |
 | Audio | expo-av | SDK 57 | |
 | Haptics | expo-haptics | SDK 57 | |
 | Clipboard | expo-clipboard | SDK 57 | |
@@ -32,7 +32,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | State | Zustand | 5.0.14 | 5 stores (game, stats, auth, settings, dictionary) |
 | KV store | react-native-mmkv | 4.3.2 | Settings + active game state (sync writes) |
 | SQL | expo-sqlite | 57.0.0 | Game history (aggregated stats) |
-| KV fallback | @react-native-async-storage | 3.1.1 | Auth tokens only |
+| KV fallback | @react-native-async-storage | 2.2.0 | Auth tokens only |
 
 ## Cloud & Auth
 | Layer | Choice | Version |
@@ -90,6 +90,24 @@ RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.t
 
 ### react-native-mmkv needs react-native-nitro-modules installed separately
 `react-native-mmkv@4.3.2` has `react-native-nitro-modules` as a **peer dep** (not auto-installed). Fix: `npx expo install react-native-nitro-modules && npx expo prebuild`. Without this, Gradle fails with `Project with path ':react-native-nitro-modules' could not be found`.
+
+### expo-sqlite version must match Expo SDK major
+`expo-sqlite@15.2.x` is incompatible with `expo@57.0.2` — causes `NoClassDefFoundError: AnyTypeProvider` at runtime (SQLiteModule.kt:676). The v15 line targets a different SDK major.
+- Fix: `npx expo install expo-sqlite` installs the correct `~57.0.0` version.
+- Always run `npx expo install --check` after package.json changes to verify SDK compatibility.
+- Never `npm install expo-sqlite` directly — always use `npx expo install` for Expo SDK packages.
+
+### npx expo prebuild --clean wipes local.properties
+`npx expo prebuild --clean` deletes the entire `android/` directory, including `android/local.properties`. Must recreate after each clean prebuild:
+```
+sdk.dir=C:\\Users\\Xent\\AppData\\Local\\Android\\Sdk
+```
+- Detection: Gradle build fails with `SDK location not found.`
+- Fix: write `local.properties` file with `sdk.dir` pointing to Android SDK.
+
+### npx expo install --check reveals mismatched native modules
+Run `npx expo install --check` to verify all native module versions align with installed Expo SDK. Shows expected vs actual versions for each package. Fix mismatches with `npx expo install <package>`.
+- Known mismatches before fix (2026-07-05): expo-sqlite@15.2.14→57.0.0, react-native-gesture-handler@3.0.2→2.32.0, react-native-reanimated@4.5.1→4.5.0, react-native-safe-area-context@5.8.0→5.7.0, @react-native-async-storage/async-storage@3.1.1→2.2.0.
 
 ## Metro bundler limitations
 - Dynamic `require()` with template literals crashes Metro. Use static require() with string literal paths.
