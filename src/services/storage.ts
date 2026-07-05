@@ -108,6 +108,29 @@ export async function saveGameResult(result: {
   );
 }
 
+// ── Daily challenge completion tracking (D-40, D-41) ──
+export function getDailyCompletedLengths(dateStr: string): number[] {
+  const raw = mmkv.getString('daily_completed_' + dateStr);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function markDailyCompleted(dateStr: string, length: number): void {
+  const completed = getDailyCompletedLengths(dateStr);
+  if (!completed.includes(length)) {
+    completed.push(length);
+    mmkv.set('daily_completed_' + dateStr, JSON.stringify(completed));
+  }
+}
+
+// ── Endless mode streak (D-47) ──
+export function getEndlessStreak(): number {
+  return mmkv.getNumber('endless_streak') ?? 0;
+}
+
+export function setEndlessStreak(streak: number): void {
+  mmkv.set('endless_streak', streak);
+}
+
 // ── AsyncStorage: auth tokens only (D-23) ──
 const AUTH_TOKEN_KEY = 'wordguess.authToken';
 

@@ -10,6 +10,10 @@ export {
   saveGameResult,
   getAuthToken,
   setAuthToken,
+  getDailyCompletedLengths,
+  markDailyCompleted,
+  getEndlessStreak,
+  setEndlessStreak,
 } from './storage';
 
 export { evaluateGuess, validateHardMode, isValidGuess } from './wordLogic';
