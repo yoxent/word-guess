@@ -15,10 +15,11 @@ interface GuessRowProps {
   feedback?: GuessFeedback[];
   isActive: boolean;
   rowIndex: number;
+  wordLength: number;
   error?: string | null;
 }
 
-export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error }: GuessRowProps) {
+export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordLength, error }: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
   useEffect(() => {
@@ -39,8 +40,6 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error
     transform: [{ translateX: shakeX.value }],
   }));
 
-  // Derive word length from feedback length (if available) or guess length
-  const wordLength = feedback?.length ?? guess.length;
   const letters: string[] = [];
 
   if (feedback) {

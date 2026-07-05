@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
@@ -55,6 +56,34 @@ export function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Top bar with icons */}
+      <View style={styles.topBar}>
+        <View />
+        <View style={styles.topBarIcons}>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => navigation.navigate('Stats')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="bar-chart" size={26} color={colors.headerText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="settings" size={26} color={colors.headerText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => navigation.navigate('Leaderboard')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="leaderboard" size={26} color={colors.headerText} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <Text style={styles.title}>Word Guess</Text>
       <Text style={styles.subtitle}>Choose a mode to play</Text>
 
@@ -83,18 +112,6 @@ export function HomeScreen() {
           title="Stats"
           variant="secondary"
           onPress={() => navigation.navigate('Stats')}
-        />
-        <View style={{ width: 12 }} />
-        <Button
-          title="Settings"
-          variant="secondary"
-          onPress={() => navigation.navigate('Settings')}
-        />
-        <View style={{ width: 12 }} />
-        <Button
-          title="Leaderboard"
-          variant="secondary"
-          onPress={() => navigation.navigate('Leaderboard')}
         />
       </View>
 
@@ -147,6 +164,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
     fontWeight: '600',
+  },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+  },
+  topBarIcons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  topIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   navRow: {
     flexDirection: 'row',

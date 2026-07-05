@@ -62,10 +62,7 @@ export function Navigation() {
       <Stack.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          title: 'Word Guess',
-          headerRight: () => <NavMenuButton />,
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Game"

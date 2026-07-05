@@ -41,8 +41,11 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
 
-  const isEmpty = feedback === 'empty' || letter === ' ' || letter === '';
-  const showBorder = isEmpty;
+  // isEmpty: only check the letter value, not feedback status
+  // (active row tiles have feedback='empty' but still need to show letters)
+  const isEmpty = letter === ' ' || letter === '';
+  // showBorder: unrevealed tiles get a border (Wordle-style)
+  const showBorder = feedback === 'empty';
 
   useEffect(() => {
     if (!isRevealing) {
@@ -104,7 +107,8 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
   });
 
   const animatedTextStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(flipProgress.value, [0, 0.5, 1], [0, 0, 1]),
+    // Before flip (0): visible; mid-flip (0.5): hidden; after flip (1): visible
+    opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
   }));
 
   return (

@@ -8,9 +8,13 @@ import type { TileFeedback } from '../../types';
 
 const ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
   ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
 ];
+
+function isActionKey(key: string): boolean {
+  return key === 'ENTER' || key === 'BACKSPACE';
+}
 
 const KEY_COLOR_MAP: Record<string, string> = {
   correct: colors.keyCorrect,
@@ -56,7 +60,7 @@ function KeyboardComponent() {
   );
 
   const getKeyBackground = (key: string): string => {
-    if (key === 'ENTER' || key === 'BACKSPACE') {
+    if (isActionKey(key)) {
       return colors.keySpecial;
     }
     const feedback = session?.keyColors?.[key];
@@ -88,7 +92,7 @@ function KeyboardComponent() {
   };
 
   const getKeyTextColor = (key: string): string => {
-    if (key === 'ENTER' || key === 'BACKSPACE') {
+    if (isActionKey(key)) {
       return colors.textInverse;
     }
     const feedback = session?.keyColors?.[key];
@@ -104,6 +108,10 @@ function KeyboardComponent() {
       {ROWS.map((row, i) => (
         <View key={i} style={styles.row}>
           {row.map((key) => {
+            if (key === '') {
+              // Spacer for row 2 offset (9 keys -> centered like QWERTY)
+              return <View key="spacer" style={styles.spacer} />;
+            }
             const disabled = isKeyDisabled(key);
             return (
               <TouchableOpacity
@@ -111,7 +119,7 @@ function KeyboardComponent() {
                 style={[
                   styles.key,
                   { backgroundColor: getKeyBackground(key) },
-                  (key === 'ENTER' || key === 'BACKSPACE') && styles.wideKey,
+                  isActionKey(key) && styles.wideKey,
                   disabled && styles.keyDisabled,
                 ]}
                 onPress={() => handlePress(key)}
@@ -147,21 +155,21 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'center',
     gap: layout.keyboardKeyGap,
     marginBottom: 4,
   },
+  spacer: {
+    flex: 0.5,
+  },
   key: {
+    flex: 1,
     height: layout.keyboardKeyHeight,
-    minWidth: layout.keyboardKeyMinWidth,
     borderRadius: layout.keyboardKeyBorderRadius,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
   },
   wideKey: {
-    minWidth: layout.keyboardKeyMinWidth + 16,
-    paddingHorizontal: 10,
+    flex: 1.5,
   },
   keyDisabled: {
     opacity: 0.4,

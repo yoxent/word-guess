@@ -99,6 +99,7 @@ export function GameBoard() {
             feedback={row.feedback}
             isActive={row.isActive}
             rowIndex={i}
+            wordLength={wordLength}
             error={i === completedGuesses && session.status === 'playing' ? error : null}
           />
         ))}

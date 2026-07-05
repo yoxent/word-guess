@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, AppState, AppStateStatus, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, AppState, AppStateStatus, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ScreenProps } from '../types';
 import { colors } from '../constants/colors';
@@ -23,6 +24,9 @@ import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
 import type { GameMode } from '../types';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../types';
 
 type Props = ScreenProps<'Game'>;
 
@@ -35,6 +39,7 @@ function randomLength(): number {
 }
 
 export function GameScreen({ route }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { mode, letterCount } = route.params;
   const session = useGameStore((s) => s.session);
   const startGame = useGameStore((s) => s.startGame);
@@ -170,8 +175,11 @@ export function GameScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with back icon */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialIcons name="arrow-back-ios" size={22} color={colors.headerText} />
+        </TouchableOpacity>
         <Text style={styles.headerMode}>{modeLabel}</Text>
         <Text style={styles.headerAttempts}>{attemptsLabel}</Text>
       </View>
@@ -209,10 +217,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerMode: {
     fontSize: 16,
     color: colors.headerText,
     fontWeight: '600',
+    flex: 1,
   },
   headerAttempts: {
     fontSize: 14,

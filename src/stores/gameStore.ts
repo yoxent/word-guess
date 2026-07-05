@@ -154,14 +154,22 @@ export const useGameStore = create<GameState>()((set, get) => ({
   flushPendingInputs: () => {
     const { pendingInputs } = get();
     if (pendingInputs.length === 0) return;
-    // Process first pending input
     const key = pendingInputs[0];
-    const rest = pendingInputs.slice(1);
-    set({ pendingInputs: rest });
+    set({ pendingInputs: pendingInputs.slice(1) });
+
     // Route to appropriate action
     const state = get();
-    if (key === 'ENTER') state.submitGuess();
-    else if (key === 'BACKSPACE') state.removeLetter();
-    else state.addLetter(key);
+    if (key === 'ENTER') {
+      state.submitGuess();
+      // ENTER may trigger new animation — stop draining here
+      return;
+    } else if (key === 'BACKSPACE') {
+      state.removeLetter();
+    } else {
+      state.addLetter(key);
+    }
+
+    // Drain remaining queued inputs on next tick (P14 fix)
+    setTimeout(() => get().flushPendingInputs(), 0);
   },
 }));
