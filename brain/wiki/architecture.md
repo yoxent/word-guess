@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-05 (UI Config Registry, design tokens)
+updated: 2026-07-05 (@/ alias removed, root App.tsx)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
 
@@ -28,6 +28,7 @@ Animation constants tunable after Phase 2 per D-31 — change values in one file
 
 ## Project structure
 ```
+root/App.tsx       # Re-exports from src/app/App.tsx — required by expo/AppEntry.js at project root
 src/
 ├── app/           # App.tsx (loading state → NavigationContainer), providers, Navigation.tsx
 ├── screens/       # Home, Game, Loading, Stats, Settings, Leaderboard
@@ -47,7 +48,7 @@ src/
 - Type-based layout (not feature-based)
 - One file per component
 - Barrel files (`index.ts`) re-export from each directory
-- Path alias `@/` maps to `src/`
+- ~~Path alias `@/` maps to `src/`~~ (removed 2026-07-05 — Metro can't resolve TypeScript aliases; use relative imports)
 
 ## Key patterns
 1. **Pure game logic separation** — evaluateGuess(), validateHardMode() as pure functions in services/wordLogic.ts. No side effects, trivially testable.
@@ -55,8 +56,8 @@ src/
 3. **Service singletons** — every SDK (AdMob, IAP, Firebase) wrapped behind a service interface. Swap providers by changing one file.
 4. **Component composition** — screens compose small single-responsibility components. GameScreen → GameBoard + Keyboard.
 5. **Offline-first optimistic writes** — local write immediate, cloud sync async. Write-ahead log for game results.
-6. **Barrel files** — each directory has `index.ts` re-exporting all exports. Import via `@/components`, `@/types`, etc.
-7. **Static require() for bundled assets** — Metro cannot resolve dynamic require() or @/ alias. Always use static require() with relative paths.
+6. **Barrel files** — each directory has `index.ts` re-exporting all exports. Import via relative paths (no `@/` alias — Metro can't resolve TypeScript path aliases).
+7. **Static require() for bundled assets** — Metro cannot resolve dynamic require(). Always use static require() with relative paths.
 8. **Separate component subtrees** — Keyboard isolated as distinct subtree (React.memo) to prevent re-render interference with tile reveal animations.
 9. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
 

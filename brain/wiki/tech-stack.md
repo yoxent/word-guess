@@ -1,5 +1,5 @@
 # Tech Stack
-updated: 2026-07-05 (Phase 3 UI deps)
+updated: 2026-07-05 (@/ alias removed)
 tags: [stack, dependencies, versions, compat]
 related: [architecture, storage-strategy, project-overview, android-build-setup]
 
@@ -11,7 +11,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | Language | TypeScript | ~6.0.3 (strict) | Strict mode from day one |
 | React | react | 19.2.3 | Required by RN 0.86.0 |
 | @types/react | @types/react | ~19.2.2 | Aligned with react 19.2.3 |
-| Path alias | @/ → src/ | tsconfig paths | Clean imports |
+| Path alias | None — relative imports | removed 2026-07-05 | Metro can't resolve TypeScript path aliases |
 
 ## UI & Navigation
 | Layer | Choice | Version | Notes |
@@ -92,9 +92,9 @@ RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.t
 `react-native-mmkv@4.3.2` has `react-native-nitro-modules` as a **peer dep** (not auto-installed). Fix: `npx expo install react-native-nitro-modules && npx expo prebuild`. Without this, Gradle fails with `Project with path ':react-native-nitro-modules' could not be found`.
 
 ## Metro bundler limitations
-- `@/` alias is TypeScript-only — Metro cannot resolve it. Use relative paths for `require()`.
 - Dynamic `require()` with template literals crashes Metro. Use static require() with string literal paths.
 - All word list files bundled via static require() at build time (~150KB total).
+- `@/` alias removed 2026-07-05 — Metro can't resolve TypeScript path aliases. All imports use relative paths.
 
 ## Phase 3 additions (UI)
 | Layer | Choice | Version | Notes |

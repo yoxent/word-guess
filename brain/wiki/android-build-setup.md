@@ -1,5 +1,5 @@
 # android-build-setup
-updated: 2026-07-04
+updated: 2026-07-05 (emulator storage, AGP warning)
 tags: [android, build, gradle, sdk, config]
 related: [tech-stack, dev-workflow]
 
@@ -30,6 +30,8 @@ classpath('com.android.tools.build:gradle:8.9.1')
 
 This overrides the version catalog default. Compatible with Gradle 9.3.1.
 
+**Note:** AS may still show the warning even after pinning — it scans the RN version catalog file, not just the resolved version. The warning is cosmetic; actual build uses 8.9.1. To suppress, update AS to Ladybug 2024.x+.
+
 ## react-native-nitro-modules (MMKV peer dep)
 - `react-native-mmkv@4.3.2` lists `react-native-nitro-modules` as a **peer dep** (not in dependencies)
 - Not auto-installed by `npm install` — must install separately
@@ -57,9 +59,27 @@ Now ▶ starts Metro + builds + installs + hot reloads from one button. Tradeoff
 - SDK Platform 24 is optional (only for testing against min API)
 
 ## Known pain points
+## Emulator storage full
+`INSTALL_FAILED_INSUFFICIENT_STORAGE` when installing debug APK. Emulator /data partition is full (default 6GB, fills with repeated installs).
+
+### Fix options
+1. **Cold boot + wipe data** (fastest) — In AVD Manager, dropdown → Cold Boot Now or Wipe Data
+2. **Increase disk size** (permanent) — Edit AVD config.ini:
+   ```
+   disk.dataPartition.size = 8589934592  # 8GB
+   ```
+   Cold boot after changing. Default AVDs are 6442450944 bytes (6GB).
+
+### Check current usage
+```bash
+adb shell "df -h /data"
+```
+If >90% used, emulator can't install debug APK (~74MB).
+
+## Known pain points
 | Issue | Workaround |
 |-------|-----------|
-| AGP 8.12.0 too new for AS | Pin to 8.9.1 in build.gradle |
+| AGP 8.12.0 too new for AS | Pin to 8.9.1 in build.gradle (warning cosmetic)
 | MMKV nitro-modules not found | npm install separately + prebuild |
 | SDK not found | Create local.properties with sdk.dir |
 | npx expo prebuild overwrites android/ | Use Expo config plugins in app.json instead of editing android/ directly |

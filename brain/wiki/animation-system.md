@@ -1,5 +1,5 @@
 # animation-system
-updated: 2026-07-05
+updated: 2026-07-05 (input queue bug)
 tags: [animation, reanimated, tile-flip, confetti, performance]
 related: [architecture, game-modes, tech-stack]
 
@@ -78,6 +78,12 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 - `gameStore.pendingInputs` — queued keystrokes during animation (if queue preferred over drop)
 - `gameStore.flushPendingInputs()` — process queue after animation completes
 - Timer managed via `setTimeout` in GameScreen `useEffect` (with `clearTimeout` cleanup)
+
+## Input queue bug (July 2026 — UNFIXED)
+- `flushPendingInputs()` processes **only 1 queued item** per call, then returns. Remaining inputs stay in `pendingInputs[]` indefinitely.
+- Impact: User typing N keys during animation loses N-1 characters silently.
+- Fix: Loop-drain all queued inputs, stopping on ENTER only (ENTER triggers new submitGuess → new animation → re-flush).
+- Tracked as P14 in key-risks.md.
 
 ## typegpu-confetti (evaluated, deferred)
 - v0.3.0, WebGPU on Android experimental

@@ -1,5 +1,5 @@
 # dev-workflow
-updated: 2026-07-04
+updated: 2026-07-05 (port mgmt, stop)
 tags: [workflow, android-studio, metro, emulator, dev-loop]
 related: [tech-stack, android-build-setup]
 
@@ -8,7 +8,18 @@ related: [tech-stack, android-build-setup]
 cd E:\Projects\Indie\word-guess
 npx expo run:android
 ```
-Single command starts Metro bundler + Gradle build + install on emulator/device. Hot reload and Fast Refresh work out of the box.
+Single command starts Metro bundler (port 8081) + Gradle build + install on emulator/device. Hot reload and Fast Refresh work out of the box.
+
+**Don't** run `npx expo start` separately — `npx expo run:android` already includes Metro.
+
+## Stopping Metro
+- **Ctrl+C** in the terminal running `npx expo run:android`
+- Or from AS Shell Script run config: red **Stop** button (Ctrl+F2) in Run tab
+- If Metro orphaned on port 8081:
+  ```powershell
+  netstat -ano | findstr :8081   # find PID
+  taskkill /F /PID <PID>
+  ```
 
 ## Android Studio setup
 Open `E:\Projects\Indie\word-guess\android\` (NOT the root project folder — no Gradle files at root).

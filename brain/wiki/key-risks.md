@@ -1,5 +1,5 @@
 # Key Risks
-updated: 2026-07-05
+updated: 2026-07-05 (UI review findings)
 tags: [risks, pitfalls, critical]
 related: [daily-seed, google-signin, phase-structure, tech-stack]
 
@@ -75,3 +75,53 @@ related: [daily-seed, google-signin, phase-structure, tech-stack]
 ### P11: Android back button during animation/ad/IAP
 - BackHandler listener per screen. Block during critical states. Graceful skip on back.
 - Phase: 1 (Foundation) + Phase 4 (Monetization)
+
+### P14: Input queue processing bug — flushPendingInputs drains only 1 item (UNFIXED)
+- Cause: `gameStore.flushPendingInputs()` dequeues and processes exactly 1 item per call, then stops. If user types N keys during tile reveal animation, only the first is applied. Remaining inputs stay in `pendingInputs[]` indefinitely.
+- Impact: Silent dropped keystrokes — user types during animation, letters vanish.
+- Detection: Type rapidly during tile reveal; only first letter survives.
+- Fix: Loop-drain all queued inputs, stopping only on ENTER (triggers new submitGuess → new animation → re-flush).
+- Phase: 2 (Core Gameplay)
+
+### P15: White confetti particles invisible on dark overlay (UNFIXED)
+- Cause: `Confetti.tsx` PARTICLE_COLORS includes `#ffffff`. ResultModal renders Confetti inside `rgba(0,0,0,0.5)` overlay → ~1/7 of particles invisible.
+- Impact: 0 visual impact for 1/7 particles on win celebrations.
+- Fix: Remove `#ffffff` or replace with bright visible color (e.g. `#f1c40f`).
+- Phase: 2 (Core Gameplay)
+
+### P16: White-on-yellow contrast failure — present tiles illegible (UNFIXED)
+- Cause: Present tiles/keys `#c9b458` (golden yellow) with `textInverse` `#ffffff` text → calculated WCAG contrast ~1.5:1. Below 4.5:1 minimum for normal text.
+- Impact: Yellow-highlighted letters (present-in-word) hard to read. Affects both Tile and Keyboard components.
+- Fix: Use dark text `#1a1a2e` on yellow tiles/keys, or darken present color.
+- Phase: 2 (Core Gameplay)
+
+## Moderate risks (UI review findings, July 2026)
+
+### P17: Dead ResultScreen route in navigator
+- Cause: Phase 2 switched from navigated ResultScreen to modal overlay, but route remains registered in Navigation.tsx + src/screens/ResultScreen.tsx exists with placeholder text.
+- Risk: Accidentally triggered route shows confusing placeholder. Dead code.
+- Fix: Remove route and file, or repurpose as working component.
+- Phase: 3
+
+### P18: emoji monospace fontFamily may misalign on Android
+- Cause: ResultModal emoji grid uses `fontFamily: 'monospace'`. Android monospace fonts (Droid Sans Mono) lack emoji glyphs. Emoji fall back to system font, breaking alignment.
+- Impact: Shareable emoji grid may render misaligned on Android.
+- Fix: Use system default font for emoji grid, or test per-device.
+- Phase: 3
+
+### P19: Fixed 500ms startup delay instead of readiness detection
+- Cause: App.tsx uses setTimeout(500ms) before showing NavigationContainer. Dictionary loaded via synchronous require() at module level.
+- Impact: On slow devices, 500ms may be insufficient → visible freeze. On fast devices, 500ms is wasted.
+- Fix: Lazy-load per-length word lists or use promise-based readiness.
+- Phase: 2
+
+### P20: Alert.alert-based nav menu is non-standard
+- Cause: NavMenuButton uses React Native Alert.alert() with action-sheet-style options.
+- Risk: Native OS dialog feels jarring for in-app navigation. Lacks customization (icons, sections).
+- Fix: Replace with bottom sheet or slide-out drawer.
+- Phase: Deferred
+
+### P21: No tutorial/onboarding for new players
+- Cause: Game assumes Wordle familiarity. No "How to Play" flow, example guess, or help icon.
+- Risk: New users confused about rules (Hard Mode, tile colors, daily completion).
+- Phase: 3 (Stats & Settings) or 6 (Pre-Launch)
