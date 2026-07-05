@@ -56,9 +56,9 @@
 10. Hard Mode toggle — must reuse confirmed green tiles in same positions and yellow tiles somewhere; validated with 20+ edge cases including duplicate letters
 11. Endless mode — after win/loss immediately starts new word; consecutive correct streak tracked
 12. Game state persists on suspend/resume — player returns to same board position after app is backgrounded and reopened
-13. Sound effects (key press, tile reveal, win jingle, loss tone) play via expo-av; haptic feedback (light impact on key press and tile reveal) via expo-haptics
+13. Sound service API surface defined with no-op stub (playKeyPress, playReveal, playWin, playLoss); actual sound files + expo-av wiring deferred (developer adds via sound service); haptic feedback (light impact on key press and tile reveal) via expo-haptics
 14. Loading screen with branded splash shows while dictionary loads and initializes
-15. Daily puzzle seed securely obfuscated — split across multiple sources (native layer, app signing key); ProGuard/R8 enabled
+15. Daily puzzle seed obfuscated via multi-source hash (package name + app version + non-obvious constant) with ProGuard/R8; no JNI/native layer — blocks casual cheating, determined attacker with APK decompilation can extract (accepted risk)
 **Plans:** 4 plans (02-01, 02-02, 02-03, 02-04)
 **Plan list:**
 1. **02-01** (Wave 1) — Dictionary preprocessing update (valid-{N}.json + defs-{N}.json), wordLogic.ts (evaluateGuess, validateHardMode), dailySeed.ts, sound.ts stub, dictionaryStore dual-source, gameStore real submitGuess

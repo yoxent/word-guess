@@ -33,9 +33,9 @@ progress:
 | Field | Value |
 |-------|-------|
 | **Milestone** | 1 (MVP) |
-| **Active Phase** | Phase 1: Foundation |
-| **Active Plan** | Complete |
-| **Status** | Phase 1 execution complete |
+| **Active Phase** | Phase 2: Core Gameplay |
+| **Active Plan** | Planning (4 plans created) |
+| **Status** | Phase 2 plans created, ready for execution |
 | **Progress** | ▰▰▰▰▰▰▰▰▰▰ 16.6% |
 
 ### Phase Status
@@ -43,7 +43,7 @@ progress:
 | Phase | Status | Plans Complete |
 |-------|--------|----------------|
 | Phase 1: Foundation | Complete | 3/3 |
-| Phase 2: Core Gameplay | Not started | 0/0 |
+| Phase 2: Core Gameplay | Planned | 0/4 |
 | Phase 3: Stats & Settings | Not started | 0/0 |
 | Phase 4: Monetization | Not started | 0/0 |
 | Phase 5: Cloud & Social | Not started | 0/0 |
@@ -68,12 +68,12 @@ progress:
 
 | Decision | Rationale | Status |
 |----------|-----------|--------|
-| React Native (Expo) over Flutter | Chosen by user for learning despite Flutter experience | Pending |
-| Private seed for daily puzzles | Deterministic same-word-for-all without predictability | Pending |
-| 4 game modes (Free/Random/Daily/Endless) | Covers casual, challenge, and competitive play | Pending |
-| Hard Mode as toggle, not separate mode | UX simplicity — apply to any mode | Pending |
-| Cloud sync via Google Sign-In | Cross-device stats and leaderboard auth | Pending |
-| $1.99 Pro IAP | Competitive pricing for ad-removal | Pending |
+| React Native (Expo) over Flutter | Chosen by user for learning despite Flutter experience | Locked |
+| Private seed for daily puzzles | Deterministic same-word-for-all without predictability | Locked (D-25) |
+| 4 game modes (Free/Random/Daily/Endless) | Covers casual, challenge, and competitive play | Locked (D-39-D-47) |
+| Hard Mode as global toggle, not separate mode | UX simplicity — apply to any mode | Locked (D-59) |
+| Cloud sync via Google Sign-In | Cross-device stats and leaderboard auth | Pending Phase 5 |
+| $1.99 Pro IAP | Competitive pricing for ad-removal | Pending Phase 4 |
 
 ### Technical Decisions
 

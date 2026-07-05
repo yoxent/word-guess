@@ -27,14 +27,14 @@
 - [ ] **GAME-09**: Daily Challenge mode — same word for all players, deterministic from UTC date + private seed (obfuscated, not plain string); resets at UTC midnight
 - [ ] **GAME-10**: Free Play mode — player picks letter count (5-10) before starting; random word from chosen length's dictionary
 - [ ] **GAME-11**: Random mode — auto-assigned random letter count each game
-- [ ] **GAME-12**: Hard Mode toggle (per-game) — must reuse confirmed green tiles in same positions and yellow tiles somewhere in next guess; follows NYT Wordle exact rules including duplicate letter handling; validation with 20+ unit-tested edge cases
+- [ ] **GAME-12**: Hard Mode toggle (global setting, applies to any mode) — must reuse confirmed green tiles in same positions and yellow tiles somewhere in next guess; follows NYT Wordle exact rules including duplicate letter handling; validation with 20+ unit-tested edge cases
 - [ ] **GAME-13**: Endless mode — after win/loss immediately starts new word; tracks consecutive correct streak
 - [ ] **GAME-14**: Game state persists on suspend/resume — saves current board, active row, mode, extra guesses to local storage on app state change
 - [ ] **GAME-15**: Loading screen with branded splash while dictionary loads and initializes
-- [ ] **GAME-16**: Sound effects via expo-av (key press, tile reveal, win jingle, loss tone); 4-6 preloaded files under 500KB total
+- [ ] **GAME-16**: Sound service API surface defined with no-op stub — `init, setEnabled, playKeyPress, playReveal, playWin, playLoss`; actual sound files + expo-av wiring deferred (developer adds via sound service interface)
 - [ ] **GAME-17**: Enter (submits guess if valid word) and Backspace (removes last letter) keys on on-screen keyboard; Enter disabled when row empty
 - [ ] **GAME-18**: Haptic feedback via expo-haptics on key press (light impact) and tile reveal
-- [ ] **GAME-19**: Daily puzzle seed securely obfuscated — split across multiple sources (part from native layer/JNI, part derived from app signing key); ProGuard/R8 minification enabled
+- [ ] **GAME-19**: Daily puzzle seed obfuscated via multi-source hash (package name + app version + non-obvious constant string) with ProGuard/R8 minification; no JNI/native layer — blocks casual cheating, determined attacker with APK decompilation can extract (accepted risk)
 
 ### Phase 3: Stats & Settings
 
