@@ -79,14 +79,14 @@ export const useDictionaryStore = create<DictionaryState>()((_, get) => ({
     const list = WORD_LISTS[length];
     if (!list) return false;
     const wordSet = new Set(list);
-    return wordSet.has(word.toUpperCase());
+    return wordSet.has(word.toLowerCase());
   },
 
   isValidGuess: (length, word) => {
     const list = VALID_LISTS[length];
     if (!list) return false;
     const wordSet = new Set(list);
-    return wordSet.has(word.toUpperCase());
+    return wordSet.has(word.toLowerCase());
   },
 
   getDefinition: (length, word) => {

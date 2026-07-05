@@ -150,7 +150,6 @@ export const Keyboard = memo(KeyboardComponent);
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingHorizontal: layout.screenPadding,
     paddingBottom: 16,
   },
   row: {

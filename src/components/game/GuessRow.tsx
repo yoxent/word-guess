@@ -16,10 +16,11 @@ interface GuessRowProps {
   isActive: boolean;
   rowIndex: number;
   wordLength: number;
+  tileSize: number;
   error?: string | null;
 }
 
-export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordLength, error }: GuessRowProps) {
+export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordLength, tileSize, error }: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordL
             feedback={tileFeedback}
             index={i}
             isRevealing={isRevealing}
+            tileSize={tileSize}
           />
         );
       })}

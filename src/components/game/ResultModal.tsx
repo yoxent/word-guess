@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, Modal, StyleSheet } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
 import { useGameStore, useSettingsStore } from '../../stores';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
@@ -118,14 +119,24 @@ export function ResultModal() {
       <View style={styles.overlay}>
         {isWin && <Confetti />}
         <View style={styles.card}>
-          <Text
-            style={[
-              styles.title,
-              { color: isWin ? colors.success : colors.danger },
-            ]}
-          >
-            {isWin ? 'You Won!' : 'Game Over'}
-          </Text>
+          <View style={styles.titleRow}>
+            <View style={styles.titleSpacer} />
+            <Text
+              style={[
+                styles.title,
+                { color: isWin ? colors.success : colors.danger },
+              ]}
+            >
+              {isWin ? 'You Won!' : 'Game Over'}
+            </Text>
+            <TouchableOpacity
+              style={styles.homeButton}
+              onPress={handleBackToMenu}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="home" size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.word}>{session.word.toUpperCase()}</Text>
 
@@ -180,10 +191,27 @@ const styles = StyleSheet.create({
     minWidth: 280,
     maxWidth: '85%',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 12,
+  },
+  titleSpacer: {
+    width: 40,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    marginBottom: 12,
+    flex: 1,
+    textAlign: 'center',
+  },
+  homeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   word: {
     fontSize: 32,

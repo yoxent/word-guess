@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   withTiming,
@@ -27,6 +27,7 @@ interface TileProps {
   feedback: TileFeedback;
   index: number;
   isRevealing: boolean;
+  tileSize: number;
 }
 
 const FEEDBACK_COLORS: Record<TileFeedback, string> = {
@@ -36,7 +37,7 @@ const FEEDBACK_COLORS: Record<TileFeedback, string> = {
   empty: colors.tileEmpty,
 };
 
-export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
+export function Tile({ letter, feedback, index, isRevealing, tileSize }: TileProps) {
   const flipProgress = useSharedValue(0);
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
@@ -111,16 +112,33 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
     opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
   }));
 
+  // Dynamic tile dimensions derived from tileSize
+  const tileStyle: ViewStyle = {
+    width: tileSize,
+    height: tileSize,
+    borderRadius: layout.tileBorderRadius,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.tileEmpty,
+  };
+  const tileFontSize = Math.round(tileSize * 0.48);
+
   return (
     <Animated.View
       style={[
-        styles.tile,
+        tileStyle,
         showBorder && styles.tileBorder,
         animatedTileStyle,
       ]}
     >
       {!isEmpty && (
-        <Animated.Text style={[styles.letter, animatedTextStyle]}>
+        <Animated.Text
+          style={[
+            styles.letter,
+            { fontSize: tileFontSize },
+            animatedTextStyle,
+          ]}
+        >
           {letter.toUpperCase()}
         </Animated.Text>
       )}
@@ -129,20 +147,11 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
 }
 
 const styles = StyleSheet.create({
-  tile: {
-    width: layout.tileSize,
-    height: layout.tileSize,
-    borderRadius: layout.tileBorderRadius,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.tileEmpty,
-  },
   tileBorder: {
     borderWidth: 2,
     borderColor: colors.tileBorder,
   },
   letter: {
-    fontSize: 28,
     fontWeight: '700',
     color: colors.textInverse,
     textTransform: 'uppercase',

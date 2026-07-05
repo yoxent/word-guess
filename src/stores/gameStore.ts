@@ -73,7 +73,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const { session, currentGuess, isRevealing } = get();
     if (!session || session.status !== 'playing' || isRevealing) return;
 
-    const word = session.word;
+    const word = session.word.toUpperCase();
     const guess = currentGuess.toUpperCase();
     const len = session.letterCount;
 

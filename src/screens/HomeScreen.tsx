@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, Switch } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
@@ -8,15 +9,22 @@ import { colors } from '../constants/colors';
 import { Button } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { useSettingsStore } from '../stores';
-import { getDailyDateString, getDailyCompletedLengths } from '../services';
+import {
+  getDailyDateString,
+  getDailyCompletedLengths,
+  getActiveGame,
+  clearActiveGame,
+} from '../services';
 
 type HomeNav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
 
+  const insets = useSafeAreaInsets();
+
   const [showPicker, setShowPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<GameMode>('free');
+  const [pickerMode, setPickerMode] = useState<GameMode>('daily');
   const [completedDailyLengths, setCompletedDailyLengths] = useState<number[]>([]);
 
   const hardMode = useSettingsStore((s) => s.hardModeEnabled);
@@ -29,14 +37,36 @@ export function HomeScreen() {
     setCompletedDailyLengths(completed);
   }, []);
 
-  const handleFreePlay = () => {
-    setPickerMode('free');
-    setShowPicker(true);
+  // ── Check for saved game and prompt to continue or start fresh ──
+  const navigateWithContinueCheck = (mode: GameMode, length: number) => {
+    const saved = getActiveGame();
+    if (saved && saved.mode === mode && saved.letterCount === length && saved.status === 'playing') {
+      Alert.alert(
+        'Continue Game?',
+        `You have an unfinished ${mode} ${length}-letter game.`, [
+        {
+          text: 'New Game',
+          style: 'destructive',
+          onPress: () => {
+            clearActiveGame();
+            navigation.navigate('Game', { mode, letterCount: length });
+          },
+        },
+        {
+          text: 'Continue',
+          style: 'default',
+          onPress: () => navigation.navigate('Game', { mode, letterCount: length }),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    } else {
+      navigation.navigate('Game', { mode, letterCount: length });
+    }
   };
 
   const handleRandom = () => {
     const length = Math.floor(Math.random() * 6) + 5;
-    navigation.navigate('Game', { mode: 'random', letterCount: length });
+    navigateWithContinueCheck('random', length);
   };
 
   const handleDaily = () => {
@@ -51,13 +81,13 @@ export function HomeScreen() {
 
   const handleLengthSelect = (length: number) => {
     setShowPicker(false);
-    navigation.navigate('Game', { mode: pickerMode, letterCount: length });
+    navigateWithContinueCheck(pickerMode, length);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Top bar with icons */}
-      <View style={styles.topBar}>
+    <View style={[styles.container, { paddingBottom: 24 + insets.bottom }]}>
+      {/* Top bar with icons (offset for status bar) */}
+      <View style={[styles.topBar, { top: insets.top, paddingRight: insets.right }]}>
         <View />
         <View style={styles.topBarIcons}>
           <TouchableOpacity
@@ -65,14 +95,7 @@ export function HomeScreen() {
             onPress={() => navigation.navigate('Stats')}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="bar-chart" size={26} color={colors.headerText} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.topIconButton}
-            onPress={() => navigation.navigate('Settings')}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="settings" size={26} color={colors.headerText} />
+            <MaterialIcons name="emoji-events" size={26} color={colors.headerText} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
@@ -81,6 +104,13 @@ export function HomeScreen() {
           >
             <MaterialIcons name="leaderboard" size={26} color={colors.headerText} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="settings" size={26} color={colors.headerText} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -88,13 +118,11 @@ export function HomeScreen() {
       <Text style={styles.subtitle}>Choose a mode to play</Text>
 
       <View style={styles.modes}>
-        <Button title="Free Play" onPress={handleFreePlay} />
-        <View style={styles.spacer} />
-        <Button title="Random" onPress={handleRandom} />
-        <View style={styles.spacer} />
         <Button title="Daily Challenge" onPress={handleDaily} />
         <View style={styles.spacer} />
         <Button title="Endless" onPress={handleEndless} />
+        <View style={styles.spacer} />
+        <Button title="Random" onPress={handleRandom} />
       </View>
 
       <View style={styles.hardModeRow}>
@@ -104,14 +132,6 @@ export function HomeScreen() {
           onValueChange={toggleHardMode}
           trackColor={{ false: colors.tileBorder, true: colors.accent }}
           thumbColor={hardMode ? colors.accentDark : colors.tileBorder}
-        />
-      </View>
-
-      <View style={styles.navRow}>
-        <Button
-          title="Stats"
-          variant="secondary"
-          onPress={() => navigation.navigate('Stats')}
         />
       </View>
 
@@ -167,14 +187,13 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    height: 52,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingLeft: 12,
   },
   topBarIcons: {
     flexDirection: 'row',
@@ -186,9 +205,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  navRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
   },
 });

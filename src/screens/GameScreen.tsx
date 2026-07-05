@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, AppState, AppStateStatus, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ScreenProps } from '../types';
@@ -44,9 +45,11 @@ export function GameScreen({ route }: Props) {
   const session = useGameStore((s) => s.session);
   const startGame = useGameStore((s) => s.startGame);
   const restoreSession = useGameStore((s) => s.restoreSession);
+  const error = useGameStore((s) => s.error);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const setIsRevealing = useGameStore((s) => s.setIsRevealing);
   const flushPendingInputs = useGameStore((s) => s.flushPendingInputs);
+  const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
   const appState = useRef(AppState.currentState);
 
@@ -162,6 +165,26 @@ export function GameScreen({ route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.guesses.length, isRevealing]);
 
+  // ── Save game on back navigation (D-57) ──
+  const handleBack = useCallback(() => {
+    const currentSession = useGameStore.getState().session;
+    if (currentSession && currentSession.status === 'playing') {
+      saveActiveGame(currentSession);
+    }
+    navigation.goBack();
+  }, [navigation]);
+
+  // ── Save game on unmount (back gesture / hardware back) ──
+  useEffect(() => {
+    return () => {
+      const currentSession = useGameStore.getState().session;
+      if (currentSession && currentSession.status === 'playing') {
+        saveActiveGame(currentSession);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (initializing || !session) {
     return (
       <View style={styles.loadingContainer}>
@@ -171,17 +194,19 @@ export function GameScreen({ route }: Props) {
   }
 
   const modeLabel = capitalize(session.mode);
-  const attemptsLabel = `${session.guesses.length}/${session.maxAttempts}`;
 
   return (
-    <View style={styles.container}>
-      {/* Header with back icon */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back-ios" size={22} color={colors.headerText} />
-        </TouchableOpacity>
-        <Text style={styles.headerMode}>{modeLabel}</Text>
-        <Text style={styles.headerAttempts}>{attemptsLabel}</Text>
+    <View style={[styles.container, { paddingBottom: insets.bottom, paddingHorizontal: 20 }]}>
+      {/* Header (matches home page top bar padding) */}
+      <View style={[styles.header, { paddingTop: insets.top, marginHorizontal: -20 }]}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <MaterialIcons name="arrow-back-ios" size={22} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {modeLabel} · {session.letterCount} Letters
+          </Text>
+        </View>
       </View>
 
       {/* Board area */}
@@ -189,8 +214,15 @@ export function GameScreen({ route }: Props) {
         <GameBoard />
       </View>
 
-      {/* Keyboard */}
-      <Keyboard />
+      {/* Keyboard + overlay toast */}
+      <View style={styles.keyboardArea}>
+        {error !== null && (
+          <View style={styles.errorToast}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+        <Keyboard />
+      </View>
 
       {/* Result Modal */}
       <ResultModal />
@@ -210,33 +242,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    height: 56,
     backgroundColor: colors.headerBackground,
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    height: 48,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerMode: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 17,
     color: colors.headerText,
     fontWeight: '600',
-    flex: 1,
   },
-  headerAttempts: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
+
+  keyboardArea: {
+    position: 'relative',
   },
   boardArea: {
     flex: 1,
     justifyContent: 'center',
+  },
+  errorToast: {
+    position: 'absolute',
+    bottom: '100%',
+    marginBottom: 6,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  errorText: {
+    color: colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

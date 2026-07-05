@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
 import { colors } from '../../constants/colors';
 import { layout } from '../../constants/layout';
@@ -45,6 +45,16 @@ export function GameBoard() {
   const remainingAttempts = maxAttempts - completedGuesses;
   const attemptsLabel = `Attempts: ${completedGuesses}/${maxAttempts}`;
 
+  // Compute dynamic tile size so grid fits the screen width
+  const tileSize = useMemo(() => {
+    const screenWidth = Dimensions.get('window').width;
+    const availableWidth = screenWidth - 40 - (wordLength - 1) * layout.tileGap;
+    const computed = Math.floor(availableWidth / wordLength);
+    const MAX_TILE = 56;
+    const MIN_TILE = 32;
+    return Math.max(MIN_TILE, Math.min(MAX_TILE, computed));
+  }, [wordLength]);
+
   // Build rows array
   const rows: { guess: string; feedback: GuessFeedback[] | undefined; isActive: boolean }[] = [];
 
@@ -83,13 +93,6 @@ export function GameBoard() {
         <Text style={styles.attemptsText}>{attemptsLabel}</Text>
       </View>
 
-      {/* Error toast */}
-      {error && (
-        <View style={styles.errorToast}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
       {/* Grid */}
       <View style={styles.grid}>
         {rows.map((row, i) => (
@@ -100,6 +103,7 @@ export function GameBoard() {
             isActive={row.isActive}
             rowIndex={i}
             wordLength={wordLength}
+            tileSize={tileSize}
             error={i === completedGuesses && session.status === 'playing' ? error : null}
           />
         ))}
@@ -112,7 +116,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: layout.screenPadding,
   },
   emptyContainer: {
     flex: 1,
@@ -135,22 +138,5 @@ const styles = StyleSheet.create({
   grid: {
     gap: layout.tileGap,
     alignItems: 'center',
-  },
-  errorToast: {
-    position: 'absolute',
-    top: 0,
-    left: layout.screenPadding,
-    right: layout.screenPadding,
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  errorText: {
-    color: colors.textInverse,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
