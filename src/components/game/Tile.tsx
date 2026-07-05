@@ -41,22 +41,25 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+  const isEmpty = feedback === 'empty' || letter === ' ' || letter === '';
+  const showBorder = isEmpty;
 
+  useEffect(() => {
     if (!isRevealing) {
       flipProgress.value = 0;
       scale.value = 1;
       return;
     }
 
+    // Skip animation on first render (static initial state)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    }
+
     // Stagger: TILE_STAGGER_DELAY ms per tile left-to-right (D-28)
     const staggerDelay = index * TILE_STAGGER_DELAY;
 
-    // Flip animation (rotateX 0 -> -90 -> 0 degrees via interpolation)
+    // Flip animation (rotateX 0 → -90 → 0 via interpolation)
     flipProgress.value = withDelay(
       staggerDelay,
       withTiming(1, {
@@ -79,14 +82,12 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
   }, [isRevealing]);
 
   const animatedTileStyle = useAnimatedStyle(() => {
-    // Background color: starts empty, flips to feedback color halfway
     const bgColor = interpolateColor(
       flipProgress.value,
       [0, 0.5, 1],
       [colors.tileEmpty, colors.tileEmpty, FEEDBACK_COLORS[feedback]],
     );
 
-    // Rotate X: 0° -> -90° -> 0° (flip effect)
     const rotateX = interpolate(
       flipProgress.value,
       [0, 0.5, 1],
@@ -103,17 +104,14 @@ export function Tile({ letter, feedback, index, isRevealing }: TileProps) {
   });
 
   const animatedTextStyle = useAnimatedStyle(() => ({
-    // Text is invisible during flip, visible after
     opacity: interpolate(flipProgress.value, [0, 0.5, 1], [0, 0, 1]),
   }));
-
-  const isEmpty = feedback === 'empty' || letter === ' ' || letter === '';
 
   return (
     <Animated.View
       style={[
         styles.tile,
-        isEmpty && styles.tileBorder,
+        showBorder && styles.tileBorder,
         animatedTileStyle,
       ]}
     >
@@ -133,8 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: layout.tileBorderRadius,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    backgroundColor: colors.tileEmpty,
   },
   tileBorder: {
     borderWidth: 2,
