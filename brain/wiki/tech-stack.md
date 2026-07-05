@@ -1,5 +1,5 @@
 # Tech Stack
-updated: 2026-07-04
+updated: 2026-07-05 (Phase 3 UI deps)
 tags: [stack, dependencies, versions, compat]
 related: [architecture, storage-strategy, project-overview, android-build-setup]
 
@@ -95,6 +95,13 @@ RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.t
 - `@/` alias is TypeScript-only — Metro cannot resolve it. Use relative paths for `require()`.
 - Dynamic `require()` with template literals crashes Metro. Use static require() with string literal paths.
 - All word list files bundled via static require() at build time (~150KB total).
+
+## Phase 3 additions (UI)
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram for stats screen |
+| SVG renderer | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit |
+| Clipboard | expo-clipboard | SDK 57 | Copy share text (emoji grid) to clipboard |
 
 ## Bonus dependencies (evaluated, deferred)
 | Library | Use | Verdict |

@@ -1,5 +1,5 @@
 # ui-config-registry
-updated: 2026-07-05
+updated: 2026-07-05 (component contracts, extended row types)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81]
 related: [architecture, phase-structure, storage-strategy]
 
@@ -35,35 +35,29 @@ const statsConfig: StatsCardConfig[] = [
 - Add/remove by editing array
 - StatsScreen is a dumb iterator
 
-## Settings config (D-79)
+## Settings config (D-79, extended in UI-SPEC)
 ```typescript
-type SettingRow = ToggleRow | PlaceholderRow | ButtonRow;
-
-interface ToggleRow {
-  type: 'toggle';
-  id: string;            // matches settingsStore key
-  label: string;
-  storeKey: keyof AppSettings;
-}
-
-interface PlaceholderRow {
-  type: 'placeholder';
-  label: string;
-}
-
-const settingsConfig: SettingSection[] = [
-  { id: 'gameplay', title: 'Gameplay', rows: [
-    { type: 'toggle', id: 'hardMode', label: 'Hard Mode', storeKey: 'hardModeEnabled' },
-  ]},
-  { id: 'audio', title: 'Audio & Haptics', rows: [
-    { type: 'toggle', id: 'sound', label: 'Sound Effects', storeKey: 'soundEnabled' },
-    { type: 'toggle', id: 'haptic', label: 'Haptic Feedback', storeKey: 'hapticEnabled' },
-  ]},
-  { id: 'account', title: 'Account', rows: [
-    { type: 'placeholder', label: 'Sign in — coming in Phase 5' },
-  ]},
-];
+type SettingsRowConfig =
+  | { type: 'toggle'; id: string; label: string; description?: string; storeKey: keyof AppSettings }
+  | { type: 'placeholder'; id: string; label: string; description: string }
+  | { type: 'info'; id: string; label: string; value: string };  // Phase 3 addition
 ```
+
+### Row type renderers
+| Type | Renders | Behavior |
+|------|---------|----------|
+| `toggle` | Label (left) + RN Switch (right) | Switch bound to settingsStore[storeKey]; track=accent when on, tileEmpty when off |
+| `placeholder` | Label (left) + "Coming soon" text (right) | Non-interactive; swapped to `signInButton` in Phase 5 |
+| `info` | Label (left) + value string (right) | Read-only display, no interaction |
+
+### Phase 3 sections (from config)
+| Section | Rows |
+|---------|------|
+| Gameplay | `hardMode` (toggle) |
+| Audio & Haptics | `sound` (toggle), `haptic` (toggle) |
+| Account | `signIn` (placeholder: "Sign in — coming in Phase 5") |
+
+Rows separated by hairline divider: `1px solid tileEmpty`, 4px vertical margin.
 
 ## Screen contract
 Screens receive config, iterate, render:
@@ -80,6 +74,35 @@ No hardcoded layout logic — screens are pure renderers.
 | Phase 5 | Swap placeholder → signInButton row in settingsConfig |
 | Phase 6 | Append accessibility toggle rows to settingsConfig |
 | Future | Extend pattern to home screen layout, game mode menus, nav |
+
+## UI components (Phase 3 additions)
+
+### StatCard (`src/components/ui/StatCard.tsx`)
+Reusable card container for stat sections. Driven by config array.
+
+| Prop | Type | Required |
+|------|------|----------|
+| title | string | Yes |
+| children | ReactNode | Yes |
+
+Vis: surface bg (#fff), borderRadius 12, shadow `{elevation:3, opacity:0.08}`, padding 24px, marginBottom 16px. Title: 18px bold textPrimary.
+
+### SettingsRow (`src/components/ui/SettingsRow.tsx`)
+Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, or info.
+
+### Share utility (`src/utils/share.ts`)
+Pure function `generateShareText(gameResult)` → emoji grid string. Input: GameResult with mode, word, attempts, won, guesses[][], date. Output: Wordle-style emoji grid with header + date + rows + footer.
+
+## Component contracts (edge cases)
+| Scenario | Behavior |
+|----------|----------|
+| Empty stats | Centered card: "No games played yet." → "Complete a game to see your stats!" |
+| Stats loading | ActivityIndicator (accent), centered, not empty state |
+| SQLite error | Error card + pull-to-refresh to retry |
+| Zero wins | Chart shows flat bars at 0, Win % = 0%, streak = 0 |
+| Share no games | Button hidden when totalGames === 0 |
+| Share win vs loss | Footer: "5/6" (win) / "X/6" (loss) |
+| First launch no settings | Defaults: hardMode=true, sound=true, haptic=true, isPro=false |
 
 ## Constraints (D-81)
 - Plain TypeScript arrays — no heavy abstraction, no DI framework

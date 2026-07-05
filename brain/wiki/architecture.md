@@ -1,7 +1,7 @@
 # architecture
-updated: 2026-07-05 (UI Config Registry)
+updated: 2026-07-05 (UI Config Registry, design tokens)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
 
 ## Layer stack
 ```

@@ -22,3 +22,4 @@ related: []
 | dev-workflow | Android Studio setup, Metro dev loop, dual-tool coexistence, standalone run config | workflow, android-studio, metro, dev-loop |
 | android-build-setup | AGP version pinning, react-native-nitro-modules, local.properties, SDK versions, build-tools | android, build, gradle, sdk, config |
 | ui-config-registry | UI Configuration Registry — data-driven composable UI via src/config/ui.ts | architecture, patterns, ui, config-driven |
+| design-tokens | Spacing scale, typography, color conventions — design system tokens defined by Phase 3 UI-SPEC | design, tokens, spacing, typography, colors, ui |
