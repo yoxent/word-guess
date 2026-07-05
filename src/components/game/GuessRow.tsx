@@ -1,5 +1,11 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  withSequence,
+  withTiming,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import type { GuessFeedback } from '@/types';
 import { layout } from '@/constants/layout';
 import { Tile } from './Tile';
@@ -12,7 +18,27 @@ interface GuessRowProps {
   error?: string | null;
 }
 
-export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error: _error }: GuessRowProps) {
+export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error }: GuessRowProps) {
+  const shakeX = useSharedValue(0);
+
+  useEffect(() => {
+    if (error && isActive) {
+      // Shake animation: left-right oscillation over 250ms
+      shakeX.value = withSequence(
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(-10, { duration: 50 }),
+        withTiming(10, { duration: 50 }),
+        withTiming(0, { duration: 50 }),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, isActive]);
+
+  const animatedRowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeX.value }],
+  }));
+
   // Derive word length from feedback length (if available) or guess length
   const wordLength = feedback?.length ?? guess.length;
   const letters: string[] = [];
@@ -36,7 +62,7 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error
   }
 
   return (
-    <View style={styles.row}>
+    <Animated.View style={[styles.row, animatedRowStyle]}>
       {letters.map((letter, i) => {
         const tileFeedback = feedback ? feedback[i].feedback : 'empty';
         const isRevealing = !isActive && !!feedback;
@@ -50,7 +76,7 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, error
           />
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 

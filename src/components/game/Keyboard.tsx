@@ -25,13 +25,20 @@ function KeyboardComponent() {
   const submitGuess = useGameStore((s) => s.submitGuess);
   const currentGuess = useGameStore((s) => s.currentGuess);
   const isRevealing = useGameStore((s) => s.isRevealing);
+  const addPendingInput = useGameStore((s) => s.addPendingInput);
 
   const isPlaying = session?.status === 'playing';
-  const isBlocked = !isPlaying || isRevealing;
 
   const handlePress = useCallback(
     (key: string) => {
-      if (isBlocked) return;
+      if (!isPlaying) return;
+
+      // During animation, queue input instead of dropping (D-66)
+      if (isRevealing) {
+        addPendingInput(key);
+        return;
+      }
+
       if (key === 'ENTER') {
         submitGuess();
       } else if (key === 'BACKSPACE') {
@@ -40,7 +47,7 @@ function KeyboardComponent() {
         addLetter(key);
       }
     },
-    [isBlocked, submitGuess, removeLetter, addLetter],
+    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter],
   );
 
   const getKeyBackground = (key: string): string => {
@@ -53,7 +60,7 @@ function KeyboardComponent() {
   };
 
   const isKeyDisabled = (key: string): boolean => {
-    if (isBlocked) return true;
+    if (!isPlaying) return true;
     if (key === 'ENTER') {
       return currentGuess.length < (session?.letterCount ?? 5);
     }
