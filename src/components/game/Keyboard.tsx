@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useGameStore } from '@/stores';
 import { colors } from '@/constants/colors';
 import { layout } from '@/constants/layout';
@@ -32,6 +33,9 @@ function KeyboardComponent() {
   const handlePress = useCallback(
     (key: string) => {
       if (!isPlaying) return;
+
+      // Light haptic on any key press (D-18)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
       // During animation, queue input instead of dropping (D-66)
       if (isRevealing) {
