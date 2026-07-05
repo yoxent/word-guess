@@ -13,7 +13,7 @@
 ## Phases
 
 - [x] **Phase 1: Foundation** — Scaffold, dictionary, theme, types, navigation, storage
-- [ ] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
+- [x] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
 - [ ] **Phase 3: Stats & Settings** — Persistent stats, settings screen, share results, local persistence
 - [ ] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
 - [ ] **Phase 5: Cloud & Social** — Google Sign-In, cloud sync, daily/endless leaderboards
