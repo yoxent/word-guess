@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-04
+updated: 2026-07-05
 tags: [index, mvp, phase-2-planning]
 related: []
 
@@ -21,3 +21,4 @@ related: []
 | git-conventions | Gitignore design, tracked vs ignored files, brain vs CLAUDE.md | git, workflow, conventions |
 | dev-workflow | Android Studio setup, Metro dev loop, dual-tool coexistence, standalone run config | workflow, android-studio, metro, dev-loop |
 | android-build-setup | AGP version pinning, react-native-nitro-modules, local.properties, SDK versions, build-tools | android, build, gradle, sdk, config |
+| ui-config-registry | UI Configuration Registry — data-driven composable UI via src/config/ui.ts | architecture, patterns, ui, config-driven |

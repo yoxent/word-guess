@@ -1,5 +1,5 @@
 # Storage Strategy
-updated: 2026-07-05
+updated: 2026-07-05 (stats aggregation)
 tags: [storage, persistence, sqlite, mmkv]
 related: [architecture, tech-stack, phase-structure]
 
@@ -79,6 +79,31 @@ Settings store uses persist middleware with this adapter. Game store is session-
 - `markDailyCompleted(dateStr, length): void` — appends to array, deduplicates
 - `getEndlessStreak(): number` — reads MMKV number, defaults 0
 - `setEndlessStreak(streak): void` — writes to MMKV
+
+## Stats aggregation queries (Phase 3)
+Stats computed from SQLite `game_history` table at query time, cached in statsStore:
+
+```sql
+-- Total games, wins, win %
+SELECT COUNT(*) as total_games, SUM(won) as total_wins FROM game_history;
+
+-- Guess distribution (per-number-of-attempts)
+SELECT guesses, COUNT(*) as count FROM game_history WHERE won = 1 GROUP BY guesses ORDER BY guesses;
+
+-- Games by word length
+SELECT letter_count, COUNT(*) as played, SUM(won) as won FROM game_history GROUP BY letter_length ORDER BY letter_count;
+
+-- Current streak (consecutive wins by last game date descending)
+-- Computed in application code: query recent games ordered by completed_at DESC,
+-- count consecutive wins until first loss.
+```
+
+### Per-mode streak computation
+- Query `completed_at DESC`, group by `mode`
+- Daily Challenge: filter `mode = 'daily'`, count consecutive wins
+- Non-daily (Free Play + Random): filter `mode IN ('free', 'random')`, count consecutive wins
+- Endless: uses separate MMKV `endless_streak` key (not SQLite)
+- Streak resets to 0 on first `won = 0` row in the consecutive chain
 
 ### AppState persistence flow
 - GameScreen registers `AppState.addEventListener('change', ...)` on mount

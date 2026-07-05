@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-05
+updated: 2026-07-05 (Phase 3 context)
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -39,10 +39,20 @@ Phase 1 (Foundation)
 - **Out:** No stats tracking (Phase 3), no ads/IAP (Phase 4), no cloud sync (Phase 5)
 - **Key artifacts:** 7 game components, LoadingScreen, wordLogic/dailySeed/sound services, animation constants, AppState persistence, haptics wiring
 
-### Phase 3: Stats & Settings
+### Phase 3: Stats & Settings (Context Gathered 2026-07-05)
 - **Goal:** Persistent stats, settings screen, share results
 - **Reqs:** STAT-01 → STAT-05 (5 reqs — smallest phase)
 - **Dependency:** Phase 2 (need game completions to record stats)
+- **Status:** Context gathered — ready for planning
+- **Key decisions:** D-67–D-81
+  - Stats screen: scrolling card sections driven by UI config registry
+  - Guess distribution: react-native-chart-kit bar chart
+  - Settings: config-driven toggle rows; account section shows placeholder "Sign in — coming in Phase 5"
+  - Share: manual share button in Stats screen, copies emoji grid + mode + attempts + date to clipboard
+  - Streak: per-mode tracking (Daily separate from others); Endless streak separate; streak resets on `lost` state
+  - UI Configuration Registry: `src/config/ui.ts` — single source of truth for composable UI (stats cards + settings rows); screens are dumb iterators
+- **Architecture addition:** `src/config/` layer added to project structure for UI configuration files
+- **New dep:** react-native-chart-kit for bar chart
 
 ### Phase 4: Monetization
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore

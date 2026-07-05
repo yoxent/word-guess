@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-05
+updated: 2026-07-05 (streak rules)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system]
 
@@ -30,6 +30,13 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Target word pool = full dictionary words **minus today's daily words** (1-6 words)
 - Same-day exclusion only — daily words return to pool next UTC day
 - Player guesses validated against full dictionary (no exclusions)
+
+## Streak tracking (per-mode, Phase 3)
+- **Per-mode:** Daily Challenge streak tracked separately from non-daily modes (Free Play + Random share a streak). Endless has its own streak (existing MMKV key, Phase 2).
+- **Reset:** Streak resets to 0 when player reaches `lost` state. Win keeps streak going; loss breaks it.
+- **Endless:** Endless streak (consecutive correct words) stored in MMKV via `getEndlessStreak`/`setEndlessStreak`, tracked independently of Daily/Free/Random streaks.
+- **Overview streak display:** When viewing stats generically, shows last-played mode's streak.
+- **SQLite storage:** Game history table records won/lost per game. Streak computed by SQL aggregation queries ordering by `completed_at DESC` and grouping consecutive wins.
 
 ## Universal toggle: Hard Mode
 - Applies to ANY mode (per-game toggle)

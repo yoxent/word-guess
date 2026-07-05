@@ -1,7 +1,7 @@
 # architecture
-updated: 2026-07-05
+updated: 2026-07-05 (UI Config Registry)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry]
 
 ## Layer stack
 ```
@@ -33,12 +33,15 @@ src/
 ├── screens/       # Home, Game, Loading, Stats, Settings, Leaderboard
 ├── components/
 │   ├── game/      # Tile, GuessRow, GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti
-│   ├── ui/        # Button, NavMenuButton, etc.
+│   ├── ui/        # Button, NavMenuButton, SettingRow, etc.
 ├── stores/        # gameStore, statsStore, authStore, settingsStore, dictionaryStore
 ├── services/      # storage.ts, wordLogic.ts, dailySeed.ts, sound.ts (stub)
+├── config/        # ui.ts — UI Configuration Registry (D-77, Phase 3)
 ├── constants/     # colors.ts, layout.ts, config.ts, animations.ts
 └── assets/        # dictionary/ (generated .json), sounds/, images/
 ```
+
+**Phase 3 addition:** `src/config/` layer for composable UI definitions. Screens read config arrays and render accordingly — no hardcoded layout logic. See [ui-config-registry](ui-config-registry.md).
 
 **Conventions:**
 - Type-based layout (not feature-based)
@@ -55,6 +58,7 @@ src/
 6. **Barrel files** — each directory has `index.ts` re-exporting all exports. Import via `@/components`, `@/types`, etc.
 7. **Static require() for bundled assets** — Metro cannot resolve dynamic require() or @/ alias. Always use static require() with relative paths.
 8. **Separate component subtrees** — Keyboard isolated as distinct subtree (React.memo) to prevent re-render interference with tile reveal animations.
+9. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
 
 ## Screens
 | Screen | Route | Composed of |
