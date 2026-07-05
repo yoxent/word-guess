@@ -1,17 +1,29 @@
 # architecture
 updated: 2026-07-04
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure]
 
 ## Layer stack
 ```
 Navigation (React Navigation 7.x stack)
   → Screens (6 route-level components)
-    → Feature Components (GameBoard, Keyboard, ResultModal, etc.)
+    → Feature Components (GameBoard, Keyboard, ResultModal, LengthPickerModal, etc.)
       → State Layer (Zustand, 5 stores)
         → Service Layer (pure logic + SDK wrappers)
           → Persistence (MMKV / SQLite / AsyncStorage / Firestore)
 ```
+
+## Constants layer
+```
+src/constants/
+├── colors.ts       # Tile/key colors (correct=#6aaa64, present=#c9b458, absent=#787c7e, etc.)
+├── layout.ts       # Tile/key dimensions (tileSize, keyboardKeyHeight, gaps)
+├── config.ts       # Game config (base attempts = letterCount+1, word length range 5-10)
+├── animations.ts   # Animation timing (TILE_FLIP_DURATION=200, TILE_STAGGER_DELAY=50, bounce params, confetti count)
+└── index.ts        # Barrel re-export
+```
+
+Animation constants tunable after Phase 2 per D-31 — change values in one file, all components pick up new timing.
 
 ## Project structure
 ```

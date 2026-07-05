@@ -1,7 +1,7 @@
 # dictionary-preprocessing
 updated: 2026-07-04
 tags: [dictionary, preprocessing, build-tools, metro]
-related: [tech-stack, architecture, game-modes, daily-seed]
+related: [tech-stack, architecture, game-modes, daily-seed, phase-structure]
 
 ## Two-tier dictionary system
 Two source files, both preprocessed into three output files per length:
@@ -30,15 +30,20 @@ Preprocessing script reads both files and applies combined filter.
 - Trigger: `"postinstall": "node scripts/preprocess-dictionary.mjs"` in package.json
 - Inputs: enriched.json, full.json, profanity-blocklist.txt, manual-blocklist.txt
 
-## Output files (all at `assets/dictionary/`)
+## Output files (18 total, all at `assets/dictionary/`)
 
 | Output | Source | Format | Use |
 |--------|--------|--------|-----|
 | `{N}.json` | enriched.json | `string[]` of words | Target word selection (Free Play, Random, Daily) |
-| `defs-{N}.json` | enriched.json | `Record<string,string>` | Word definition lookup (Result modal) |
 | `valid-{N}.json` | full.json | `string[]` of words | Player guess validation (isValidWord) |
+| `defs-{N}.json` | enriched.json | `Record<string,string>` | Word definition lookup (Result modal) |
 
-All output files in `.gitignore` — regenerated on postinstall.
+All output files in `.gitignore` — regenerated on postinstall. 6 lengths × 3 files = 18 JSON files.
+
+**Preprocessing script** (`scripts/preprocess-dictionary.mjs`) produces all 18 files in one pass:
+1. Reads `dictionary.full.json` (flat word array) → filter by length + blocklist → `valid-{N}.json`
+2. Reads `dictionary.full.enriched.json` (objects with word+definition) → extract words → `{N}.json`, extract defs → `defs-{N}.json`
+3. Both blocklist txt files read at build time, not at runtime — words removed from all outputs
 
 ## Metro bundler constraint (CRITICAL)
 Static `require()` with relative paths only. No dynamic require, no `@/` alias:

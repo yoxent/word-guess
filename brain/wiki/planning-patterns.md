@@ -1,7 +1,7 @@
 # planning-patterns
 updated: 2026-07-04
 tags: [planning, gsd, plans, plans, checker, nyquist]
-related: [phase-structure, key-risks, dictionary-preprocessing]
+related: [phase-structure, key-risks, dictionary-preprocessing, daily-seed]
 
 ## Phase 1 plan structure
 | Plan | Wave | Objective | Tasks | Depends On |
@@ -21,14 +21,50 @@ Every locked decision in CONTEXT.md gets a D-XX identifier. Plans reference thes
 
 24 decisions (D-01 through D-24) for Phase 1.
 
-## Plan checker catches
+## Phase 2 plan structure
+| Plan | Wave | Objective | Tasks | Depends On |
+|------|------|-----------|-------|------------|
+| 02-01 | 1 | Core logic: dict preprocessing, wordLogic, dailySeed, sound stub, store updates | 3 | Foundation |
+| 02-02 | 2 | Game UI: Tile, GuessRow, GameBoard, Keyboard, ResultModal, Confetti, GameScreen | 3 | 02-01 |
+| 02-03 | 2 | Modes: LengthPickerModal, HomeScreen routing, daily tracking, Endless, defs | 3 | 02-01, 02-02 |
+| 02-04 | 3 | Polish: animations, animation constants, persistence, loading screen, haptics | 3 | 02-02, 02-03 |
+
+- 4 plans across 3 waves. Wave 2 plans are NOT fully parallel — 02-03 depends on 02-02 (shared files: ResultModal.tsx, index.ts).
+65 decisions (D-25 through D-66) for Phase 2.
+
+## Plan checker catches (Phase 2 findings)
 | Issue | Example | Fix |
 |-------|---------|-----|
+| Cross-plan data contract mismatch | `getTodayDailyWords` returns `string[]` in one plan, `{date, words}` in another | Unify return type across all plans before execution |
+| Missing cross-plan dependency | Plan modifies file created by another plan in same wave | Add dependency or reorganize wave ordering |
+| Single-owner state lifecycle violation | Two plans both add `isRevealing` field to same store | Consolidate state lifecycle under one owning plan |
+| Animation timing off-by-duration | Timer doesn't account for correct tile bounce (extra 200ms) | Include bounce duration in animation completion calculation |
+| Tunable values hardcoded (violates D-31) | Animation timing literals in component file | Extract to shared constants file (`src/constants/animations.ts`) |
 | Metro-incompatible bundling | Dynamic require with template literal | Use static require() with relative paths |
 | Missing Nyquist artifacts | No VALIDATION.md | Create from research validation arch section |
 | Partial decision implementation | Nav menu only on HomeScreen (D-18) | Add headerRight to all non-game screens |
 | Scope leak into next phase | GameStore submitGuess with win/loss logic | Defer game logic to Phase 2 |
 | Must-haves spanning plans | Truth requires Plan 03 but declared in Plan 01 | Keep must-haves plan-scoped |
+
+## Key lesson: data contract alignment across parallel plans
+When 2+ plans in the same wave modify the same store/service:
+1. One plan creates the initial implementation
+2. Other plans add features to the same artifact
+3. **Must** agree on exact function signatures, return types, and import paths
+4. Plan checker must verify all cross-plan call sites are compatible
+
+## Key lesson: single-owner pattern for state lifecycle
+For shared state fields (like `isRevealing` on gameStore):
+1. Only one plan should add the field definition + lifecycle management
+2. Other plans reference the field as already-existing (don't re-declare)
+3. Violation: two plans both add the same field → merge conflicts or double-initialization
+
+## Key lesson: animation completion timing
+When computing the total duration of a staggered animation sequence:
+```
+totalTime = (lastTileIndex * staggerDelay) + flipDuration + buffer
+if (any correct tile) totalTime += bounceTotal  // extra 200ms
+```
 
 ## Nyquist validation requirements
 - When `nyquist_validation: true` in config, VALIDATION.md is required in phase directory

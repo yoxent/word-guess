@@ -1,7 +1,7 @@
 # game-modes
 updated: 2026-07-04
 tags: [gameplay, modes, game-design]
-related: [architecture, daily-seed, project-overview, dictionary-preprocessing]
+related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system]
 
 ## Four modes
 
