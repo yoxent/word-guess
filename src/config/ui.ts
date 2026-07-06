@@ -22,7 +22,8 @@ export type SettingsRowConfig =
   | { type: 'placeholder'; id: string; label: string; description: string }
   | { type: 'info'; id: string; label: string; value: string }
   | { type: 'restore'; id: string; label: string; description?: string }
-  | { type: 'purchase'; id: string; label: string; description?: string; productId: string };
+  | { type: 'purchase'; id: string; label: string; description?: string; productId: string }
+  | { type: 'signInButton'; id: string };  // NEW — Phase 5
 
 // ── Config Arrays ──
 
@@ -52,7 +53,7 @@ export const settingsConfig: SettingsSectionConfig[] = [
     id: 'account',
     title: 'Account',
     rows: [
-      { type: 'placeholder', id: 'signIn', label: 'Sign in', description: 'Sign in — coming in Phase 5' },
+      { type: 'signInButton', id: 'signIn' },
       { type: 'info', id: 'proStatus', label: 'Pro', value: '—' },
       { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'One-time purchase, removes all ads forever', productId: 'com.vorithstudio.wordguess.pro' },
       { type: 'restore', id: 'restorePurchases', label: 'Restore Purchases' },

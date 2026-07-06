@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
@@ -9,9 +10,21 @@ interface SettingsRowProps {
   config: SettingsRowConfig;
   onRestore?: () => Promise<void>;
   onPurchase?: (productId: string) => Promise<void>;
+  onSignIn?: () => Promise<void>;
+  onSignOut?: () => Promise<void>;
+  isLoggedIn?: boolean;
+  playerName?: string | null;
 }
 
-export function SettingsRow({ config, onRestore, onPurchase }: SettingsRowProps) {
+export function SettingsRow({
+  config,
+  onRestore,
+  onPurchase,
+  onSignIn,
+  onSignOut,
+  isLoggedIn,
+  playerName,
+}: SettingsRowProps) {
   switch (config.type) {
     case 'toggle':
       return <ToggleRow config={config} />;
@@ -23,6 +36,16 @@ export function SettingsRow({ config, onRestore, onPurchase }: SettingsRowProps)
       return <RestoreRow config={config} onRestore={onRestore} />;
     case 'purchase':
       return <PurchaseRow config={config} onPurchase={onPurchase} />;
+    case 'signInButton':
+      return (
+        <SignInButtonRow
+          config={config}
+          onSignIn={onSignIn}
+          onSignOut={onSignOut}
+          isLoggedIn={isLoggedIn}
+          playerName={playerName}
+        />
+      );
     default:
       return null;
   }
@@ -90,6 +113,46 @@ function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { typ
   );
 }
 
+function SignInButtonRow({
+  config: _config,
+  onSignIn,
+  onSignOut,
+  isLoggedIn,
+  playerName,
+}: {
+  config: SettingsRowConfig & { type: 'signInButton' };
+  onSignIn?: () => Promise<void>;
+  onSignOut?: () => Promise<void>;
+  isLoggedIn?: boolean;
+  playerName?: string | null;
+}) {
+  if (isLoggedIn) {
+    // Signed in: show player name + sign out button
+    return (
+      <View style={styles.row}>
+        <View style={styles.signInInfo}>
+          <MaterialIcons name="person" size={20} color={colors.accent} />
+          <Text style={styles.playerNameLabel}>{playerName ?? 'Player'}</Text>
+        </View>
+        <TouchableOpacity onPress={onSignOut} activeOpacity={0.7}>
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Not signed in: show sign-in button
+  return (
+    <TouchableOpacity style={styles.row} onPress={onSignIn} activeOpacity={0.7}>
+      <View style={styles.signInInfo}>
+        <MaterialIcons name="login" size={20} color={colors.accent} />
+        <Text style={styles.signInLabel}>Sign in with Google</Text>
+      </View>
+      <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -118,5 +181,24 @@ const styles = StyleSheet.create({
     ...typography.settingsRow,
     color: colors.accent,
     fontWeight: '600',
+  },
+  signInInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  signInLabel: {
+    ...typography.settingsRow,
+    color: colors.accent,
+    fontWeight: '500',
+  },
+  playerNameLabel: {
+    ...typography.settingsRow,
+    flex: 1,
+  },
+  signOutText: {
+    ...typography.settingsRow,
+    color: colors.danger,
+    fontWeight: '500',
   },
 });

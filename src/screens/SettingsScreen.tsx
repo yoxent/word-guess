@@ -6,15 +6,38 @@ import { typography } from '../constants/typography';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useAuthStore } from '../stores/authStore';
 
 export function SettingsScreen() {
   const isPro = useSettingsStore(s => s.isPro);
   const [toast, setToast] = useState<{ message: string; isSuccess: boolean } | null>(null);
 
+  // Auth state
+  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const playerName = useAuthStore(s => s.playerName);
+  const googleSignIn = useAuthStore(s => s.googleSignIn);
+  const googleSignOut = useAuthStore(s => s.googleSignOut);
+  const isAuthPending = useAuthStore(s => s.isAuthPending);
+
   const showToast = useCallback((message: string, isSuccess: boolean) => {
     setToast({ message, isSuccess });
     setTimeout(() => setToast(null), 3000);
   }, []);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    const success = await googleSignIn();
+    if (success) {
+      showToast('Signed in successfully!', true);
+    } else {
+      const error = useAuthStore.getState().authError;
+      showToast(error ?? 'Sign-in failed.', false);
+    }
+  }, [googleSignIn, showToast]);
+
+  const handleGoogleSignOut = useCallback(async () => {
+    await googleSignOut();
+    showToast('Signed out', true);
+  }, [googleSignOut, showToast]);
 
   const handleRestore = useCallback(async () => {
     try {
@@ -90,6 +113,10 @@ export function SettingsScreen() {
                     config={row}
                     onRestore={row.type === 'restore' ? handleRestore : undefined}
                     onPurchase={row.type === 'purchase' ? handlePurchase : undefined}
+                    onSignIn={row.type === 'signInButton' ? handleGoogleSignIn : undefined}
+                    onSignOut={row.type === 'signInButton' ? handleGoogleSignOut : undefined}
+                    isLoggedIn={row.type === 'signInButton' ? isLoggedIn : undefined}
+                    playerName={row.type === 'signInButton' ? playerName : undefined}
                   />
                   {i < section.rows.length - 1 && <View style={styles.divider} />}
                 </React.Fragment>
