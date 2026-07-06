@@ -1,7 +1,7 @@
 # Key Risks
-updated: 2026-07-06 (P6/P7 mitigated — ad store + restore flow implemented)
+updated: 2026-07-06 (Phase 5 plan-checker findings — P22/P23/P24 added)
 tags: [risks, pitfalls, critical]
-related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing]
+related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync]
 
 ## Critical risks (rewrite / store rejection / abandonment)
 
@@ -133,3 +133,23 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Cause: Game assumes Wordle familiarity. No "How to Play" flow, example guess, or help icon.
 - Risk: New users confused about rules (Hard Mode, tile colors, daily completion).
 - Phase: 3 (Stats & Settings) or 6 (Pre-Launch)
+
+## Phase 5 planning findings (plan checker)
+
+### P22: CLOUD-02 stats sync wire gap (CAUGHT AT PLAN-CHECK)
+- Cause: firestoreService.updatePlayerStats() created in 05-01 but never called in any plan. CLOUD-02 (cloud-synced stats) had no implementation task.
+- Impact: Player stats never synced to Firestore — leaderboards isolated, no cloud backup.
+- Fix: Added updatePlayerStats() call alongside leaderboard submission in game completion flow; enqueue game_result to syncQueue when offline/unauthed.
+- Phase: 5 (Cloud & Social)
+
+### P23: D-136 hash algorithm deviation (CAUGHT AT PLAN-CHECK)
+- Cause: D-136 specified SHA-256 for event IDs, but plan action used djb2/fnv1a. Documented as accepted deviation.
+- Risk: Collision if sync queue scales to thousands of events (theoretical).
+- Fix: Documented rationale — expo-crypto polyfill overhead unnecessary for single-device dedup. SHA-256 can be adopted if cross-device dedup needed.
+- Phase: 5
+
+### P24: Zustand persist hydration race on cold start (CAUGHT AT PLAN-CHECK)
+- Cause: authStore persisted to AsyncStorage. On cold start, rehydration is async — isLoggedIn briefly false before persisted true loads.
+- Impact: Brief flash of "not signed in" UI on app launch for authenticated users.
+- Fix: Gate auth-dependent UI with `_hasHydrated`. `googleSignInSilently` clears stale isLoggedIn on failure.
+- Phase: 5

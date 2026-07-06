@@ -24,3 +24,4 @@ related: []
 | ui-config-registry | UI Configuration Registry — data-driven composable UI via src/config/ui.ts | architecture, patterns, ui, config-driven |
 | design-tokens | Spacing scale, typography, color conventions — design system tokens defined by Phase 3 UI-SPEC | design, tokens, spacing, typography, colors, ui |
 | monetization | Phase 4 execution — ad manager (Zustand + google-mobile-ads), interstitial timing, rewarded ads, Pro IAP, restore, Remote Config, app.json plugins | ads, iap, monetization, phase-4, complete |
+| cloud-sync | Phase 5 cloud architecture — Firestore data model, offline sync queue, leaderboard design, score submission pipeline, auth flow | cloud, firebase, firestore, sync, leaderboard, auth, phase-5 |

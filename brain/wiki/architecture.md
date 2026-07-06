@@ -1,17 +1,23 @@
 # architecture
-updated: 2026-07-06 (Phase 4 additions — adStore, remoteConfig, interstitial/rewarded ad flow)
+updated: 2026-07-06 (Phase 4 additions — adStore, remoteConfig, interstitial/rewarded ad flow; Phase 5 planned — cloud sync, auth, leaderboards)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin]
 
 ## Layer stack
 ```
 App (LoadingScreen → NavigationContainer)
   → Navigation (React Navigation 7.x stack)
     → Screens (route-level)
-      → Feature Components (GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti)
-        → State Layer (Zustand, 5 stores)
-          → Service Layer (pure logic + SDK wrappers)
+      → Feature Components (GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti, LeaderboardRow)
+        → State Layer (Zustand, 7 stores: game, stats, auth, settings, dictionary, ad, +authStore Google actions)
+          → Service Layer (pure logic + SDK wrappers + cloud services)
             → Persistence (MMKV / SQLite / AsyncStorage / Firestore)
+
+Cloud services (Phase 5):
+  → authService (GoogleSignIn + Firebase Auth wrapper)
+  → firestoreService (Firestore CRUD: playerStats + 3 leaderboard collections)
+  → syncQueue (AsyncStorage-backed offline write-ahead log)
+  → leaderboardService (score submission + queue fallback + data fetch)
 ```
 
 ## Constants layer
@@ -46,6 +52,8 @@ src/
 **Phase 3 addition:** `src/config/` layer for composable UI definitions. Screens read config arrays and render accordingly — no hardcoded layout logic. See [ui-config-registry](ui-config-registry.md).
 
 **Phase 4 addition:** `adStore` (Zustand) singleton wrapping react-native-google-mobile-ads for interstitial/rewarded ad lifecycle. `remoteConfig` service for Firebase Remote Config (ad unit IDs). `monetization.ts` types for AdState, RestoreResult. See [monetization](monetization.md).
+
+**Phase 5 additions:** `authService.ts` (GoogleSignIn + Firebase Auth wrapper), `firestoreService.ts` (Firestore CRUD for playerStats + leaderboards), `syncQueue.ts` (AsyncStorage-backed offline write-ahead log with idempotent events and exponential backoff), `leaderboardService.ts` (leaderboard score submission with queue fallback). `authStore.ts` extended with googleSignIn/googleSignOut/googleSignInSilently. `src/config/ui.ts` SettingsRowConfig gains `signInButton` type. See [cloud-sync](cloud-sync.md) and [google-signin](google-signin.md).
 
 **Conventions:**
 - Type-based layout (not feature-based)

@@ -43,10 +43,12 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 ## Cloud & Auth
 | Layer | Choice | Version | Notes |
 |-------|--------|---------|-------|
-| Backend | Firebase (Firestore + Auth) | 25.x | Phase 5 |
-| Google Sign-In | @react-native-google-signin | 16.x | Phase 5 |
+| Backend | Firebase (Firestore + Auth) | 25.x | Phase 5 — Firestore for player stats + leaderboards, Auth for Google Sign-In token exchange |
+| Google Sign-In | @react-native-google-signin | 16.x | Phase 5 — Web client ID (not Android) passed to configure() |
+| Firebase Auth | @react-native-firebase/auth | 25.x | Phase 5 — credential exchange after GoogleSignIn |
+| Firebase Firestore | @react-native-firebase/firestore | 25.x | Phase 5 — 3 leaderboard collections + playerStats |
 | Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config (Phase 4, D-106) — npm verified |
-| Firebase App | @react-native-firebase/app | 25.x | Required peer dep of remote-config; installs alongside |
+| Firebase App | @react-native-firebase/app | 25.x | Required peer dep of remote-config + auth + firestore; installs alongside |
 
 ## Monetization
 | Layer | Choice | Version | Notes |
