@@ -26,6 +26,7 @@ import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
 import type { GameMode } from '../types';
 import { useNavigation } from '@react-navigation/native';
+import { useAdStore } from '../stores/adStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 
@@ -85,6 +86,8 @@ export function GameScreen({ route }: Props) {
     }
 
     startGame(mode, word, len, hardMode);
+    // Preload interstitial for end-of-game
+    useAdStore.getState().preloadInterstitial();
     setInitializing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -171,6 +174,11 @@ export function GameScreen({ route }: Props) {
             completedAt: currentSession.completedAt || new Date().toISOString(),
             feedback: currentSession.feedback,
           });
+
+          // Increment interstitial frequency counter
+          useAdStore.getState().incrementGamesSinceLastAd();
+          // Preload next interstitial
+          useAdStore.getState().preloadInterstitial();
         }
       }, totalAnimationTime);
 
