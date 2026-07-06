@@ -15,7 +15,7 @@
 - [x] **Phase 1: Foundation** — Scaffold, dictionary, theme, types, navigation, storage
 - [x] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
 - [x] **Phase 3: Stats & Settings** — Persistent stats, settings screen, share results, local persistence
-- [ ] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
+- [x] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
 - [ ] **Phase 5: Cloud & Social** — Google Sign-In, cloud sync, daily/endless leaderboards
 - [ ] **Phase 6: Pre-Launch & Polish** — Accessibility, Play Store compliance, performance, production build
 
@@ -142,7 +142,7 @@
 | Phase 1: Foundation | 3/3 | ✅ Complete | 2026-07-04 |
 | Phase 2: Core Gameplay | 4/4 | ✅ Complete | 2026-07-05 |
 | Phase 3: Stats & Settings | 3/3 | ✅ Complete | 2026-07-06 |
-| Phase 4: Monetization | 0/0 | ❄️ Not started | — |
+| Phase 4: Monetization | 3/3 | ✅ Complete | 2026-07-06 |
 | Phase 5: Cloud & Social | 0/0 | ❄️ Not started | — |
 | Phase 6: Pre-Launch & Polish | 0/0 | ❄️ Not started | — |
 

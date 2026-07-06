@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase-4-executing
-stopped_at: Executing Wave 1 — Plan 04-01
-last_updated: "2026-07-06T10:48:00.000Z"
+status: phase-4-complete
+stopped_at: Phase 4 complete — monetization implemented
+last_updated: "2026-07-06T11:15:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 14
-  completed_plans: 11
-  percent: 50
+  completed_plans: 14
+  percent: 66
 ---
 
 # State: word-guess
@@ -34,9 +34,9 @@ progress:
 |-------|-------|
 | **Milestone** | 1 (MVP) |
 | **Active Phase** | Phase 4: Monetization |
-| **Active Plan** | 04-01 (Wave 1) |
-| **Status** | Phase 4 executing — Wave 1 |
-| **Progress** | ▰▰▰▰▰▰▰▰▰▰ 50% |
+| **Active Plan** | None (phase complete) |
+| **Status** | Phase 4 complete — monetization live |
+| **Progress** | ▰▰▰▰▰▰▰▰▰▰ 66% |
 
 ### Phase Status
 
@@ -45,7 +45,7 @@ progress:
 | Phase 1: Foundation | Complete | 3/3 |
 | Phase 2: Core Gameplay | Complete | 4/4 |
 | Phase 3: Stats & Settings | Complete | 3/3 |
-| Phase 4: Monetization | Executing | 0/3 |
+| Phase 4: Monetization | Complete | 3/3 |
 | Phase 5: Cloud & Social | Not started | 0/0 |
 | Phase 6: Pre-Launch & Polish | Not started | 0/0 |
 
@@ -108,17 +108,17 @@ progress:
 
 ## Session Continuity
 
-**Last session:** 2026-07-06T10:30:00.000Z
-**Stopped at:** Phase 4 context gathered
+**Last session:** 2026-07-06T11:15:00.000Z
+**Stopped at:** Phase 4 complete — monetization implemented
 **Resume file:** .planning/phases/04-monetization/04-CONTEXT.md
 
 | Session | Phase | Work Done | Next Action |
 |---------|-------|-----------|-------------|
-| 2026-07-04 | Roadmap | Created ROADMAP.md with 6 phases, success criteria, 100% requirement coverage | User approval → `/gsd-plan-phase 1` |
+| 2026-07-04 | Roadmap | Created ROADMAP.md with 6 phases, success criteria, 100% requirement coverage | Done |
 | 2026-07-04 | Phase 1 | Executed all 3 plans: scaffold, types, colors, dictionary (01-01); storage + stores (01-02); navigation + screens (01-03). All TypeScript compiles under strict mode. | Done |
 | 2026-07-05 | Phase 2 | Executed all 4 plans: preprocessing + services (02-01), game UI components (02-02), mode routing + definitions (02-03), animations + persistence + haptics (02-04). All TypeScript compiles under strict mode. 16 commits across wave-based execution. | Done |
 | 2026-07-06 | Phase 3 | Executed all 3 plans: data layer (03-01), UI infrastructure (03-02), stats & settings screens (03-03). All TypeScript compiles under strict mode. 3 commits. | Done |
-| 2026-07-06 | Phase 4 | Discussed monetization — interstitial timing/frequency, rewarded ad UX, Pro IAP config, restore flow, ad manager, Remote Config, settings integration. 26 decisions (D-87–D-112). | Next: `/gsd-plan-phase 4` |
+| 2026-07-06 | Phase 4 | Executed all 3 plans — deps & ad foundation (04-01), restore & purchase UI (04-02), interstitial & rewarded ads (04-03). 10 commits across 2 waves. All TypeScript compiles under strict mode. | Next: `/gsd-plan-phase 5` |
 
 ---
 
@@ -126,6 +126,7 @@ progress:
 
 - **When blocked on Phase 2 animation performance:** Ensure Reanimated worklets are used on UI thread, not JS thread
 - **When setting up Google Sign-In:** Register all 3 SHA-1 fingerprints before production build
-- **Before Phase 4 start:** Verify current Play Store ad/IAP policy requirements
+- **Before Play Store submission:** Verify Play Store ad/IAP policy, replace placeholder AdMob IDs in app.json, set real Remote Config keys
 - **Before Phase 6 start:** Run performance profile on Moto G Power class device
 - **Any phase with UI:** Run `/gsd-ui-phase` for UI safety gate
+- **When testing ads:** Use real test device IDs; Google test ads work without AdMob account setup
