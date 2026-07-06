@@ -93,7 +93,11 @@
 4. Player can restore purchases from Settings — `getPurchases()` reactivates Pro features without re-purchasing
 5. Ad-free gating works correctly — ads shown only when `!isPro`; Pro status stored locally and checked at app startup
 6. Singleton ad manager prevents double-loading; ads use test IDs during development; real AdMob unit IDs configurable via environment
-**Plans:** TBD
+**Plans:** 3 plans (04-01, 04-02, 04-03)
+**Plan list:**
+1. **04-01** (Wave 1) — Install deps + config plugins, split maxExtraGuesses, create adStore + remoteConfig service, app init wiring
+2. **04-02** (Wave 2) — Extend Settings UI config with restore/purchase rows, implement restore + Pro purchase flows in SettingsScreen
+3. **04-03** (Wave 2) — Rewarded ad button in ResultModal, interstitial on result transition, extra guess mechanics in gameStore, frequency capping
 **UI hint:** yes
 
 ### Phase 5: Cloud & Social

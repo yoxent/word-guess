@@ -48,7 +48,7 @@
 
 - [ ] **AD-01**: Interstitial ad shown after each completed game (win or loss) for free tier; ad loads at game start, shows after game completion + Continue button press
 - [ ] **AD-02**: Rewarded video ad for +1 extra guess (max 2 per game); clear "Watch ad for +1 guess?" dialog with confirm/cancel; button appears when 2 attempts remaining
-- [ ] **AD-03**: Pro IAP ($1.99 USD, non-consumable SKU) — removes all interstitial ads permanently; product ID `com.wordguess.pro` stored as constant
+- [ ] **AD-03**: Pro IAP ($1.99 USD, non-consumable SKU) — removes all interstitial ads permanently; product ID `com.vorithstudio.wordguess.pro` stored as constant
 - [ ] **AD-04**: Restore Purchases flow — button in Settings calls `getPurchases()` from react-native-iap; re-activates Pro features without re-purchasing
 - [ ] **AD-05**: Ad-free gating — `AdsEnabled = !isPro` checked before showing any ad; Pro status stored locally and checked at app startup
 - [ ] **AD-06**: Singleton ad manager prevents double-loading — ref-counted lifecycle per ad unit ID; loads at appropriate times (interstitial at game start, rewarded on app launch)
