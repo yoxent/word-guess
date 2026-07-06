@@ -62,22 +62,125 @@ export async function initDatabase(): Promise<void> {
   `);
 }
 
+async function computePerModeStreaks(db: SQLite.SQLiteDatabase): Promise<Record<string, { current: number; max: number }>> {
+  const groups = ['daily', 'endless', 'non-daily'];
+  const result: Record<string, { current: number; max: number }> = {};
+
+  for (const group of groups) {
+    let modeFilter: string;
+    if (group === 'non-daily') {
+      modeFilter = "mode IN ('free', 'random')";
+    } else {
+      modeFilter = `mode = '${group}'`;
+    }
+
+    const rows = await db.getAllAsync<{ won: number; completed_at: string }>(
+      `SELECT won, completed_at FROM game_history WHERE ${modeFilter} ORDER BY completed_at DESC`
+    );
+
+    // Max streak: longest consecutive win run across all rows
+    let maxStreak = 0;
+    let runLength = 0;
+    for (const row of rows) {
+      if (row.won === 1) {
+        runLength++;
+        if (runLength > maxStreak) maxStreak = runLength;
+      } else {
+        runLength = 0;
+      }
+    }
+
+    // Current streak: count consecutive wins from most recent game
+    let currentStreak = 0;
+    for (const row of rows) {
+      if (row.won === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    result[group] = { current: currentStreak, max: maxStreak };
+  }
+
+  return result;
+}
+
+async function computeGuessDistribution(db: SQLite.SQLiteDatabase): Promise<number[]> {
+  const rows = await db.getAllAsync<{ guesses: number; count: number }>(
+    `SELECT guesses, COUNT(*) as count FROM game_history WHERE won = 1 GROUP BY guesses ORDER BY guesses`
+  );
+  if (rows.length === 0) return [];
+
+  const maxGuesses = Math.max(...rows.map(r => r.guesses));
+  const distribution = new Array(maxGuesses + 1).fill(0);
+  for (const row of rows) {
+    distribution[row.guesses] = row.count;
+  }
+  return distribution;
+}
+
+async function computeGamesByLength(db: SQLite.SQLiteDatabase): Promise<Record<number, { played: number; won: number }>> {
+  const rows = await db.getAllAsync<{ letter_count: number; played: number; won: number }>(
+    `SELECT letter_count, COUNT(*) as played, SUM(won) as won FROM game_history GROUP BY letter_count ORDER BY letter_count`
+  );
+  const result: Record<number, { played: number; won: number }> = {};
+  for (const row of rows) {
+    result[row.letter_count] = { played: row.played, won: row.won || 0 };
+  }
+  return result;
+}
+
 export async function getStats(): Promise<PlayerStats | null> {
   if (!db) return null;
+
   const row = await db.getFirstAsync<{
     total_games: number;
     total_wins: number;
-  }>('SELECT COUNT(*) as total_games, SUM(won) as total_wins FROM game_history');
+    last_date: string | null;
+  }>(`
+    SELECT
+      COUNT(*) as total_games,
+      COALESCE(SUM(won), 0) as total_wins,
+      MAX(completed_at) as last_date
+    FROM game_history
+  `);
+
   if (!row || row.total_games === 0) return null;
+
+  const [perModeStreaks, guessDistribution, gamesByLength] = await Promise.all([
+    computePerModeStreaks(db),
+    computeGuessDistribution(db),
+    computeGamesByLength(db),
+  ]);
+
+  // Determine last-played mode for currentStreak (D-76)
+  const lastGameRow = await db.getFirstAsync<{ mode: string }>(
+    `SELECT mode FROM game_history ORDER BY completed_at DESC LIMIT 1`
+  );
+  let lastMode = 'non-daily';
+  if (lastGameRow) {
+    if (lastGameRow.mode === 'daily' || lastGameRow.mode === 'endless') {
+      lastMode = lastGameRow.mode;
+    }
+  }
+
+  const currentStreak = perModeStreaks[lastMode]?.current ?? 0;
+  const maxStreak = Math.max(
+    ...Object.values(perModeStreaks).map(s => s.max),
+    0
+  );
+
   return {
     totalGames: row.total_games,
-    wins: row.total_wins || 0,
-    currentStreak: 0,
-    maxStreak: 0,
-    guessDistribution: [],
-    gamesByLength: {},
-    lastGameDate: '',
-    completedDailyChallenges: [],
+    wins: row.total_wins,
+    winRate: row.total_games > 0 ? Math.round((row.total_wins / row.total_games) * 100) : 0,
+    currentStreak,
+    maxStreak,
+    guessDistribution,
+    gamesByLength,
+    lastGameDate: row.last_date ?? '',
+    perModeStreaks,
   };
 }
 

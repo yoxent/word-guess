@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { ScreenProps } from '../types';
 import { colors } from '../constants/colors';
-import { useGameStore, useDictionaryStore } from '../stores';
+import { useGameStore, useDictionaryStore, useStatsStore } from '../stores';
 import {
   getActiveGame,
   saveActiveGame,
@@ -157,6 +157,20 @@ export function GameScreen({ route }: Props) {
             const streak = getEndlessStreak();
             persistEndlessStreak(currentSession.status === 'won' ? streak + 1 : 0);
           }
+
+          // Record game result for stats tracking (Phase 3 — STAT-01, D-72)
+          useStatsStore.getState().recordGame({
+            id: currentSession.id,
+            mode: currentSession.mode,
+            word: currentSession.word,
+            letterCount: currentSession.letterCount,
+            guesses: currentSession.guesses.length,
+            won: currentSession.status === 'won',
+            hardMode: currentSession.hardMode,
+            extraGuessesUsed: currentSession.extraGuessesUsed,
+            completedAt: currentSession.completedAt || new Date().toISOString(),
+            feedback: currentSession.feedback,
+          });
         }
       }, totalAnimationTime);
 
