@@ -234,6 +234,20 @@ export function setEndlessStreak(streak: number): void {
   mmkv.set('endless_streak', streak);
 }
 
+// ── Endless total words counter (D-145) ──
+const ENDLESS_TOTAL_KEY = 'endless_total_words';
+
+export function getEndlessTotalWords(): number {
+  return mmkv.getNumber(ENDLESS_TOTAL_KEY) ?? 0;
+}
+
+export function incrementEndlessTotalWords(): number {
+  const current = getEndlessTotalWords();
+  const next = current + 1;
+  mmkv.set(ENDLESS_TOTAL_KEY, next);
+  return next;
+}
+
 // ── AsyncStorage: auth tokens only (D-23) ──
 const AUTH_TOKEN_KEY = 'wordguess.authToken';
 

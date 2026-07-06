@@ -14,6 +14,8 @@ export {
   markDailyCompleted,
   getEndlessStreak,
   setEndlessStreak,
+  getEndlessTotalWords,
+  incrementEndlessTotalWords,
 } from './storage';
 
 export { evaluateGuess, validateHardMode, isValidGuess } from './wordLogic';
@@ -37,6 +39,12 @@ export {
   clearQueue,
 } from './syncQueue';
 export type { SyncEvent } from './syncQueue';
+
+export {
+  submitScore,
+  updateLeaderboardAfterGame,
+  getLeaderboardData,
+} from './leaderboardService';
 
 export {
   configureGoogleSignIn,
