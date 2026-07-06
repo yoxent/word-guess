@@ -1,5 +1,5 @@
 # ui-config-registry
-updated: 2026-07-05 (component contracts, extended row types)
+updated: 2026-07-06 (screen behaviors, entrance animation, pull-to-refresh, typography)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81]
 related: [architecture, phase-structure, storage-strategy]
 
@@ -103,6 +103,16 @@ Pure function `generateShareText(gameResult)` → emoji grid string. Input: Game
 | Share no games | Button hidden when totalGames === 0 |
 | Share win vs loss | Footer: "5/6" (win) / "X/6" (loss) |
 | First launch no settings | Defaults: hardMode=true, sound=true, haptic=true, isPro=false |
+
+## Screen behavior (Phase 3 decisions)
+| Screen | Feature | Behavior |
+|--------|---------|----------|
+| Stats | Entrance animation | Cards fade-in + slide-up (opacity 0→1, translateY 10→0), 300ms, 80ms stagger per card (D-82) |
+| Stats | Share button | Floating action button, `position: absolute` at bottom, overlay on ScrollView (D-83) |
+| Stats | Pull-to-refresh | Always enabled via `RefreshControl`, re-runs `statsStore.loadStats()` (D-86) |
+
+## Typography constants (D-84)
+5-size type scale extracted to `src/constants/typography.ts` — follows `colors.ts`/`layout.ts` pattern. Screens import constants instead of inline StyleSheet values. See [design-tokens](design-tokens.md) for scale.
 
 ## Constraints (D-81)
 - Plain TypeScript arrays — no heavy abstraction, no DI framework

@@ -39,21 +39,25 @@ Phase 1 (Foundation)
 - **Out:** No stats tracking (Phase 3), no ads/IAP (Phase 4), no cloud sync (Phase 5)
 - **Key artifacts:** 7 game components, LoadingScreen, wordLogic/dailySeed/sound services, animation constants, AppState persistence, haptics wiring
 
-### Phase 3: Stats & Settings (UI-SPEC Approved 2026-07-05)
+### Phase 3: Stats & Settings (Context Updated 2026-07-06)
 - **Goal:** Persistent stats, settings screen, share results
 - **Reqs:** STAT-01 → STAT-05 (5 reqs — smallest phase)
 - **Dependency:** Phase 2 (need game completions to record stats)
-- **Status:** UI-SPEC approved — ready for planning
-- **Key decisions:** D-67–D-81 + UI design contract (03-UI-SPEC.md)
+- **Status:** Context gathered — ready for planning
+- **Key decisions:** D-67–D-86 + UI design contract (03-UI-SPEC.md)
   - Stats screen: scrolling card sections driven by UI config registry
+  - Stats card entrance: fade-in + slide-up (opacity 0→1, translateY 10→0, 300ms, 80ms stagger per card) (D-82)
   - Guess distribution: react-native-chart-kit bar chart
+  - Share: floating action button (fixed bottom, absolute position) copies emoji grid + mode + attempts + date to clipboard (D-83)
+  - Per-mode streaks: computed AND displayed in Phase 3 (daily/endless/free+random separate); data collection wire (gameStore→statsStore.recordGame) added in Phase 3 (D-85)
+  - Pull-to-refresh: always enabled on Stats screen (D-86)
+  - Typography: 5-size type scale extracted to `src/constants/typography.ts` (D-84)
   - Settings: config-driven toggle rows; account section shows placeholder "Sign in — coming in Phase 5"
-  - Share: manual share button in Stats screen, copies emoji grid + mode + attempts + date to clipboard
-  - Streak: per-mode tracking (Daily separate from others); Endless streak separate; streak resets on `lost` state
   - UI Configuration Registry: `src/config/ui.ts` — single source of truth for composable UI (stats cards + settings rows); screens are dumb iterators
-- **Architecture additions:** `src/config/` layer, `src/utils/share.ts`, components `StatCard` + `SettingsRow`
+- **Architecture additions:** `src/config/` layer, `src/utils/share.ts`, `src/constants/typography.ts`, components `StatCard` + `SettingsRow`
 - **New deps:** react-native-chart-kit, react-native-svg, expo-clipboard
 - **Design tokens:** Spacing scale (4-48px multiples of 4), typography scale (5 sizes), color role assignments (accent reserved for toggles + share CTA). See [design-tokens](design-tokens.md).
+- **Key integration context:** `gameStore.submitGuess()` detects win/loss but does NOT call `statsStore.recordGame()` — this wire must be added in Phase 3. Animation completion callback in GameScreen handles daily/endless persistence but misses stats recording.
 
 ### Phase 4: Monetization
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore

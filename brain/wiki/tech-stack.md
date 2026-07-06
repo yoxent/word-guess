@@ -121,6 +121,11 @@ Run `npx expo install --check` to verify all native module versions align with i
 | SVG renderer | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit |
 | Clipboard | expo-clipboard | SDK 57 | Copy share text (emoji grid) to clipboard |
 
+**Phase 3 source files (constants layer):**
+| File | Purpose |
+|------|---------|
+| `src/constants/typography.ts` | 5-size type scale (Stat Value 32px, Card Title 18px, Settings Row 16px, Body 14px, Stat Label 12px). Follows colors.ts/layout.ts pattern. See [design-tokens](design-tokens.md). |
+
 ## Bonus dependencies (evaluated, deferred)
 | Library | Use | Verdict |
 |---------|-----|--------|

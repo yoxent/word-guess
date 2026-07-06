@@ -1,5 +1,5 @@
 # design-tokens
-updated: 2026-07-05
+updated: 2026-07-06
 tags: [design, tokens, spacing, typography, colors, UI]
 related: [architecture, ui-config-registry, tech-stack, phase-structure]
 
@@ -29,7 +29,7 @@ Exceptions: none. Card `borderRadius: 12` (not from tileBorderRadius 6 — inten
 
 - Placeholder text: Body (14px) + `textSecondary` color
 - Reading type scale: 4 sizes (12, 14, 16, 18); 32px is display-only for numeric values
-- Implementation: inline StyleSheet.create() or shared `src/constants/typography.ts`
+- Implementation: extracted to `src/constants/typography.ts` (D-84) — follows colors.ts/layout.ts pattern
 
 ## Color usage conventions
 | Role | Color Variable | Hex | Usage |
