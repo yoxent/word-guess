@@ -37,3 +37,15 @@ export {
   clearQueue,
 } from './syncQueue';
 export type { SyncEvent } from './syncQueue';
+
+export {
+  configureGoogleSignIn,
+  signInWithGoogle,
+  signOutFromGoogle,
+  signInSilently,
+  getCurrentUser,
+  onAuthStateChanged,
+  AuthError,
+  AuthErrorCode,
+} from './authService';
+export type { GoogleSignInResult, SilentlySignInResult } from './authService';
