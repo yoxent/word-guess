@@ -1,97 +1,44 @@
-# Phase 3: Stats & Settings - Discussion Log
-
-> **Audit trail only.** Do not use as input to planning, research, or execution agents.
-> Decisions are captured in CONTEXT.md — this log preserves the alternatives considered.
+# Phase 3: Stats & Settings — Discussion Log
 
 **Date:** 2026-07-05
-**Phase:** 3-Stats & Settings
-**Areas discussed:** Stats Screen Layout, Guess Distribution Chart, Settings Account Section, Share Results, Streak Calculation, Data-Driven Architecture
+**Status:** Context captured
 
 ---
 
-## Stats Screen Layout
+## Questions Asked
 
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Card sections | Grouped scrolling cards per stat category (Overview, By Length, Distribution) | ✓ |
-| Single list | Flat scrollable list of all stats | |
-| Compact grid | Dense grid layout | |
+### 1. Stats Card Entrance Animation
+- **Options:** Animated fade-in (opacity 0→1, translateY 10→0, 300ms, 80ms stagger) vs instant render
+- **Chosen:** With animation (D-82)
 
-**User's choice:** Card sections
-**Notes:** Cards are driven by a UI Configuration Registry (see Data-Driven Architecture area).
+### 2. Share Button Placement
+- **Options:** Floating action button (fixed at bottom) vs inline bottom-of-list button
+- **Chosen:** Floating action button (D-83)
 
----
+### 3. Typography Constants File
+- **Options:** Extract 5-size type scale to `src/constants/typography.ts` vs inline StyleSheet values
+- **Chosen:** Extract to constants file (D-84)
 
-## Guess Distribution Chart
+### 4. Per-Mode Streak Display
+- **Options:** Display in Phase 3 (if data is being collected) vs defer to future
+- **Decision:** Data collection IS part of Phase 3 (game completion → stats recording wire is missing from Phase 2). Since we're collecting it, compute and display per-mode streaks now (D-85).
 
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Custom Views | Build bars with React Native Views (zero deps) | |
-| react-native-chart-kit | Add charting library for bar chart | ✓ |
-| victory-native | Alternative charting library | |
-
-**User's choice:** react-native-chart-kit
-**Notes:** Chart embedded inside a stats card, driven by config registry.
+### 5. Pull-to-Refresh on Stats
+- **Options:** Always enabled vs error-only
+- **Chosen:** Always enabled (D-86)
 
 ---
-
-## Settings Account Section
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Functional sign-in | Wire up Google Sign-In now (Phase 5 scope) | |
-| Placeholder | Show "Sign in — coming in Phase 5" label | ✓ |
-
-**User's choice:** Placeholder
-**Notes:** Placeholder is a row type in the UI config registry, easily swapped to `signInButton` in Phase 5.
-
----
-
-## Share Results
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Auto-copy from ResultModal | Copy emoji grid automatically on game end | |
-| Manual in Stats screen | Share button in Stats screen taps to copy | ✓ |
-| Both | Offer both auto and manual | |
-
-**User's choice:** Manual share button in Stats screen
-**Notes:** Uses expo-clipboard.
-
----
-
-## Streak Calculation
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Cross-mode streak | Same streak across all modes | |
-| Per-mode streaks | Separate streaks per game mode | ✓ |
-
-**User's choice:** Per-mode streaks
-**Notes:** Endless streak (already in MMKV from Phase 2) stays separate. Daily/Free/Random share a streak bucket. Streak resets on `lost` state.
-
----
-
-## Data-Driven Architecture
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Stats-only config | Config registry for stats cards only | |
-| Settings-only config | Config registry for settings rows only | |
-| Unified UI Configuration Registry | Single `src/config/ui.ts` driving both screens, extensible to future phases | ✓ |
-
-**User's choice:** Unified UI Configuration Registry (`src/config/ui.ts`)
-**Rationale:** Phase 4 (monetization) appends toggles; Phase 5 swaps account placeholder to sign-in; Phase 6 adds accessibility toggles. No refactoring needed — just extend the config array.
-
----
-
-## Claude's Discretion
-
-- Card layout styling (border radius, shadow, padding) — use existing `colors.ts` and `layout.ts`
-- react-native-chart-kit color scheme
-- Emoji grid format
-- Scroll behavior and transitions
 
 ## Deferred Ideas
 
-- Auto-copy results on game end — considered but user preferred manual share button in Stats screen for Phase 3.
+- **Auto-copy results on game end** — manual share button preferred; optional toggle deferred to future
+- **Dedicated per-mode streak breakdown screen** — Phase 3 display is sufficient
+
+---
+
+## Notes
+
+- CONTEXT.md updated from D-67 through D-86 (20 decisions total for Phase 3)
+- UI-SPEC.md serves as the locked spec for this phase — downstream agents must read it
+- Key missing wire identified: GameScreen → statsStore.recordGame() must be added
+- Existing codebase fully scouted: StatsScreen/SettingsScreen are placeholders, storage has stub getStats(), statsStore has loadStats/recordGame but no per-mode aggregation
