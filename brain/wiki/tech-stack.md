@@ -1,0 +1,157 @@
+# Tech Stack
+updated: 2026-07-06 (Phase 3/4 deps added)
+tags: [stack, dependencies, versions, compat]
+related: [architecture, storage-strategy, project-overview, android-build-setup]
+
+## Core
+| Layer | Choice | Version | Why |
+|-------|--------|---------|-----|
+| Framework | Expo (managed + dev client) | SDK ~57.0.2 | Solo dev, all native modules have config plugins |
+| Rendering | React Native (via Expo) | 0.86.0 | Underlying RN for SDK 57 |
+| Language | TypeScript | ~6.0.3 (strict) | Strict mode from day one |
+| React | react | 19.2.3 | Required by RN 0.86.0 |
+| @types/react | @types/react | ~19.2.2 | Aligned with react 19.2.3 |
+| Path alias | None — relative imports | removed 2026-07-05 | Metro can't resolve TypeScript path aliases |
+
+## UI & Navigation
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Navigation | @react-navigation/native | ^7.3.7 | NOT 7.17.0 — that version doesn't exist on npm |
+| Native Stack | @react-navigation/native-stack | ^7.17.9 | Latest 7.x |
+| Screens | react-native-screens | 4.25.2 | 4.26+ only nightly |
+| Safe area | react-native-safe-area-context | 5.7.0 | Aligned with Expo SDK 57 |
+| Animations | react-native-reanimated | 4.5.0 | Aligned with Expo SDK 57 |
+| Gestures | react-native-gesture-handler | 2.32.0 | Latest stable (v2 line, compatible with SDK 57) |
+| Audio | expo-av | SDK 57 | |
+| Haptics | expo-haptics | SDK 57 | |
+| Clipboard | expo-clipboard | SDK 57 | Copy share text to clipboard (Phase 3, STAT-04) |
+
+## State & Storage
+| Layer | Choice | Version | Use |
+|-------|--------|---------|-----|
+| State | Zustand | 5.0.14 | 5 stores (game, stats, auth, settings, dictionary) |
+| KV store | react-native-mmkv | 4.3.2 | Settings + active game state (sync writes) |
+| SQL | expo-sqlite | 57.0.0 | Game history (aggregated stats) |
+| KV fallback | @react-native-async-storage | 2.2.0 | Auth tokens only |
+
+## Charts & UI
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram (Phase 3, STAT-02) |
+| SVG | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit (Phase 3) |
+
+## Cloud & Auth
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Backend | Firebase (Firestore + Auth) | 25.x | Phase 5 |
+| Google Sign-In | @react-native-google-signin | 16.x | Phase 5 |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config (Phase 4, D-106) — npm verified |
+| Firebase App | @react-native-firebase/app | 25.x | Required peer dep of remote-config; installs alongside |
+
+## Monetization
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Ads | react-native-google-mobile-ads | 16.4.0 | Interstitial + rewarded (Phase 4) — npm verified |
+| IAP | react-native-iap | 15.3.6 | Pro purchase + restore (Phase 4, D-98) — npm verified |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config via Firebase (D-106) |
+
+## Build
+| Layer | Choice | Notes |
+|-------|--------|-------|
+| Build | EAS CLI (dev/preview/production profiles) | |
+| Dev builds | npx expo prebuild + npx expo run:android | Prebuild from day one (Phase 1) |
+| Prototyping | Expo Go | Limited native modules |
+
+## Known issues & workarounds
+
+### TypeScript 6 — baseUrl + paths deprecation
+TS 6.0 deprecates `baseUrl` with `paths`. To silence TS5101 error:
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "ignoreDeprecations": "6.0"
+  }
+}
+```
+Future: migrate `@/` alias to a build-time Metro resolver and drop tsconfig paths.
+
+### Prebuild requires valid PNG assets
+`npx expo prebuild` fails if icon/splash PNGs are missing or corrupt.
+- ENOENT on missing assets (icon.png, splash.png, etc.)
+- CRC error on malformed PNGs
+- Fix: create valid 1x1 placeholder PNGs before first prebuild, replace with real assets later
+
+### npm install — legacy-peer-deps
+React Navigation and Expo packages have peer dep conflicts resolved by:
+```bash
+npm install --legacy-peer-deps
+```
+Prefers `npx expo install` for Expo SDK packages (handles version alignment automatically).
+
+### Postinstall script bootstrapping
+If `package.json` has a `postinstall` script referencing a file that doesn't exist yet, `npm install` fails. Workaround: temporarily remove or rename the postinstall hook during initial setup, create the script, then restore it.
+
+### AGP version — RN 0.86 ships 8.12.0, AS may not support it
+RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.toml`. Older Android Studio versions error `Latest supported version is AGP 8.9.1`. Fix: pin version explicitly in `android/build.gradle` — see [android-build-setup](android-build-setup.md).
+
+### react-native-mmkv needs react-native-nitro-modules installed separately
+`react-native-mmkv@4.3.2` has `react-native-nitro-modules` as a **peer dep** (not auto-installed). Fix: `npx expo install react-native-nitro-modules && npx expo prebuild`. Without this, Gradle fails with `Project with path ':react-native-nitro-modules' could not be found`.
+
+### expo-sqlite version must match Expo SDK major
+`expo-sqlite@15.2.x` is incompatible with `expo@57.0.2` — causes `NoClassDefFoundError: AnyTypeProvider` at runtime (SQLiteModule.kt:676). The v15 line targets a different SDK major.
+- Fix: `npx expo install expo-sqlite` installs the correct `~57.0.0` version.
+- Always run `npx expo install --check` after package.json changes to verify SDK compatibility.
+- Never `npm install expo-sqlite` directly — always use `npx expo install` for Expo SDK packages.
+
+### npx expo prebuild --clean wipes local.properties
+`npx expo prebuild --clean` deletes the entire `android/` directory, including `android/local.properties`. Must recreate after each clean prebuild:
+```
+sdk.dir=C:\\Users\\Xent\\AppData\\Local\\Android\\Sdk
+```
+- Detection: Gradle build fails with `SDK location not found.`
+- Fix: write `local.properties` file with `sdk.dir` pointing to Android SDK.
+
+### npx expo install --check reveals mismatched native modules
+Run `npx expo install --check` to verify all native module versions align with installed Expo SDK. Shows expected vs actual versions for each package. Fix mismatches with `npx expo install <package>`.
+- Known mismatches before fix (2026-07-05): expo-sqlite@15.2.14→57.0.0, react-native-gesture-handler@3.0.2→2.32.0, react-native-reanimated@4.5.1→4.5.0, react-native-safe-area-context@5.8.0→5.7.0, @react-native-async-storage/async-storage@3.1.1→2.2.0.
+
+## Metro bundler limitations
+- Dynamic `require()` with template literals crashes Metro. Use static require() with string literal paths.
+- All word list files bundled via static require() at build time (~150KB total).
+- `@/` alias removed 2026-07-05 — Metro can't resolve TypeScript path aliases. All imports use relative paths.
+
+## Phase 3 additions (UI)
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram for stats screen |
+| SVG renderer | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit |
+| Clipboard | expo-clipboard | SDK 57 | Copy share text (emoji grid) to clipboard |
+
+**Phase 3 source files (constants layer):**
+| File | Purpose |
+|------|---------|
+| `src/constants/typography.ts` | 5-size type scale (Stat Value 32px, Card Title 18px, Settings Row 16px, Body 14px, Stat Label 12px). Follows colors.ts/layout.ts pattern. See [design-tokens](design-tokens.md). |
+
+## Bonus dependencies (evaluated, deferred)
+| Library | Use | Verdict |
+|---------|-----|--------|
+| typegpu-confetti | GPU-accelerated confetti particles | DEFERRED — v0.3.0, WebGPU on Android experimental. Use Reanimated worklet confetti instead |
+
+## Source data files
+| File | Purpose |
+|------|---------|
+| `dictionary.full.enriched.json` | Target word selection + definitions (curated, ~12K words) |
+| `dictionary.full.json` | Player guess validation (broader, ~184K words) |
+| `profanity-blocklist.txt` | Profanity filter (5-10 letter entries only) |
+| `manual-blocklist.txt` | Manual exclusion list — proper nouns, names, non-English (5-10 letter entries only) |
+
+## Anti-picks
+- ❌ Bare RN CLI — android/ directory maintenance overhead
+- ❌ Redux Toolkit — overkill for 5 simple stores
+- ❌ React Context for game state — full-tree re-render on every guess
+- ❌ Lottie for tile animations — 200KB+ JSON per animation
+- ❌ RevenueCat — 25% fee on $1.99 IAP, SDK 5x larger than react-native-iap
+- ❌ Custom backend (Node/PostgreSQL) — 10x work, Firebase handles all needs
