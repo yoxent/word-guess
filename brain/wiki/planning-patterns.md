@@ -1,5 +1,5 @@
 # planning-patterns
-updated: 2026-07-04
+updated: 2026-07-06
 tags: [planning, gsd, plans, plans, checker, nyquist]
 related: [phase-structure, key-risks, dictionary-preprocessing, daily-seed]
 
@@ -32,7 +32,40 @@ Every locked decision in CONTEXT.md gets a D-XX identifier. Plans reference thes
 - 4 plans across 3 waves. Wave 2 plans are NOT fully parallel — 02-03 depends on 02-02 (shared files: ResultModal.tsx, index.ts).
 65 decisions (D-25 through D-66) for Phase 2.
 
-## Plan checker catches (Phase 2 findings)
+## Phase 3 plan structure
+| Plan | Wave | Objective | Tasks | Depends On |
+|------|------|-----------|-------|------------|
+| 03-01 | 1 | Data layer: types, storage SQL aggregation, stats store, game completion → stats wire | 4 | Phase 2 complete |
+| 03-02 | 2 | UI components: typography constants, config registry, StatCard, SettingsRow, share utility, deps | 6 | 03-01 |
+| 03-03 | 3 | Screens: StatsScreen (cards, chart, share FAB, entrance animation, pull-to-refresh), SettingsScreen | 2 | 03-01, 03-02 |
+
+- 3 plans across 3 waves, fully sequential (no parallel plans)
+- 20 decisions (D-67 through D-86)
+- Smallest phase: 5 requirements (STAT-01–STAT-05)
+
+## Plan checker catches
+
+### Phase 2 findings
+
+| Issue | Example | Fix |
+|-------|---------|-----|
+| Cross-plan data contract mismatch | `getTodayDailyWords` returns `string[]` in one plan, `{date, words}` in another | Unify return type across all plans before execution |
+| Missing cross-plan dependency | Plan modifies file created by another plan in same wave | Add dependency or reorganize wave ordering |
+| Single-owner state lifecycle violation | Two plans both add `isRevealing` field to same store | Consolidate state lifecycle under one owning plan |
+| Animation timing off-by-duration | Timer doesn't account for correct tile bounce (extra 200ms) | Include bounce duration in animation completion calculation |
+| Tunable values hardcoded (violates D-31) | Animation timing literals in component file | Extract to shared constants file (`src/constants/animations.ts`) |
+| Metro-incompatible bundling | Dynamic require with template literal | Use static require() with relative paths |
+| Missing Nyquist artifacts | No VALIDATION.md | Create from research validation arch section |
+| Partial decision implementation | Nav menu only on HomeScreen (D-18) | Add headerRight to all non-game screens |
+| Scope leak into next phase | GameStore submitGuess with win/loss logic | Defer game logic to Phase 2 |
+| Must-haves spanning plans | Truth requires Plan 03 but declared in Plan 01 | Keep must-haves plan-scoped |
+
+### Phase 3 findings
+
+| Issue | Example | Fix |
+|-------|---------|-----|
+| Cross-plan data contract across sequential plans | Share utility needs `GuessFeedback[][]` but `lastGameResult` didn't have it — `guesses: []` passed as workaround | Trace data contract end-to-end through all 3 plans: types → storage → store → screen → utility |
+| Share pipeline missing source data | `generateShareText()` needs per-guess feedback for emoji grid rows; `recordGame()` wasn't receiving it from GameScreen | Pass `currentSession.feedback` in `recordGame()` call; store in `lastGameResult.feedback` for StatsScreen share handler |
 | Issue | Example | Fix |
 |-------|---------|-----|
 | Cross-plan data contract mismatch | `getTodayDailyWords` returns `string[]` in one plan, `{date, words}` in another | Unify return type across all plans before execution |
