@@ -1,5 +1,5 @@
 # Tech Stack
-updated: 2026-07-05 (@/ alias removed)
+updated: 2026-07-06 (Phase 3/4 deps added)
 tags: [stack, dependencies, versions, compat]
 related: [architecture, storage-strategy, project-overview, android-build-setup]
 
@@ -24,7 +24,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | Gestures | react-native-gesture-handler | 2.32.0 | Latest stable (v2 line, compatible with SDK 57) |
 | Audio | expo-av | SDK 57 | |
 | Haptics | expo-haptics | SDK 57 | |
-| Clipboard | expo-clipboard | SDK 57 | |
+| Clipboard | expo-clipboard | SDK 57 | Copy share text to clipboard (Phase 3, STAT-04) |
 
 ## State & Storage
 | Layer | Choice | Version | Use |
@@ -34,17 +34,24 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | SQL | expo-sqlite | 57.0.0 | Game history (aggregated stats) |
 | KV fallback | @react-native-async-storage | 2.2.0 | Auth tokens only |
 
+## Charts & UI
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram (Phase 3, STAT-02) |
+| SVG | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit (Phase 3) |
+
 ## Cloud & Auth
-| Layer | Choice | Version |
-|-------|--------|---------|
-| Backend | Firebase (Firestore + Auth) | 25.x |
-| Google Sign-In | @react-native-google-signin | 16.x |
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Backend | Firebase (Firestore + Auth) | 25.x | Phase 5 |
+| Google Sign-In | @react-native-google-signin | 16.x | Phase 5 |
+| Remote Config | @react-native-firebase/remote-config | 25.x | Ad unit ID config (Phase 4, D-106) |
 
 ## Monetization
-| Layer | Choice | Version |
-|-------|--------|---------|
-| Ads | react-native-google-mobile-ads | 16.x |
-| IAP | react-native-iap | 15.x |
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Ads | react-native-google-mobile-ads | 16.x | Interstitial + rewarded (Phase 4) |
+| IAP | react-native-iap | 15.x | Pro purchase + restore (Phase 4, D-98) |
 
 ## Build
 | Layer | Choice | Notes |

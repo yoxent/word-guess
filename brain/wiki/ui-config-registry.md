@@ -1,6 +1,6 @@
 # ui-config-registry
-updated: 2026-07-06 (screen behaviors, entrance animation, pull-to-refresh, typography)
-tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81]
+updated: 2026-07-06 (restore row type for Phase 4)
+tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110]
 related: [architecture, phase-structure, storage-strategy]
 
 ## What
@@ -40,7 +40,8 @@ const statsConfig: StatsCardConfig[] = [
 type SettingsRowConfig =
   | { type: 'toggle'; id: string; label: string; description?: string; storeKey: keyof AppSettings }
   | { type: 'placeholder'; id: string; label: string; description: string }
-  | { type: 'info'; id: string; label: string; value: string };  // Phase 3 addition
+  | { type: 'info'; id: string; label: string; value: string }
+  | { type: 'restore'; id: string; label: string; description?: string };  // Phase 4 addition (D-110)
 ```
 
 ### Row type renderers
@@ -49,13 +50,14 @@ type SettingsRowConfig =
 | `toggle` | Label (left) + RN Switch (right) | Switch bound to settingsStore[storeKey]; track=accent when on, tileEmpty when off |
 | `placeholder` | Label (left) + "Coming soon" text (right) | Non-interactive; swapped to `signInButton` in Phase 5 |
 | `info` | Label (left) + value string (right) | Read-only display, no interaction |
+| `restore` | Tappable row (left) + action text (right) | Calls `RNIap.getPurchases()` → sets `isPro` → color-coded toast. Hidden when `isPro === true` (D-100) |
 
 ### Phase 3 sections (from config)
 | Section | Rows |
 |---------|------|
 | Gameplay | `hardMode` (toggle) |
 | Audio & Haptics | `sound` (toggle), `haptic` (toggle) |
-| Account | `signIn` (placeholder: "Sign in — coming in Phase 5") |
+| Account | `signIn` (placeholder) + `proStatus` (info) + `removeAds` (info) + `restorePurchases` (restore) — D-110, D-111 |
 
 Rows separated by hairline divider: `1px solid tileEmpty`, 4px vertical margin.
 
@@ -70,7 +72,7 @@ No hardcoded layout logic — screens are pure renderers.
 ## Extension pattern (D-80)
 | Phase | Operation |
 |-------|-----------|
-| Phase 4 | Append ad/IAP toggle rows to settingsConfig |
+| Phase 4 | Add `restore` row type to SettingsRowConfig union; extend Account section with pro status, remove ads, restore rows (D-110, D-111) |
 | Phase 5 | Swap placeholder → signInButton row in settingsConfig |
 | Phase 6 | Append accessibility toggle rows to settingsConfig |
 | Future | Extend pattern to home screen layout, game mode menus, nav |
@@ -88,7 +90,7 @@ Reusable card container for stat sections. Driven by config array.
 Vis: surface bg (#fff), borderRadius 12, shadow `{elevation:3, opacity:0.08}`, padding 24px, marginBottom 16px. Title: 18px bold textPrimary.
 
 ### SettingsRow (`src/components/ui/SettingsRow.tsx`)
-Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, or info.
+Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, info, or restore (Phase 4).
 
 ### Share utility (`src/utils/share.ts`)
 Pure function `generateShareText(gameResult)` → emoji grid string. Input: GameResult with mode, word, attempts, won, guesses[][], date. Output: Wordle-style emoji grid with header + date + rows + footer.

@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-05 (Phase 3 UI-SPEC)
+updated: 2026-07-06 (Phase 3 complete, Phase 4 context)
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -39,11 +39,11 @@ Phase 1 (Foundation)
 - **Out:** No stats tracking (Phase 3), no ads/IAP (Phase 4), no cloud sync (Phase 5)
 - **Key artifacts:** 7 game components, LoadingScreen, wordLogic/dailySeed/sound services, animation constants, AppState persistence, haptics wiring
 
-### Phase 3: Stats & Settings (Context Updated 2026-07-06)
+### Phase 3: Stats & Settings (COMPLETED 2026-07-06)
 - **Goal:** Persistent stats, settings screen, share results
 - **Reqs:** STAT-01 → STAT-05 (5 reqs — smallest phase)
 - **Dependency:** Phase 2 (need game completions to record stats)
-- **Status:** Context gathered — ready for planning
+- **Status:** Complete (3 plans, 3 waves, 3 commits, 12 files)
 - **Key decisions:** D-67–D-86 + UI design contract (03-UI-SPEC.md)
   - Stats screen: scrolling card sections driven by UI config registry
   - Stats card entrance: fade-in + slide-up (opacity 0→1, translateY 10→0, 300ms, 80ms stagger per card) (D-82)
@@ -57,13 +57,29 @@ Phase 1 (Foundation)
 - **Architecture additions:** `src/config/` layer, `src/utils/share.ts`, `src/constants/typography.ts`, components `StatCard` + `SettingsRow`
 - **New deps:** react-native-chart-kit, react-native-svg, expo-clipboard
 - **Design tokens:** Spacing scale (4-48px multiples of 4), typography scale (5 sizes), color role assignments (accent reserved for toggles + share CTA). See [design-tokens](design-tokens.md).
-- **Key integration context:** `gameStore.submitGuess()` detects win/loss but does NOT call `statsStore.recordGame()` — this wire must be added in Phase 3. Animation completion callback in GameScreen handles daily/endless persistence but misses stats recording.
+- **Wave 1:** Data layer — PlayerStats extension, SQL aggregation (per-mode streaks, guess distribution, games-by-length), statsStore expansion, GameScreen→recordGame() wiring (plan 03-01)
+- **Wave 2:** UI infrastructure — typography constants, UI config registry, StatCard, SettingsRow, share utility, deps install (plan 03-02)
+- **Wave 3:** Screens — config-driven StatsScreen (loading/empty/error states, chart, share FAB, pull-to-refresh, entrance animation) + SettingsScreen (3 config-driven sections) (plan 03-03)
+- **Known gotcha:** `react-native-chart-kit` chartConfig uses `decimalPlaces` not `decimalCount` — plan had wrong property name, caught at compile time
 
-### Phase 4: Monetization
+### Phase 4: Monetization (Context Gathered 2026-07-06)
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore
 - **Reqs:** AD-01 → AD-07 (7 reqs)
 - **Critical:** Play Store compliance (verify current policy before starting)
 - **Dependency:** Phase 2 (ads shown after game completion)
+- **Status:** Context gathered — ready for planning
+- **Key decisions:** D-87–D-112
+  - Flappy Bird-style interstitial timing (transition from ResultModal to next screen, not during play)
+  - Frequency caps: Daily=every game, Endless/Random=every 2nd
+  - Rewarded ad: button in ResultModal (loss only), extra guess per ad
+  - Extra guesses: Free=2, Pro=3 (Pro can still watch ads)
+  - Pro IAP: `com.vorithstudio.wordguess.pro`, $1.99, non-consumable
+  - Restore: Account section, hidden when Pro active, color-coded toast
+  - Ad manager: Zustand store (singleton, ref-counted lifecycle)
+  - Ad IDs: Firebase Remote Config (fetch on launch, fallback to test IDs)
+  - Settings config extension: new `restore` row type, Account section expanded
+- **New deps:** react-native-google-mobile-ads, react-native-iap, @react-native-firebase/remote-config
+- **See:** [monetization](monetization.md) for full architecture
 
 ### Phase 5: Cloud & Social
 - **Goal:** Google Sign-In, cloud sync, 3 leaderboards
