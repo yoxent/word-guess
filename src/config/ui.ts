@@ -20,7 +20,9 @@ export interface SettingsSectionConfig {
 export type SettingsRowConfig =
   | { type: 'toggle'; id: string; label: string; description?: string; storeKey: keyof AppSettings }
   | { type: 'placeholder'; id: string; label: string; description: string }
-  | { type: 'info'; id: string; label: string; value: string };
+  | { type: 'info'; id: string; label: string; value: string }
+  | { type: 'restore'; id: string; label: string; description?: string }
+  | { type: 'purchase'; id: string; label: string; description?: string; productId: string };
 
 // ── Config Arrays ──
 
@@ -51,11 +53,15 @@ export const settingsConfig: SettingsSectionConfig[] = [
     title: 'Account',
     rows: [
       { type: 'placeholder', id: 'signIn', label: 'Sign in', description: 'Sign in — coming in Phase 5' },
+      { type: 'info', id: 'proStatus', label: 'Pro', value: '—' },
+      { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'One-time purchase, removes all ads forever', productId: 'com.vorithstudio.wordguess.pro' },
+      { type: 'restore', id: 'restorePurchases', label: 'Restore Purchases' },
     ],
   },
 ];
 
 // Extension notes for future phases:
-// Phase 4: Append ad/IAP toggle rows to settingsConfig
+// Phase 4 (04-01): Added maxExtraGuessesFree/maxExtraGuessesPro split
+// Phase 4 (04-02): Added restore, purchase row types and Account section rows
 // Phase 5: Swap placeholder → signInButton row in account section
 // Phase 6: Append accessibility toggle rows to settingsConfig
