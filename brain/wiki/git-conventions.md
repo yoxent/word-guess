@@ -1,7 +1,7 @@
 # git-conventions
-updated: 2026-07-04
+updated: 2026-07-06
 tags: [git, workflow, conventions]
-related: [dictionary-preprocessing, phase-structure, planning-patterns]
+related: [dictionary-preprocessing, phase-structure, planning-patterns, dev-workflow]
 
 ## Tracked
 | Path | Why |
@@ -34,6 +34,15 @@ Both contain project context but serve different agents:
 ## Workflow
 - Commit only, no auto-push
 - **`main` is protected — release-only.** Never push to `main` unless explicitly instructed. All feature work targets `develop`.
+
+## Branch hierarchy
+| Branch | Purpose | Pushable by agent |
+|--------|---------|-------------------|
+| `main` | Release commits only | ❌ Only on explicit user command + confirmation |
+| `develop` | Latest integration branch — all features merge here | ✅ After user approval |
+| `feature/*` | Feature/phase branches | ✅ Push as needed, merge to `develop` |
+
+- `origin/HEAD → origin/main` (GitHub default). Agents resolve base branch via `gsd_run query git.base-branch` which returns `main`. **Do not interpret 'base branch' as permission to push to `main`.** `main` is release-only — push to `develop`. 
 - GSD commands own planning artifacts: `/gsd-plan-phase`, `/gsd-execute-phase`, etc.
 - Phase plan files tracked (no sub-gitignore for them) — they're authored planning output
 - Brain updates committed as `brain: update [scope]`
