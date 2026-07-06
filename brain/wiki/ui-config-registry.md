@@ -74,7 +74,7 @@ No hardcoded layout logic — screens are pure renderers.
 ## Extension pattern (D-80)
 | Phase | Operation |
 |-------|-----------|
-| Phase 4 | Add `restore` + `purchase` row types to SettingsRowConfig union; extend Account section with pro status info, purchase row (purchase type), restore row (restore type) (D-110, D-111) |
+| Phase 4 | Added `restore` + `purchase` row types to SettingsRowConfig union; Account section extended with pro status info, purchase row, restore row (D-110, D-111). All implemented. |
 | Phase 5 | Swap placeholder → signInButton row in settingsConfig |
 | Phase 6 | Append accessibility toggle rows to settingsConfig |
 | Future | Extend pattern to home screen layout, game mode menus, nav |
@@ -92,7 +92,7 @@ Reusable card container for stat sections. Driven by config array.
 Vis: surface bg (#fff), borderRadius 12, shadow `{elevation:3, opacity:0.08}`, padding 24px, marginBottom 16px. Title: 18px bold textPrimary.
 
 ### SettingsRow (`src/components/ui/SettingsRow.tsx`)
-Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, info, or restore (Phase 4).
+Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, info, restore, or purchase (Phase 4).
 
 ### Share utility (`src/utils/share.ts`)
 Pure function `generateShareText(gameResult)` → emoji grid string. Input: GameResult with mode, word, attempts, won, guesses[][], date. Output: Wordle-style emoji grid with header + date + rows + footer.

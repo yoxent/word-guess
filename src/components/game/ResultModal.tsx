@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import { useGameStore, useSettingsStore } from '../../stores';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
+import { useAdStore } from '../../stores/adStore';
+import { config } from '../../constants/config';
 import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
 import {
@@ -30,6 +32,7 @@ export function ResultModal() {
   const navigation = useNavigation<Nav>();
   const session = useGameStore((s) => s.session);
   const resetGame = useGameStore((s) => s.resetGame);
+  const isPro = useSettingsStore(s => s.isPro);
   const [endlessStreak, setEndlessStreakState] = useState(0);
 
   // Compute definition from session data (static lookup, no reactivity needed)
@@ -78,6 +81,9 @@ export function ResultModal() {
 
   const isWin = session.status === 'won';
 
+  const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
+  const showRewardedAd = session.status === 'lost' && session.extraGuessesUsed < maxExtra;
+
   // Build emoji grid
   const emojiRows = session.feedback.map((rowFeedback) => {
     return rowFeedback
@@ -85,6 +91,35 @@ export function ResultModal() {
       .join('');
   });
   const emojiText = emojiRows.join('\n');
+
+  const handleWatchAd = useCallback(async () => {
+    const adStore = useAdStore.getState();
+    const shown = await adStore.showRewarded(() => {
+      useGameStore.getState().addExtraGuess();
+    });
+    if (!shown) {
+      // Ad not ready — silently return, button stays visible
+    }
+  }, []);
+
+  const showInterstitialIfNeeded = useCallback(async (): Promise<void> => {
+    const { isPro: pro } = useSettingsStore.getState();
+    if (pro) return;
+
+    const adStore = useAdStore.getState();
+    const { gamesSinceLastAd } = adStore;
+
+    let threshold = 0;
+    if (session?.mode === 'daily') threshold = 0;
+    else if (session?.mode === 'endless' || session?.mode === 'random') threshold = 1;
+
+    if (gamesSinceLastAd >= threshold) {
+      const shown = await adStore.showInterstitial();
+      if (shown) {
+        adStore.resetGamesSinceLastAd();
+      }
+    }
+  }, [session?.mode]);
 
   const handlePlayNext = () => {
     if (!session) return;
@@ -114,6 +149,16 @@ export function ResultModal() {
     navigation.navigate('Home');
   };
 
+  const handlePlayNextWithAd = useCallback(async () => {
+    await showInterstitialIfNeeded();
+    handlePlayNext();
+  }, [showInterstitialIfNeeded, handlePlayNext]);
+
+  const handleBackToMenuWithAd = useCallback(async () => {
+    await showInterstitialIfNeeded();
+    handleBackToMenu();
+  }, [showInterstitialIfNeeded, handleBackToMenu]);
+
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.overlay}>
@@ -131,7 +176,7 @@ export function ResultModal() {
             </Text>
             <TouchableOpacity
               style={styles.homeButton}
-              onPress={handleBackToMenu}
+              onPress={handleBackToMenuWithAd}
               activeOpacity={0.7}
             >
               <MaterialIcons name="home" size={22} color={colors.textSecondary} />
@@ -163,11 +208,20 @@ export function ResultModal() {
             {session.mode === 'endless' ? (
               <Button
                 title="Play Next"
-                onPress={handlePlayNext}
+                onPress={handlePlayNextWithAd}
                 style={styles.playNextButton}
               />
             ) : (
-              <Button title="Back to Menu" onPress={handleBackToMenu} />
+              <Button title="Back to Menu" onPress={handleBackToMenuWithAd} />
+            )}
+            {showRewardedAd && (
+              <TouchableOpacity
+                style={styles.watchAdButton}
+                onPress={handleWatchAd}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.watchAdText}>Watch Ad for +1 Guess</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -253,5 +307,19 @@ const styles = StyleSheet.create({
   },
   playNextButton: {
     width: '100%',
+  },
+  watchAdButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    marginTop: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  watchAdText: {
+    color: colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

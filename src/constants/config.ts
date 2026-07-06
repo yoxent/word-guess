@@ -4,12 +4,14 @@ export const config = {
   minWordLength: 5,
   maxWordLength: 10,
   baseAttempts: (letterCount: number) => letterCount + 1,
-  maxExtraGuesses: 2,
+  maxExtraGuessesFree: 2,
+  maxExtraGuessesPro: 3,
   dictionaryPath: 'assets/dictionary',
   dailyPuzzle: {
     resetHourUTC: 0,
     maxClockSkewMinutes: 30,
   },
+  proProductId: 'com.vorithstudio.wordguess.pro',
   databaseName: 'wordguess.db',
   storageKeys: {
     settings: 'wordguess.settings',

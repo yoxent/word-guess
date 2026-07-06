@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../types';
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { useDictionaryStore } from './dictionaryStore';
+import { config } from '../constants/config';
+import { useSettingsStore } from './settingsStore';
 
 interface GameState {
   session: GameSession | null;
@@ -21,6 +23,7 @@ interface GameState {
   setIsRevealing: (revealing: boolean) => void;
   addPendingInput: (key: string) => void;
   flushPendingInputs: () => void;
+  addExtraGuess: () => void;
 }
 
 // Priority order for key color accumulation: correct > present > absent > empty
@@ -171,5 +174,27 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     // Drain remaining queued inputs on next tick (P14 fix)
     setTimeout(() => get().flushPendingInputs(), 0);
+  },
+
+  addExtraGuess: () => {
+    const { session } = get();
+    if (!session || session.status !== 'lost') return;
+
+    const maxExtra = useSettingsStore.getState().isPro
+      ? config.maxExtraGuessesPro
+      : config.maxExtraGuessesFree;
+
+    if (session.extraGuessesUsed >= maxExtra) return;
+
+    set({
+      session: {
+        ...session,
+        status: 'playing',
+        maxAttempts: session.maxAttempts + 1,
+        extraGuessesUsed: session.extraGuessesUsed + 1,
+      },
+      currentGuess: '',
+      error: null,
+    });
   },
 }));

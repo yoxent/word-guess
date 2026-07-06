@@ -1,30 +1,109 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export function SettingsScreen() {
+  const isPro = useSettingsStore(s => s.isPro);
+  const [toast, setToast] = useState<{ message: string; isSuccess: boolean } | null>(null);
+
+  const showToast = useCallback((message: string, isSuccess: boolean) => {
+    setToast({ message, isSuccess });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const handleRestore = useCallback(async () => {
+    try {
+      const purchases = await getAvailablePurchases();
+      const hasPro = purchases.some(p => p.productId === 'com.vorithstudio.wordguess.pro');
+      if (hasPro) {
+        useSettingsStore.getState().setPro(true);
+        showToast('Pro restored!', true);
+      } else {
+        showToast('No purchases found to restore', false);
+      }
+    } catch {
+      showToast('No purchases found to restore', false);
+    }
+  }, [showToast]);
+
+  const handlePurchase = useCallback(async (productId: string) => {
+    try {
+      await requestPurchase({
+        request: {
+          google: { skus: [productId] },
+          apple: { sku: productId },
+        },
+        type: 'in-app',
+      });
+    } catch {
+      showToast('Purchase failed. Please try again.', false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    const subscription = purchaseUpdatedListener(async (purchase) => {
+      if (purchase.productId === 'com.vorithstudio.wordguess.pro') {
+        try {
+          await finishTransaction({ purchase, isConsumable: false });
+          useSettingsStore.getState().setPro(true);
+          showToast('Welcome to Pro!', true);
+        } catch {
+          showToast('Purchase verification failed.', false);
+        }
+      }
+    });
+    return () => subscription.remove();
+  }, [showToast]);
+
+  const filteredConfig = useMemo(() => {
+    return settingsConfig.map(section => ({
+      ...section,
+      rows: section.rows.map(row => {
+        // Override pro status value dynamically
+        if (row.type === 'info' && row.id === 'proStatus') {
+          return { ...row, value: isPro ? 'Active' : '—' };
+        }
+        return row;
+      }).filter(row => {
+        if (row.type === 'restore' && row.id === 'restorePurchases' && isPro) return false;
+        if (row.type === 'purchase' && row.id === 'removeAds' && isPro) return false;
+        return true;
+      }),
+    }));
+  }, [isPro]);
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {settingsConfig.map((section) => (
-        <View key={section.id} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <View style={styles.sectionCard}>
-            {section.rows.map((row, i) => (
-              <React.Fragment key={row.id}>
-                <SettingsRow config={row} />
-                {i < section.rows.length - 1 && <View style={styles.divider} />}
-              </React.Fragment>
-            ))}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {filteredConfig.map((section) => (
+          <View key={section.id} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionCard}>
+              {section.rows.map((row, i) => (
+                <React.Fragment key={row.id}>
+                  <SettingsRow
+                    config={row}
+                    onRestore={row.type === 'restore' ? handleRestore : undefined}
+                    onPurchase={row.type === 'purchase' ? handlePurchase : undefined}
+                  />
+                  {i < section.rows.length - 1 && <View style={styles.divider} />}
+                </React.Fragment>
+              ))}
+            </View>
           </View>
+        ))}
+      </ScrollView>
+      {toast && (
+        <View style={[styles.toast, { backgroundColor: toast.isSuccess ? colors.tileCorrect : colors.danger }]}>
+          <Text style={styles.toastText}>{toast.message}</Text>
         </View>
-      ))}
-    </ScrollView>
+      )}
+    </View>
   );
 }
 
@@ -58,5 +137,19 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.tileEmpty,
     marginVertical: 4,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 32,
+    left: 16,
+    right: 16,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  toastText: {
+    ...typography.body,
+    color: colors.textInverse,
+    fontWeight: '600',
   },
 });

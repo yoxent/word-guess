@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-06 (Phase 3 complete, Phase 4 context)
+updated: 2026-07-06 (Phase 4 executed — three plans, 2 waves complete; Phase 5 planned — 3 plans, 3 waves)
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -62,12 +62,11 @@ Phase 1 (Foundation)
 - **Wave 3:** Screens — config-driven StatsScreen (loading/empty/error states, chart, share FAB, pull-to-refresh, entrance animation) + SettingsScreen (3 config-driven sections) (plan 03-03)
 - **Known gotcha:** `react-native-chart-kit` chartConfig uses `decimalPlaces` not `decimalCount` — plan had wrong property name, caught at compile time
 
-### Phase 4: Monetization (Planned 2026-07-06)
+### Phase 4: Monetization (Executed 2026-07-06)
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore
 - **Reqs:** AD-01 → AD-07 (7 reqs)
-- **Critical:** Play Store compliance (verify current policy before starting)
-- **Dependency:** Phase 3 (stats and settings exist for Account section)
-- **Status:** Planned (3 plans, 2 waves)
+- **Status:** Complete (3 plans, 2 waves, 12 implementation commits)
+- **Dependency:** Phase 3
 - **Key decisions:** D-87–D-112
   - Flappy Bird-style interstitial timing (transition from ResultModal to next screen, not during play)
   - Frequency caps: Daily=every game, Endless/Random=every 2nd
@@ -86,11 +85,15 @@ Phase 1 (Foundation)
 - **Config plugins added:** react-native-google-mobile-ads (with androidAppId placeholder), react-native-iap, expo-build-properties (kotlinVersion 2.2.0)
 - **See:** [monetization](monetization.md) for full architecture
 
-### Phase 5: Cloud & Social
+### Phase 5: Cloud & Social (Planned)
 - **Goal:** Google Sign-In, cloud sync, 3 leaderboards
 - **Reqs:** CLOUD-01 → CLOUD-08 (8 reqs)
-- **Critical:** SHA-1 triple registration, Web client ID, event-based sync
-- **Dependency:** Phase 3 (stats exist to sync)
+- **Critical:** SHA-1 triple registration, Web client ID, event-based sync, offline sync queue with retry
+- **Dependency:** Phase 4 (Monetization)
+- **Status:** Planned (3 plans, 3 waves — see [cloud-sync](cloud-sync.md))
+- **Wave 1:** Install cloud deps, create firestoreService (Firestore CRUD), create syncQueue (offline write-ahead log with idempotent events, exponential backoff)
+- **Wave 2:** Create authService (GoogleSignIn + Firebase Auth wrapper), extend authStore, update SettingsScreen sign-in UI, wire silent sign-in + periodic drain in App.tsx
+- **Wave 3:** Create leaderboardService, rebuild LeaderboardScreen (3-tab segment control, 5 states), wire game completion→score submission + stats sync
 
 ### Phase 6: Pre-Launch & Polish
 - **Goal:** Accessibility, Play Store submission, performance, production build

@@ -15,7 +15,7 @@
 - [x] **Phase 1: Foundation** — Scaffold, dictionary, theme, types, navigation, storage
 - [x] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
 - [x] **Phase 3: Stats & Settings** — Persistent stats, settings screen, share results, local persistence
-- [ ] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
+- [x] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
 - [ ] **Phase 5: Cloud & Social** — Google Sign-In, cloud sync, daily/endless leaderboards
 - [ ] **Phase 6: Pre-Launch & Polish** — Accessibility, Play Store compliance, performance, production build
 
@@ -113,7 +113,11 @@
 5. Player can view Endless leaderboard (total words guessed ever) — separate listing viewable independently
 6. Offline game results are appended to sync queue; on connectivity, drain queue with idempotent events; handles 3+ offline games
 7. Scores submitted before sign-in complete are queued locally; submitted when auth succeeds; retry 3× with exponential backoff
-**Plans:** TBD
+**Plans:** 3 plans (05-01, 05-02, 05-03)
+**Plan list:**
+1. **05-01** (Wave 1) — Install cloud deps, create firestoreService (Firestore CRUD for player stats + leaderboards), create syncQueue (offline write-ahead log with idempotent events, retry, exponential backoff)
+2. **05-02** (Wave 2) — Create authService (GoogleSignIn + Firebase Auth wrapper), extend authStore with googleSignIn/googleSignOut/googleSignInSilently, update SettingsScreen (replace sign-in placeholder), wire silent sign-in in App.tsx
+3. **05-03** (Wave 3) — Create leaderboardService (score submission + queue fallback), rebuild LeaderboardScreen with 3 tabs (daily_streak/endless_streak/endless_total) + all states, wire game completion → score submission + endless total words tracking
 **UI hint:** yes
 
 ### Phase 6: Pre-Launch & Polish
@@ -142,8 +146,8 @@
 | Phase 1: Foundation | 3/3 | ✅ Complete | 2026-07-04 |
 | Phase 2: Core Gameplay | 4/4 | ✅ Complete | 2026-07-05 |
 | Phase 3: Stats & Settings | 3/3 | ✅ Complete | 2026-07-06 |
-| Phase 4: Monetization | 0/0 | ❄️ Not started | — |
-| Phase 5: Cloud & Social | 0/0 | ❄️ Not started | — |
+| Phase 4: Monetization | 3/3 | ✅ Complete | 2026-07-06 |
+| Phase 5: Cloud & Social | 0/3 | 🔵 Planned | — |
 | Phase 6: Pre-Launch & Polish | 0/0 | ❄️ Not started | — |
 
 ---

@@ -1,7 +1,7 @@
 # Key Risks
-updated: 2026-07-05 (added P21 dictionary case fix)
+updated: 2026-07-06 (Phase 5 plan-checker findings — P22/P23/P24 added)
 tags: [risks, pitfalls, critical]
-related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing]
+related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync]
 
 ## Critical risks (rewrite / store rejection / abandonment)
 
@@ -38,13 +38,15 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 
 ## Moderate risks
 
-### P6: Interstitial double-loading
-- Singleton ad manager with ref-counted lifecycle. Never call load() if isLoaded.
+### P6: Interstitial double-loading (MITIGATED)
+- Singleton Zustand adStore (adStore.ts) with ref-counted lifecycle. preloadInterstitial/preloadRewarded check loaded/loading flags before creating ads.
 - Phase: 4
+- Mitigation verified: adStore.ts uses module-level InterstitialAd/RewardedAd instances + Zustand boolean tracking. Lazy preload on CLOSED event. No double-load paths.
 
-### P7: Missing IAP restore flow
-- Implement restore from day one. Centralized product ID constants. Local receipt storage.
+### P7: Missing IAP restore flow (MITIGATED)
+- Restore button in Settings Account section calls RNIap.getAvailablePurchases(). color-coded toast feedback.
 - Phase: 4
+- Mitigation verified: restore implemented via handleRestore() in SettingsScreen.tsx, purchaseUpdatedListener handles Pro purchase async flow.
 
 ### P8: Dictionary blocks JS thread at startup
 - Strip enriched JSON at build time (~150KB gzipped final). Static require() at module level — synchronous, no startup delay.
@@ -131,3 +133,23 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Cause: Game assumes Wordle familiarity. No "How to Play" flow, example guess, or help icon.
 - Risk: New users confused about rules (Hard Mode, tile colors, daily completion).
 - Phase: 3 (Stats & Settings) or 6 (Pre-Launch)
+
+## Phase 5 planning findings (plan checker)
+
+### P22: CLOUD-02 stats sync wire gap (CAUGHT AT PLAN-CHECK)
+- Cause: firestoreService.updatePlayerStats() created in 05-01 but never called in any plan. CLOUD-02 (cloud-synced stats) had no implementation task.
+- Impact: Player stats never synced to Firestore — leaderboards isolated, no cloud backup.
+- Fix: Added updatePlayerStats() call alongside leaderboard submission in game completion flow; enqueue game_result to syncQueue when offline/unauthed.
+- Phase: 5 (Cloud & Social)
+
+### P23: D-136 hash algorithm deviation (CAUGHT AT PLAN-CHECK)
+- Cause: D-136 specified SHA-256 for event IDs, but plan action used djb2/fnv1a. Documented as accepted deviation.
+- Risk: Collision if sync queue scales to thousands of events (theoretical).
+- Fix: Documented rationale — expo-crypto polyfill overhead unnecessary for single-device dedup. SHA-256 can be adopted if cross-device dedup needed.
+- Phase: 5
+
+### P24: Zustand persist hydration race on cold start (CAUGHT AT PLAN-CHECK)
+- Cause: authStore persisted to AsyncStorage. On cold start, rehydration is async — isLoggedIn briefly false before persisted true loads.
+- Impact: Brief flash of "not signed in" UI on app launch for authenticated users.
+- Fix: Gate auth-dependent UI with `_hasHydrated`. `googleSignInSilently` clears stale isLoggedIn on failure.
+- Phase: 5
