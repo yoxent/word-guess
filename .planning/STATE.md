@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase-4-complete
-stopped_at: Phase 4 complete — monetization implemented
-last_updated: "2026-07-06T11:15:00.000Z"
+status: phase-5-complete
+stopped_at: Phase 5 complete — cloud & social implemented
+last_updated: "2026-07-06T14:50:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
-  percent: 66
+  completed_phases: 5
+  total_plans: 20
+  completed_plans: 20
+  percent: 83
 ---
 
 # State: word-guess
@@ -33,10 +33,10 @@ progress:
 | Field | Value |
 |-------|-------|
 | **Milestone** | 1 (MVP) |
-| **Active Phase** | Phase 4: Monetization |
+| **Active Phase** | Phase 5: Cloud & Social |
 | **Active Plan** | None (phase complete) |
-| **Status** | Phase 4 complete — monetization live |
-| **Progress** | ▰▰▰▰▰▰▰▰▰▰ 66% |
+| **Status** | Phase 5 complete — cloud & social live |
+| **Progress** | ▰▰▰▰▰▰▰▰▰▰ 83% |
 
 ### Phase Status
 
@@ -46,7 +46,7 @@ progress:
 | Phase 2: Core Gameplay | Complete | 4/4 |
 | Phase 3: Stats & Settings | Complete | 3/3 |
 | Phase 4: Monetization | Complete | 3/3 |
-| Phase 5: Cloud & Social | Not started | 0/0 |
+| Phase 5: Cloud & Social | Complete | 3/3 |
 | Phase 6: Pre-Launch & Polish | Not started | 0/0 |
 
 ---
@@ -72,8 +72,8 @@ progress:
 | Private seed for daily puzzles | Deterministic same-word-for-all without predictability | Locked (D-25) |
 | 4 game modes (Free/Random/Daily/Endless) | Covers casual, challenge, and competitive play | Locked (D-39-D-47) |
 | Hard Mode as global toggle, not separate mode | UX simplicity — apply to any mode | Locked (D-59) |
-| Cloud sync via Google Sign-In | Cross-device stats and leaderboard auth | Pending Phase 5 |
-| $1.99 Pro IAP | Competitive pricing for ad-removal | Pending Phase 4 |
+| Cloud sync via Google Sign-In | Cross-device stats and leaderboard auth | Locked (D-113-D-154) |
+| $1.99 Pro IAP | Competitive pricing for ad-removal | Locked |
 
 ### Technical Decisions
 
@@ -90,8 +90,8 @@ progress:
 
 ### Open Questions / Research Needed
 
-1. **Google Sign-In checklist** — SHA-1 triple registration, Web client ID configuration (Phase 5 prep)
-2. **Play Store ad/IAP policy** — verify current requirements before Phase 4/6
+1. **Google Sign-In config** — developer must replace WEB_CLIENT_ID placeholder in authService.ts and place google-services.json at android/app/ before production build
+2. **Play Store ad/IAP policy** — verify current requirements before Phase 6
 3. **Performance benchmarks** — no baseline numbers yet on target device
 
 ### Known Risks
@@ -101,16 +101,16 @@ progress:
 | Tile animations stutter on mid-range Android | Phase 2 | Critical | Use Reanimated worklets from day one |
 | Daily seed discovered via APK decompilation | Phase 2 | Critical | Obfuscate across native layers |
 | Play Store rejection for ad/IAP compliance | Phase 4, 6 | Critical | Declare ads, privacy policy, test ads first |
-| Google Sign-In DEVELOPER_ERROR | Phase 5 | Critical | Register 3 SHA-1 fingerprints, Web client ID |
-| Offline data corruption | Phase 5 | High | Event-based sync, not full-state overwrite |
+| Google Sign-In DEVELOPER_ERROR | Phase 5 | Critical | Register 3 SHA-1 fingerprints, Web client ID — code implements placeholder Web client ID, developer must replace |
+| Offline data corruption | Phase 5 | High | Event-based sync (firestoreService { merge: true }), offline queue (syncQueue with idempotent dedup + 3 retries) |
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-07-06T11:15:00.000Z
-**Stopped at:** Phase 4 complete — monetization implemented
-**Resume file:** .planning/phases/04-monetization/04-CONTEXT.md
+**Last session:** 2026-07-06T14:50:00.000Z
+**Stopped at:** Phase 5 complete — cloud & social implemented
+**Resume file:** .planning/phases/05-cloud-social/05-CONTEXT.md
 
 | Session | Phase | Work Done | Next Action |
 |---------|-------|-----------|-------------|
@@ -118,7 +118,8 @@ progress:
 | 2026-07-04 | Phase 1 | Executed all 3 plans: scaffold, types, colors, dictionary (01-01); storage + stores (01-02); navigation + screens (01-03). All TypeScript compiles under strict mode. | Done |
 | 2026-07-05 | Phase 2 | Executed all 4 plans: preprocessing + services (02-01), game UI components (02-02), mode routing + definitions (02-03), animations + persistence + haptics (02-04). All TypeScript compiles under strict mode. 16 commits across wave-based execution. | Done |
 | 2026-07-06 | Phase 3 | Executed all 3 plans: data layer (03-01), UI infrastructure (03-02), stats & settings screens (03-03). All TypeScript compiles under strict mode. 3 commits. | Done |
-| 2026-07-06 | Phase 4 | Executed all 3 plans — deps & ad foundation (04-01), restore & purchase UI (04-02), interstitial & rewarded ads (04-03). 10 commits across 2 waves. All TypeScript compiles under strict mode. | Next: `/gsd-plan-phase 5` |
+| 2026-07-06 | Phase 4 | Executed all 3 plans — deps & ad foundation (04-01), restore & purchase UI (04-02), interstitial & rewarded ads (04-03). 10 commits across 2 waves. All TypeScript compiles under strict mode. | Done |
+| 2026-07-06 | Phase 5 | Executed all 3 plans — cloud deps & services (05-01), Google Sign-In auth (05-02), leaderboards & score submission (05-03). 12 commits across 3 waves. All TypeScript compiles under strict mode. | Next: `/gsd-plan-phase 6` |
 
 ---
 
