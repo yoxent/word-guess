@@ -33,6 +33,7 @@ Both contain project context but serve different agents:
 
 ## Workflow
 - Commit only, no auto-push
+- **`main` is protected — release-only.** Never push to `main` unless explicitly instructed. All feature work targets `develop`.
 - GSD commands own planning artifacts: `/gsd-plan-phase`, `/gsd-execute-phase`, etc.
 - Phase plan files tracked (no sub-gitignore for them) — they're authored planning output
 - Brain updates committed as `brain: update [scope]`
