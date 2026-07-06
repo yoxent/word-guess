@@ -26,7 +26,23 @@
       "package": "com.wordguess.app"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "react-native-iap",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-xxxxxxxx~xxxxxxxx",
+          "iosAppId": ""
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.2.0"
+          }
+        }
+      ]
     ]
   }
 }
