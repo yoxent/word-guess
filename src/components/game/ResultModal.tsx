@@ -16,6 +16,7 @@ import {
   getEndlessStreak,
   setEndlessStreak as persistEndlessStreak,
   markDailyCompleted,
+  incrementEndlessTotalWords,
 } from '../../services/storage';
 import { getDailyDateString } from '../../services/dailySeed';
 
@@ -67,6 +68,9 @@ export function ResultModal() {
           setEndlessStreakState(finalStreak);
           persistEndlessStreak(0);
         }
+
+        // NEW: Track total endless words guessed (D-145)
+        incrementEndlessTotalWords();
       }
 
       // Clear active game state (D-58)

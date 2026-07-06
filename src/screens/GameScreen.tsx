@@ -179,6 +179,66 @@ export function GameScreen({ route }: Props) {
           useAdStore.getState().incrementGamesSinceLastAd();
           // Preload next interstitial
           useAdStore.getState().preloadInterstitial();
+
+          // ── Phase 5: Submit leaderboard scores and sync stats (D-153, D-154) ──
+          const statsStore = useStatsStore.getState();
+          const stats = statsStore.stats;
+
+          const leaderboardParams: {
+            mode: string;
+            won: boolean;
+            dailyStreak?: number;
+            endlessStreak?: number;
+            endlessTotalWords?: number;
+          } = {
+            mode: currentSession.mode,
+            won: currentSession.status === 'won',
+          };
+
+          if (currentSession.mode === 'daily' && currentSession.status === 'won' && stats) {
+            // Daily win: compute adjusted streak (recordGame may not have completed yet)
+            const baseStreak = stats.perModeStreaks?.daily?.current ?? 0;
+            leaderboardParams.dailyStreak = baseStreak + 1;
+          }
+
+          if (currentSession.mode === 'endless') {
+            // Endless mode: read current streak + total words from MMKV (already persisted by ResultModal)
+            const { getEndlessStreak, getEndlessTotalWords } = require('../services/storage');
+            leaderboardParams.endlessStreak = getEndlessStreak();
+            leaderboardParams.endlessTotalWords = getEndlessTotalWords();
+          }
+
+          // Fire-and-forget: never blocks the UI transition (D-154)
+          import('../services/leaderboardService').then(
+            ({ updateLeaderboardAfterGame }) => {
+              updateLeaderboardAfterGame(leaderboardParams);
+            },
+          );
+
+          // Sync player stats to Firestore or queue (fire-and-forget)
+          import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
+            const authState = authStoreRef.getState();
+            if (authState.isLoggedIn && stats) {
+              import('../services/firestoreService').then(
+                ({ updatePlayerStats }) => {
+                  updatePlayerStats(
+                    authState.playerId!,
+                    authState.playerName ?? 'Player',
+                    stats,
+                  );
+                },
+              );
+            } else if (stats) {
+              import('../services/syncQueue').then(
+                ({ enqueueEvent }) => {
+                  enqueueEvent('game_result', {
+                    playerName: 'Player',
+                    stats,
+                  });
+                },
+              );
+            }
+          });
         }
       }, totalAnimationTime);
 
