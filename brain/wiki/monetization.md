@@ -1,10 +1,47 @@
 # monetization
 updated: 2026-07-06
 tags: [ads, iap, monetization, phase-4, remote-config]
-related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture]
+related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns]
 
 ## Business model
 Free-to-play with interstitial ads, rewarded video, Pro IAP $1.99. Pro removes interstitials only — rewarded ads remain available to Pro users (gameplay mechanic, not annoyance gate).
+
+## Phase 4 plan structure
+3 plans across 2 waves. Plan checker caught AD-03 (purchase flow) missing — added `purchase` row type + `requestPurchase()` before execution.
+
+| Plan | Wave | Objective | Tasks | Depends On |
+|------|------|-----------|-------|------------|
+| 04-01 | 1 | Foundation — deps, config split, adStore, Remote Config | 3 | Nothing |
+| 04-02 | 2 | Settings — restore + Pro purchase flows, UI config extension | 3 | 04-01 |
+| 04-03 | 2 | Game — interstitial + rewarded ad in ResultModal | 3 | 04-01 |
+
+- Wave 2 plans (04-02, 04-03) are parallel — no file overlap
+- Deps installed: react-native-google-mobile-ads@16.4.0, react-native-iap@15.3.6, @react-native-firebase/remote-config@25.1.0, @react-native-firebase/app@25.x
+- Config plugins added to app.json: `react-native-google-mobile-ads` (with app IDs), `react-native-iap`, `expo-build-properties` (kotlinVersion 2.2.0)
+- UI-SPEC approved: 5/6 dimensions PASS, 1 FLAG (toast contrast deferred to Phase 6)
+
+## Extra guess mechanics (gameStore.addExtraGuess)
+- Only works from `status === 'lost'` state (D-89)
+- Sets status back to `'playing'`, increments `maxAttempts++` and `extraGuessesUsed++`
+- Gated by per-tier max: `maxExtraGuessesFree: 2`, `maxExtraGuessesPro: 3`
+- Reads `isPro` from settingsStore to determine cap (D-92, D-93, D-94)
+
+## Purchase flow (SettingsScreen)
+| Aspect | Detail |
+|--------|--------|
+| Row type | `purchase` in SettingsRowConfig (productId field) |
+| Action | `requestPurchase({ skus: [productId] })` |
+| Listener | `purchaseUpdatedListener` checks product ID match |
+| Completion | `finishTransaction({ purchase, isConsumable: false })` + `setPro(true)` |
+| Hidden when | `isPro === true` (same pattern as restore) |
+| Product ID | `com.vorithstudio.wordguess.pro` in config.ts |
+
+### SettingsRowConfig types (Phase 4)
+| Type | Renders | Behavior |
+|------|---------|----------|
+| `restore` | Tappable row | Calls `getAvailablePurchases()` → sets `isPro` → toast |
+| `purchase` | Tappable row with price | Calls `requestPurchase()` → purchaseUpdatedListener → `setPro(true)` |
+| `info` (pro status) | 
 
 ## Ad manager (Zustand store)
 Singleton `adStore` with ref-counted lifecycle per ad unit ID. Prevents double-loading.
@@ -76,7 +113,8 @@ Chosen over build-time env vars, config file flags, or EAS profiles — Remote C
 ### Row types added for Phase 4
 | Type | Renders | Behavior |
 |------|---------|----------|
-| `restore` | Tappable row (left) | Calls `RNIap.getPurchases()` → sets `isPro` → shows toast → hides button |
+| `restore` | Tappable row (left) | Calls `RNIap.getAvailablePurchases()` → sets `isPro` → toast → hides button |
+| `purchase` | Tappable row with price + subtitle | Calls `requestPurchase()` → `purchaseUpdatedListener` → `finishTransaction` → `setPro(true)` → toast |
 | `info` (pro status) | "Pro" left / "Active" or "—" right | Read-only, non-interactive |
 
 ### Remove Ads price display (D-112)

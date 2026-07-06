@@ -62,12 +62,12 @@ Phase 1 (Foundation)
 - **Wave 3:** Screens — config-driven StatsScreen (loading/empty/error states, chart, share FAB, pull-to-refresh, entrance animation) + SettingsScreen (3 config-driven sections) (plan 03-03)
 - **Known gotcha:** `react-native-chart-kit` chartConfig uses `decimalPlaces` not `decimalCount` — plan had wrong property name, caught at compile time
 
-### Phase 4: Monetization (Context Gathered 2026-07-06)
+### Phase 4: Monetization (Planned 2026-07-06)
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore
 - **Reqs:** AD-01 → AD-07 (7 reqs)
 - **Critical:** Play Store compliance (verify current policy before starting)
-- **Dependency:** Phase 2 (ads shown after game completion)
-- **Status:** Context gathered — ready for planning
+- **Dependency:** Phase 3 (stats and settings exist for Account section)
+- **Status:** Planned (3 plans, 2 waves)
 - **Key decisions:** D-87–D-112
   - Flappy Bird-style interstitial timing (transition from ResultModal to next screen, not during play)
   - Frequency caps: Daily=every game, Endless/Random=every 2nd
@@ -77,8 +77,13 @@ Phase 1 (Foundation)
   - Restore: Account section, hidden when Pro active, color-coded toast
   - Ad manager: Zustand store (singleton, ref-counted lifecycle)
   - Ad IDs: Firebase Remote Config (fetch on launch, fallback to test IDs)
-  - Settings config extension: new `restore` row type, Account section expanded
-- **New deps:** react-native-google-mobile-ads, react-native-iap, @react-native-firebase/remote-config
+  - Settings config extension: new `restore` + `purchase` row types, Account section expanded
+  - UI design contract approved: 5/6 dimensions PASS, 1 FLAG (toast contrast deferred to Phase 6)
+- **Wave 1:** Foundation — install 4 deps (verified: react-native-google-mobile-ads@16.4.0, react-native-iap@15.3.6, @react-native-firebase/remote-config@25.1.0, @react-native-firebase/app@25.x), split maxExtraGuesses, create adStore (Zustand), remoteConfig service, app init wiring (plan 04-01)
+- **Wave 2 (parallel):** Settings — extend UI config registry with restore/purchase types, implement restore + Pro purchase flows with toast feedback (04-02). Game — interstitial + rewarded ad in ResultModal, frequency capping, extra guess mechanics in gameStore (04-03)
+- **Plan checker caught:** AD-03 purchase flow missing from initial plans — added purchase row type + requestPurchase() before execution
+- **New deps:** react-native-google-mobile-ads, react-native-iap, @react-native-firebase/remote-config, @react-native-firebase/app
+- **Config plugins added:** react-native-google-mobile-ads (with androidAppId placeholder), react-native-iap, expo-build-properties (kotlinVersion 2.2.0)
 - **See:** [monetization](monetization.md) for full architecture
 
 ### Phase 5: Cloud & Social

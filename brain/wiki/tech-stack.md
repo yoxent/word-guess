@@ -45,13 +45,15 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 |-------|--------|---------|-------|
 | Backend | Firebase (Firestore + Auth) | 25.x | Phase 5 |
 | Google Sign-In | @react-native-google-signin | 16.x | Phase 5 |
-| Remote Config | @react-native-firebase/remote-config | 25.x | Ad unit ID config (Phase 4, D-106) |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config (Phase 4, D-106) — npm verified |
+| Firebase App | @react-native-firebase/app | 25.x | Required peer dep of remote-config; installs alongside |
 
 ## Monetization
 | Layer | Choice | Version | Notes |
 |-------|--------|---------|-------|
-| Ads | react-native-google-mobile-ads | 16.x | Interstitial + rewarded (Phase 4) |
-| IAP | react-native-iap | 15.x | Pro purchase + restore (Phase 4, D-98) |
+| Ads | react-native-google-mobile-ads | 16.4.0 | Interstitial + rewarded (Phase 4) — npm verified |
+| IAP | react-native-iap | 15.3.6 | Pro purchase + restore (Phase 4, D-98) — npm verified |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config via Firebase (D-106) |
 
 ## Build
 | Layer | Choice | Notes |

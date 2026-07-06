@@ -32,6 +32,16 @@ Every locked decision in CONTEXT.md gets a D-XX identifier. Plans reference thes
 - 4 plans across 3 waves. Wave 2 plans are NOT fully parallel — 02-03 depends on 02-02 (shared files: ResultModal.tsx, index.ts).
 65 decisions (D-25 through D-66) for Phase 2.
 
+## Phase 4 plan structure
+| Plan | Wave | Objective | Tasks | Depends On |
+|------|------|-----------|-------|------------|
+| 04-01 | 1 | Foundation: install deps, split maxExtraGuesses, adStore, remoteConfig service | 3 | Phase 3 complete |
+| 04-02 | 2 | Settings: extend UI config with restore/purchase types, implement restore + Pro purchase flows | 3 | 04-01 |
+| 04-03 | 2 | Game: interstitial + rewarded ad in ResultModal, frequency capping, extra guess mechanics | 3 | 04-01 |
+
+- 3 plans across 2 waves. Wave 2 plans (04-02, 04-03) are fully parallel — no file overlap.
+- 26 decisions (D-87 through D-112), plus UI-SPEC contract.
+
 ## Phase 3 plan structure
 | Plan | Wave | Objective | Tasks | Depends On |
 |------|------|-----------|-------|------------|
@@ -98,6 +108,14 @@ When computing the total duration of a staggered animation sequence:
 totalTime = (lastTileIndex * staggerDelay) + flipDuration + buffer
 if (any correct tile) totalTime += bounceTotal  // extra 200ms
 ```
+
+### Phase 4 findings
+
+| Issue | Example | Fix |
+|-------|---------|-----|
+| Missing purchase flow (AD-03) | Plans covered interstitial + rewarded ad + restore, but no task created Pro purchase button or called `requestPurchase()` | Add `purchase` row type to SettingsRowConfig, wire `requestPurchase()` + `purchaseUpdatedListener` in SettingsScreen |
+| Requirement traceability gap (AD-07) | AD-07 substantively implemented (TestIds in dev, Remote Config in prod) but not listed in any plan's `requirements:` frontmatter | Add AD-07 to 04-01 requirements field |
+| Stale product ID in REQUIREMENTS.md | AD-03 had `com.wordguess.pro` but CONTEXT.md D-95 locked `com.vorithstudio.wordguess.pro` | Fixed product ID to match locked decision |
 
 ## Nyquist validation requirements
 - When `nyquist_validation: true` in config, VALIDATION.md is required in phase directory
