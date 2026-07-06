@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-05 (dynamic tile sizing, safe area, error toast overlay)
+updated: 2026-07-06 (Phase 4 additions — adStore, remoteConfig, interstitial/rewarded ad flow)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens]
 
@@ -35,14 +35,17 @@ src/
 ├── components/
 │   ├── game/      # Tile, GuessRow, GameBoard, Keyboard, ResultModal, LengthPickerModal, Confetti
 │   ├── ui/        # Button, NavMenuButton, SettingRow, etc.
-├── stores/        # gameStore, statsStore, authStore, settingsStore, dictionaryStore
-├── services/      # storage.ts, wordLogic.ts, dailySeed.ts, sound.ts (stub)
+├── stores/        # gameStore, statsStore, authStore, settingsStore, dictionaryStore, adStore
+├── services/      # storage.ts, wordLogic.ts, dailySeed.ts, sound.ts (stub), remoteConfig.ts
 ├── config/        # ui.ts — UI Configuration Registry (D-77, Phase 3)
 ├── constants/     # colors.ts, layout.ts, config.ts, animations.ts
+├── types/         # game.ts, stats.ts, settings.ts, auth.ts, daily.ts, navigation.ts, monetization.ts
 └── assets/        # dictionary/ (generated .json), sounds/, images/
 ```
 
 **Phase 3 addition:** `src/config/` layer for composable UI definitions. Screens read config arrays and render accordingly — no hardcoded layout logic. See [ui-config-registry](ui-config-registry.md).
+
+**Phase 4 addition:** `adStore` (Zustand) singleton wrapping react-native-google-mobile-ads for interstitial/rewarded ad lifecycle. `remoteConfig` service for Firebase Remote Config (ad unit IDs). `monetization.ts` types for AdState, RestoreResult. See [monetization](monetization.md).
 
 **Conventions:**
 - Type-based layout (not feature-based)
@@ -83,7 +86,7 @@ src/
 | GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. |
 | Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX. Uses `tileSize` prop for width/height + font size. |
 | Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
-| ResultModal | Post-game overlay | Shows win/loss, target word, definition (defs-{N}.json), emoji grid; Endless "Play Next"; daily completion tracking |
+| ResultModal | Post-game overlay | Shows win/loss, target word, definition, emoji grid; Endless "Play Next"; daily completion tracking. Phase 4: rewarded ad button on loss state (addExtraGuess); interstitial before playNext/backToMenu navigation |
 | LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
 | Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |
 
@@ -93,6 +96,7 @@ src/
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
 | Sound | services/sound.ts | No-op stub with expected API (playKeyPress, playReveal, playWin, playLoss). Sound files added later by developer |
+| RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
 
 ## Two-tier dictionary (Phase 2 decision)
 - **Target word selection:** enriched dictionary (curated, clean words)
@@ -119,6 +123,8 @@ store.submitGuess(guess):
   → (after last tile) → Keyboard color update
   → Win/loss check
   → If game over: ResultModal overlay with definition
+  → Loss state: rewarded ad button (addExtraGuess → status back to 'playing', maxAttempts++)
+  → Before navigation: interstitial ad (gated by isPro + frequency cap)
   → Endless: "Play Next" → next word (same length)
   → Other: "Back to Menu" → HomeScreen
 ```

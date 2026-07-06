@@ -1,5 +1,5 @@
 # Key Risks
-updated: 2026-07-05 (added P21 dictionary case fix)
+updated: 2026-07-06 (P6/P7 mitigated — ad store + restore flow implemented)
 tags: [risks, pitfalls, critical]
 related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing]
 
@@ -38,13 +38,15 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 
 ## Moderate risks
 
-### P6: Interstitial double-loading
-- Singleton ad manager with ref-counted lifecycle. Never call load() if isLoaded.
+### P6: Interstitial double-loading (MITIGATED)
+- Singleton Zustand adStore (adStore.ts) with ref-counted lifecycle. preloadInterstitial/preloadRewarded check loaded/loading flags before creating ads.
 - Phase: 4
+- Mitigation verified: adStore.ts uses module-level InterstitialAd/RewardedAd instances + Zustand boolean tracking. Lazy preload on CLOSED event. No double-load paths.
 
-### P7: Missing IAP restore flow
-- Implement restore from day one. Centralized product ID constants. Local receipt storage.
+### P7: Missing IAP restore flow (MITIGATED)
+- Restore button in Settings Account section calls RNIap.getAvailablePurchases(). color-coded toast feedback.
 - Phase: 4
+- Mitigation verified: restore implemented via handleRestore() in SettingsScreen.tsx, purchaseUpdatedListener handles Pro purchase async flow.
 
 ### P8: Dictionary blocks JS thread at startup
 - Strip enriched JSON at build time (~150KB gzipped final). Static require() at module level — synchronous, no startup delay.

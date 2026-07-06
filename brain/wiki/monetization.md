@@ -1,23 +1,24 @@
 # monetization
-updated: 2026-07-06
+updated: 2026-07-06 (Phase 4 executed — implementation details added)
 tags: [ads, iap, monetization, phase-4, remote-config]
 related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns]
 
 ## Business model
 Free-to-play with interstitial ads, rewarded video, Pro IAP $1.99. Pro removes interstitials only — rewarded ads remain available to Pro users (gameplay mechanic, not annoyance gate).
 
-## Phase 4 plan structure
-3 plans across 2 waves. Plan checker caught AD-03 (purchase flow) missing — added `purchase` row type + `requestPurchase()` before execution.
+## Phase 4 execution (completed 2026-07-06)
+3 plans, 2 waves, 12 implementation commits. TypeScript compiles clean.
 
-| Plan | Wave | Objective | Tasks | Depends On |
-|------|------|-----------|-------|------------|
-| 04-01 | 1 | Foundation — deps, config split, adStore, Remote Config | 3 | Nothing |
-| 04-02 | 2 | Settings — restore + Pro purchase flows, UI config extension | 3 | 04-01 |
-| 04-03 | 2 | Game — interstitial + rewarded ad in ResultModal | 3 | 04-01 |
+| Plan | Wave | What it built |
+|------|------|---------------|
+| 04-01 | 1 | Deps install, config plugins, split maxExtraGuesses, adStore (Zustand), remoteConfig service, app wiring |
+| 04-02 | 2 | Settings — restore + Pro purchase flows, UI config extension (restore/purchase row types) |
+| 04-03 | 2 | Game — interstitial preload + frequency capping, rewarded ad button in ResultModal, addExtraGuess in gameStore |
 
-- Wave 2 plans (04-02, 04-03) are parallel — no file overlap
+- Wave 2 plans (04-02, 04-03) share config.ts (04-02 writes proProductId, 04-03 reads) — executed sequentially
+- Plan checker caught AD-03 purchase flow missing — added `purchase` row type + `requestPurchase()` before execution
 - Deps installed: react-native-google-mobile-ads@16.4.0, react-native-iap@15.3.6, @react-native-firebase/remote-config@25.1.0, @react-native-firebase/app@25.x
-- Config plugins added to app.json: `react-native-google-mobile-ads` (with app IDs), `react-native-iap`, `expo-build-properties` (kotlinVersion 2.2.0)
+- Config plugins added to app.json: `react-native-google-mobile-ads` (with placeholder androidAppId), `react-native-iap`, `expo-build-properties` (kotlinVersion 2.2.0)
 - UI-SPEC approved: 5/6 dimensions PASS, 1 FLAG (toast contrast deferred to Phase 6)
 
 ## Extra guess mechanics (gameStore.addExtraGuess)
@@ -53,6 +54,14 @@ Singleton `adStore` with ref-counted lifecycle per ad unit ID. Prevents double-l
 - Tracks `gamesSinceLastAd` counter for frequency capping
 
 Architecture: `src/stores/adStore.ts` — Zustand store (D-103), not service singleton or React Context.
+
+**Implementation details:**
+- InterstitialAd/RewardedAd instances stored as **module-level variables** outside Zustand (not serializable)
+- Zustand tracks only boolean flags: loaded, loading
+- `preloadInterstitial`/`preloadRewarded` check `interstitialLoaded || interstitialLoading` before creating — prevents double-loading (P6)
+- Lazy preload: on CLOSED event, auto-preloads next ad so next show() call has a ready ad
+- One-shot EARNED_REWARD listener: attached just before showRewarded(), cleaned up after callback fires — prevents stale references
+- Error handling: if ad fails to load, flags reset to allow retry; callers never crash
 
 ## Interstitial timing (Flappy Bird-style)
 Shows at **transition from ResultModal to next screen** (Back to Menu / Play Next). Never during active gameplay (D-87).
@@ -101,6 +110,7 @@ Pro users can still watch rewarded ads (D-93). The Pro purchase removes intersti
 | Fallback | Compiled-in test ad IDs if fetch fails (D-108) |
 | Keys | `admob_interstitial_id`, `admob_rewarded_id`, `admob_interstitial_frequency_override` (optional, D-109) |
 | Build strategy | Single build — no dev/prod split needed. Remote Config serves different IDs per environment remotely. |
+| Dev mode | `getInterstitialAdId()`/`getRewardedAdId()` return `TestIds.*` directly when `__DEV__` is true — no Remote Config dependency in development |
 
 Chosen over build-time env vars, config file flags, or EAS profiles — Remote Config allows one build to serve all environments and supports runtime switching (D-106).
 
@@ -113,9 +123,9 @@ Chosen over build-time env vars, config file flags, or EAS profiles — Remote C
 ### Row types added for Phase 4
 | Type | Renders | Behavior |
 |------|---------|----------|
-| `restore` | Tappable row (left) | Calls `RNIap.getAvailablePurchases()` → sets `isPro` → toast → hides button |
-| `purchase` | Tappable row with price + subtitle | Calls `requestPurchase()` → `purchaseUpdatedListener` → `finishTransaction` → `setPro(true)` → toast |
-| `info` (pro status) | "Pro" left / "Active" or "—" right | Read-only, non-interactive |
+| `restore` | Tappable row | Calls `getAvailablePurchases()` → checks `com.vorithstudio.wordguess.pro` → sets `isPro` → green toast "Pro restored!" / red toast "No purchases found to restore" → button hides |
+| `purchase` | Tappable row with price + subtitle | Calls `requestPurchase({ skus: [productId] })` → `purchaseUpdatedListener` checks product ID match → `finishTransaction({ purchase, isConsumable: false })` → `setPro(true)` → green toast → row hides |
+| `info` (pro status) | "Pro" left / "Active" or "—" right | Value is dynamic: reads `isPro` from settingsStore and overrides config at render time via useMemo in SettingsScreen. Non-interactive |
 
 ### Remove Ads price display (D-112)
 Both elements present, independently removable:

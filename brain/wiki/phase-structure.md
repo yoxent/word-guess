@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-06 (Phase 3 complete, Phase 4 context)
+updated: 2026-07-06 (Phase 4 executed — three plans, 2 waves complete)
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -62,12 +62,11 @@ Phase 1 (Foundation)
 - **Wave 3:** Screens — config-driven StatsScreen (loading/empty/error states, chart, share FAB, pull-to-refresh, entrance animation) + SettingsScreen (3 config-driven sections) (plan 03-03)
 - **Known gotcha:** `react-native-chart-kit` chartConfig uses `decimalPlaces` not `decimalCount` — plan had wrong property name, caught at compile time
 
-### Phase 4: Monetization (Planned 2026-07-06)
+### Phase 4: Monetization (Executed 2026-07-06)
 - **Goal:** Interstitial ads, rewarded video, Pro IAP $1.99, restore
 - **Reqs:** AD-01 → AD-07 (7 reqs)
-- **Critical:** Play Store compliance (verify current policy before starting)
-- **Dependency:** Phase 3 (stats and settings exist for Account section)
-- **Status:** Planned (3 plans, 2 waves)
+- **Status:** Complete (3 plans, 2 waves, 12 implementation commits)
+- **Dependency:** Phase 3
 - **Key decisions:** D-87–D-112
   - Flappy Bird-style interstitial timing (transition from ResultModal to next screen, not during play)
   - Frequency caps: Daily=every game, Endless/Random=every 2nd
