@@ -11,6 +11,7 @@ export const config = {
     resetHourUTC: 0,
     maxClockSkewMinutes: 30,
   },
+  proProductId: 'com.vorithstudio.wordguess.pro',
   databaseName: 'wordguess.db',
   storageKeys: {
     settings: 'wordguess.settings',

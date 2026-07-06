@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { getAvailablePurchases } from 'react-native-iap';
+import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { settingsConfig } from '../config/ui';
@@ -29,6 +29,35 @@ export function SettingsScreen() {
     } catch {
       showToast('No purchases found to restore', false);
     }
+  }, [showToast]);
+
+  const handlePurchase = useCallback(async (productId: string) => {
+    try {
+      await requestPurchase({
+        request: {
+          google: { skus: [productId] },
+          apple: { sku: productId },
+        },
+        type: 'in-app',
+      });
+    } catch {
+      showToast('Purchase failed. Please try again.', false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    const subscription = purchaseUpdatedListener(async (purchase) => {
+      if (purchase.productId === 'com.vorithstudio.wordguess.pro') {
+        try {
+          await finishTransaction({ purchase, isConsumable: false });
+          useSettingsStore.getState().setPro(true);
+          showToast('Welcome to Pro!', true);
+        } catch {
+          showToast('Purchase verification failed.', false);
+        }
+      }
+    });
+    return () => subscription.remove();
   }, [showToast]);
 
   const filteredConfig = useMemo(() => {
@@ -60,6 +89,7 @@ export function SettingsScreen() {
                   <SettingsRow
                     config={row}
                     onRestore={row.type === 'restore' ? handleRestore : undefined}
+                    onPurchase={row.type === 'purchase' ? handlePurchase : undefined}
                   />
                   {i < section.rows.length - 1 && <View style={styles.divider} />}
                 </React.Fragment>
