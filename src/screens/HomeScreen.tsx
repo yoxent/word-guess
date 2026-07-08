@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Switch } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +26,7 @@ export function HomeScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<GameMode>('daily');
   const [completedDailyLengths, setCompletedDailyLengths] = useState<number[]>([]);
+  const [continueModal, setContinueModal] = useState<{ mode: GameMode; length: number } | null>(null);
 
   const hardMode = useSettingsStore((s) => s.hardModeEnabled);
   const toggleHardMode = useSettingsStore((s) => s.toggleHardMode);
@@ -41,27 +42,33 @@ export function HomeScreen() {
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
     const saved = getActiveGame();
     if (saved && saved.mode === mode && saved.letterCount === length && saved.status === 'playing') {
-      Alert.alert(
-        'Continue Game?',
-        `You have an unfinished ${mode} ${length}-letter game.`, [
-        {
-          text: 'New Game',
-          style: 'destructive',
-          onPress: () => {
-            clearActiveGame();
-            navigation.navigate('Game', { mode, letterCount: length });
-          },
-        },
-        {
-          text: 'Continue',
-          style: 'default',
-          onPress: () => navigation.navigate('Game', { mode, letterCount: length }),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+      // Daily: auto-continue without prompt
+      if (mode === 'daily') {
+        navigation.navigate('Game', { mode, letterCount: length });
+        return;
+      }
+      // Non-daily: show continue modal
+      setContinueModal({ mode, length });
     } else {
       navigation.navigate('Game', { mode, letterCount: length });
     }
+  };
+
+  const handleContinue = () => {
+    if (!continueModal) return;
+    navigation.navigate('Game', { mode: continueModal.mode, letterCount: continueModal.length });
+    setContinueModal(null);
+  };
+
+  const handleNewGame = () => {
+    if (!continueModal) return;
+    clearActiveGame();
+    navigation.navigate('Game', { mode: continueModal.mode, letterCount: continueModal.length });
+    setContinueModal(null);
+  };
+
+  const handleCancelContinue = () => {
+    setContinueModal(null);
   };
 
   const handleRandom = () => {
@@ -142,6 +149,25 @@ export function HomeScreen() {
         onClose={() => setShowPicker(false)}
         completedLengths={pickerMode === 'daily' ? completedDailyLengths : []}
       />
+
+      <Modal visible={continueModal !== null} transparent animationType="fade">
+        <View style={styles.modalOverlay} onTouchEnd={handleCancelContinue}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Continue Game?</Text>
+            <Text style={styles.modalMessage}>
+              You have an unfinished {continueModal?.mode} {continueModal?.length}-letter game.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalButtonContinue} onPress={handleContinue} activeOpacity={0.7}>
+                <Text style={styles.modalButtonContinueText}>Continue</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButtonNew} onPress={handleNewGame} activeOpacity={0.7}>
+                <Text style={styles.modalButtonNewText}>New Game</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -205,5 +231,61 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    minWidth: 280,
+    maxWidth: '85%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    width: '100%',
+    gap: 8,
+  },
+  modalButtonContinue: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  modalButtonContinueText: {
+    color: colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonNew: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  modalButtonNewText: {
+    color: colors.danger,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

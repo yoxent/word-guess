@@ -1,32 +1,44 @@
-import firestore from '@react-native-firebase/firestore';
+import { getApp } from '@react-native-firebase/app';
+import {
+  getFirestore,
+  initializeFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp,
+} from '@react-native-firebase/firestore';
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
 
 // ── Types ──
 
 export type LeaderboardType = 'daily_streak' | 'endless_streak' | 'endless_total';
 
-// ── Collection path helpers ──
+// ── Initialisation (modular API) ──
 
 const PLAYER_STATS_COLLECTION = 'playerStats';
 const LEADERBOARDS_COLLECTION = 'leaderboards';
 
-/**
- * Enable Firestore offline persistence on first import.
- * Suppresses "settings() called multiple times" warnings via a guard.
- */
-let persistenceEnabled = false;
-function enablePersistenceOnce(): void {
-  if (persistenceEnabled) return;
-  try {
-    firestore().settings({ persistence: true });
-    persistenceEnabled = true;
-  } catch {
-    // Firestore SDK handles missing configuration gracefully
+/** Initialise Firestore with offline persistence once at module load. */
+let fsInitialised = false;
+function ensureFirestore(): ReturnType<typeof getFirestore> {
+  if (!fsInitialised) {
+    initializeFirestore(getApp(), { persistence: true });
+    fsInitialised = true;
   }
+  return getFirestore();
 }
 
-// Warm-up call — safe to invoke at module load time.
-enablePersistenceOnce();
+const db = ensureFirestore();
+
+/** Helper: leaderboard sub-collection reference */
+function leaderboardRef(type: string) {
+  return collection(db, LEADERBOARDS_COLLECTION, type, 'scores');
+}
 
 // ── Functions ──
 
@@ -41,18 +53,16 @@ export async function updatePlayerStats(
   stats: PlayerStats,
 ): Promise<boolean> {
   try {
-    await firestore()
-      .collection(PLAYER_STATS_COLLECTION)
-      .doc(playerId)
-      .set(
-        {
-          playerId,
-          playerName,
-          ...stats,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+    await setDoc(
+      doc(collection(db, PLAYER_STATS_COLLECTION), playerId),
+      {
+        playerId,
+        playerName,
+        ...stats,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
     return true;
   } catch {
     return false;
@@ -67,14 +77,13 @@ export async function getPlayerStats(
   playerId: string,
 ): Promise<PlayerStats | null> {
   try {
-    const doc = await firestore()
-      .collection(PLAYER_STATS_COLLECTION)
-      .doc(playerId)
-      .get();
+    const docSnap = await getDoc(
+      doc(collection(db, PLAYER_STATS_COLLECTION), playerId),
+    );
 
-    if (!doc.exists) return null;
+    if (!docSnap.exists) return null;
 
-    const data = doc.data();
+    const data = docSnap.data();
     if (!data) return null;
 
     // Strip Firestore metadata fields before returning PlayerStats
@@ -102,20 +111,16 @@ export async function submitLeaderboardScore(
   score: number,
 ): Promise<boolean> {
   try {
-    await firestore()
-      .collection(LEADERBOARDS_COLLECTION)
-      .doc(type)
-      .collection('scores')
-      .doc(playerId)
-      .set(
-        {
-          playerId,
-          playerName,
-          score,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+    await setDoc(
+      doc(leaderboardRef(type), playerId),
+      {
+        playerId,
+        playerName,
+        score,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
     return true;
   } catch {
     return false;
@@ -132,19 +137,15 @@ export async function getLeaderboard(
   type: LeaderboardType,
 ): Promise<LeaderboardData> {
   try {
-    const snapshot = await firestore()
-      .collection(LEADERBOARDS_COLLECTION)
-      .doc(type)
-      .collection('scores')
-      .orderBy('score', 'desc')
-      .limit(50)
-      .get();
+    const snapshot = await getDocs(
+      query(leaderboardRef(type), orderBy('score', 'desc'), limit(50)),
+    );
 
-    const entries: LeaderboardEntry[] = snapshot.docs.map((doc, index) => {
-      const data = doc.data();
+    const entries: LeaderboardEntry[] = snapshot.docs.map((docSnap, index) => {
+      const data = docSnap.data();
       return {
         rank: index + 1,
-        playerId: data.playerId ?? doc.id,
+        playerId: data.playerId ?? docSnap.id,
         playerName: data.playerName ?? 'Unknown',
         score: data.score ?? 0,
       };

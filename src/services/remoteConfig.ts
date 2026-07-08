@@ -1,9 +1,12 @@
 import { TestIds } from 'react-native-google-mobile-ads';
-import remoteConfig from '@react-native-firebase/remote-config';
+import { getRemoteConfig, fetchAndActivate, getValue } from '@react-native-firebase/remote-config';
 
 // Default test IDs used when Remote Config fetch fails or in dev (D-108)
 const DEFAULT_INTERSTITIAL_ID = __DEV__ ? TestIds.INTERSTITIAL : '';
 const DEFAULT_REWARDED_ID = __DEV__ ? TestIds.REWARDED : '';
+
+// Remote Config instance — initialised once at module level
+const rc = getRemoteConfig();
 
 let fetched = false;
 
@@ -14,7 +17,7 @@ let fetched = false;
  */
 export async function fetchAdUnitIds(): Promise<void> {
   try {
-    await remoteConfig().fetchAndActivate();
+    await fetchAndActivate(rc);
     fetched = true;
   } catch {
     // Fallback to test IDs on failure (D-108)
@@ -33,7 +36,7 @@ export function getInterstitialAdId(): string {
   if (!fetched) return DEFAULT_INTERSTITIAL_ID;
   try {
     return (
-      remoteConfig().getValue('admob_interstitial_id').asString() ||
+      getValue(rc, 'admob_interstitial_id').asString() ||
       DEFAULT_INTERSTITIAL_ID
     );
   } catch {
@@ -52,7 +55,7 @@ export function getRewardedAdId(): string {
   if (!fetched) return DEFAULT_REWARDED_ID;
   try {
     return (
-      remoteConfig().getValue('admob_rewarded_id').asString() ||
+      getValue(rc, 'admob_rewarded_id').asString() ||
       DEFAULT_REWARDED_ID
     );
   } catch {

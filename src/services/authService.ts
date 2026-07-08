@@ -18,7 +18,10 @@
  */
 
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged as onFirebaseAuthStateChanged } from '@react-native-firebase/auth';
+
+/** Firebase Auth instance (modular API). */
+const firebaseAuth = getAuth();
 
 // ── Configuration ──
 
@@ -125,8 +128,8 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     }
 
     // 3. Exchange Google idToken for Firebase Auth credential (D-115)
-    const credential = auth.GoogleAuthProvider.credential(idToken);
-    await auth().signInWithCredential(credential);
+    const credential = GoogleAuthProvider.credential(idToken);
+    await signInWithCredential(firebaseAuth, credential);
 
     // 4. Return combined user data
     return {
@@ -178,7 +181,7 @@ export async function signOutFromGoogle(): Promise<void> {
   }
 
   try {
-    await auth().signOut();
+    await signOut(firebaseAuth);
   } catch {
     // Firebase sign-out failure is non-fatal — local state will be cleared
   }
@@ -207,8 +210,8 @@ export async function signInSilently(): Promise<SilentlySignInResult | null> {
     }
 
     // Exchange idToken for Firebase credential
-    const credential = auth.GoogleAuthProvider.credential(idToken);
-    await auth().signInWithCredential(credential);
+    const credential = GoogleAuthProvider.credential(idToken);
+    await signInWithCredential(firebaseAuth, credential);
 
     return {
       user: {
@@ -229,7 +232,7 @@ export async function signInSilently(): Promise<SilentlySignInResult | null> {
  */
 export function getCurrentUser(): SilentlySignInResult | null {
   try {
-    const currentUser = auth().currentUser;
+    const currentUser = firebaseAuth.currentUser;
     if (!currentUser) return null;
 
     return {
@@ -253,7 +256,7 @@ export function getCurrentUser(): SilentlySignInResult | null {
 export function onAuthStateChanged(
   callback: (user: { id: string; name: string | null } | null) => void,
 ): () => void {
-  return auth().onAuthStateChanged((firebaseUser) => {
+  return onFirebaseAuthStateChanged(firebaseAuth, (firebaseUser) => {
     if (firebaseUser) {
       callback({
         id: firebaseUser.uid,

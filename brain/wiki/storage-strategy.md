@@ -1,5 +1,5 @@
 # Storage Strategy
-updated: 2026-07-05 (3 persistence triggers, continue-game prompt)
+updated: 2026-07-08 (continue-game prompt: Alert→Modal, daily auto-continues)
 tags: [storage, persistence, sqlite, mmkv]
 related: [architecture, tech-stack, phase-structure, game-modes]
 
@@ -117,7 +117,10 @@ Restore: GameScreen init checks `getActiveGame()` for saved session matching `mo
 Clear: `clearActiveGame()` called on game completion (win/loss) or explicit "New Game" from Home prompt.
 
 ### Continue game prompt
-Home screen checks for saved game when user selects a mode+length. If saved game exists with matching `mode` + `letterCount` + `status === 'playing'`, shows Alert:
-> Continue Game? [Continue] [New Game] [Cancel]
-- **Continue** → navigates, GameScreen restores saved session
-- **New Game** → `clearActiveGame()` then navigates fresh
+Home screen checks for saved game when user selects a mode+length. If saved game exists with matching `mode` + `letterCount` + `status === 'playing'`:
+- **Daily mode:** auto-continues — navigates directly, no prompt (daily puzzle slot is consumed for the day, no reason to start fresh)
+- **Non-daily (Endless/Random):** shows a custom React Native `<Modal>` overlay with two options:
+  - **Continue** → navigates, GameScreen restores saved session
+  - **New Game** → `clearActiveGame()` then navigates fresh
+- Tapping outside the modal dismisses (acts as cancel)
+- Uses `navigateWithContinueCheck()` in HomeScreen.tsx

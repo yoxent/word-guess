@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-05 (removed Free Play, added continue-game prompt)
+updated: 2026-07-08 (continue-game prompt: Alert→Modal, daily auto-continues)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup]
 
@@ -28,7 +28,9 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Player guesses validated against full dictionary (no exclusions)
 
 ## Continue game prompt
-When selecting a game mode from Home, if a saved in-progress game exists with matching `mode` + `letterCount`, an Alert prompts: "Continue Game?" with Continue / New Game / Cancel options.
+When selecting a game mode from Home, if a saved in-progress game exists with matching `mode` + `letterCount`:
+- **Daily mode:** auto-continues without prompt — daily puzzle slot is consumed for the day, starting fresh would waste the day's attempt
+- **Non-daily (Endless/Random):** custom `<Modal>` overlay with Continue / New Game options. Tap outside to dismiss (cancel). Implemented via `navigateWithContinueCheck()` in HomeScreen.tsx
 - **Continue:** navigates to Game → init code detects saved game via `getActiveGame()` and restores it
 - **New Game:** `clearActiveGame()` then navigates fresh
 - Saved on back nav (GameScreen `handleBack`), unmount cleanup, and AppState background

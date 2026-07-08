@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
 import { useGameStore, useSettingsStore } from '../../stores';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
-import { MaterialIcons } from '@expo/vector-icons';
+
 import { colors } from '../../constants/colors';
 import { useAdStore } from '../../stores/adStore';
 import { config } from '../../constants/config';
@@ -79,23 +79,6 @@ export function ResultModal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status]);
 
-  if (!session || session.status === 'playing') {
-    return null;
-  }
-
-  const isWin = session.status === 'won';
-
-  const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
-  const showRewardedAd = session.status === 'lost' && session.extraGuessesUsed < maxExtra;
-
-  // Build emoji grid
-  const emojiRows = session.feedback.map((rowFeedback) => {
-    return rowFeedback
-      .map((f) => EMOJI_MAP[f.feedback] || '⬛')
-      .join('');
-  });
-  const emojiText = emojiRows.join('\n');
-
   const handleWatchAd = useCallback(async () => {
     const adStore = useAdStore.getState();
     const shown = await adStore.showRewarded(() => {
@@ -105,25 +88,6 @@ export function ResultModal() {
       // Ad not ready — silently return, button stays visible
     }
   }, []);
-
-  const showInterstitialIfNeeded = useCallback(async (): Promise<void> => {
-    const { isPro: pro } = useSettingsStore.getState();
-    if (pro) return;
-
-    const adStore = useAdStore.getState();
-    const { gamesSinceLastAd } = adStore;
-
-    let threshold = 0;
-    if (session?.mode === 'daily') threshold = 0;
-    else if (session?.mode === 'endless' || session?.mode === 'random') threshold = 1;
-
-    if (gamesSinceLastAd >= threshold) {
-      const shown = await adStore.showInterstitial();
-      if (shown) {
-        adStore.resetGamesSinceLastAd();
-      }
-    }
-  }, [session?.mode]);
 
   const handlePlayNext = () => {
     if (!session) return;
@@ -153,6 +117,25 @@ export function ResultModal() {
     navigation.navigate('Home');
   };
 
+  const showInterstitialIfNeeded = useCallback(async (): Promise<void> => {
+    const { isPro: pro } = useSettingsStore.getState();
+    if (pro) return;
+
+    const adStore = useAdStore.getState();
+    const { gamesSinceLastAd } = adStore;
+
+    let threshold = 0;
+    if (session?.mode === 'daily') threshold = 0;
+    else if (session?.mode === 'endless' || session?.mode === 'random') threshold = 1;
+
+    if (gamesSinceLastAd >= threshold) {
+      const shown = await adStore.showInterstitial();
+      if (shown) {
+        adStore.resetGamesSinceLastAd();
+      }
+    }
+  }, [session?.mode]);
+
   const handlePlayNextWithAd = useCallback(async () => {
     await showInterstitialIfNeeded();
     handlePlayNext();
@@ -163,13 +146,29 @@ export function ResultModal() {
     handleBackToMenu();
   }, [showInterstitialIfNeeded, handleBackToMenu]);
 
+  if (!session || session.status === 'playing') {
+    return null;
+  }
+
+  const isWin = session.status === 'won';
+
+  const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
+  const showRewardedAd = session.status === 'lost' && session.extraGuessesUsed < maxExtra;
+
+  // Build emoji grid
+  const emojiRows = session.feedback.map((rowFeedback) => {
+    return rowFeedback
+      .map((f) => EMOJI_MAP[f.feedback] || '⬛')
+      .join('');
+  });
+  const emojiText = emojiRows.join('\n');
+
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.overlay}>
         {isWin && <Confetti />}
         <View style={styles.card}>
           <View style={styles.titleRow}>
-            <View style={styles.titleSpacer} />
             <Text
               style={[
                 styles.title,
@@ -178,13 +177,6 @@ export function ResultModal() {
             >
               {isWin ? 'You Won!' : 'Game Over'}
             </Text>
-            <TouchableOpacity
-              style={styles.homeButton}
-              onPress={handleBackToMenuWithAd}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="home" size={22} color={colors.textSecondary} />
-            </TouchableOpacity>
           </View>
 
           <Text style={styles.word}>{session.word.toUpperCase()}</Text>
@@ -250,26 +242,14 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
     marginBottom: 12,
   },
-  titleSpacer: {
-    width: 40,
-  },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    flex: 1,
     textAlign: 'center',
-  },
-  homeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   word: {
     fontSize: 32,

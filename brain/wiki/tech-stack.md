@@ -202,3 +202,25 @@ buildscript {
 
 ### react-native-google-mobile-ads requests compileSdk 36
 `react-native-google-mobile-ads` 16.4.0 sets compileSdk/targetSdk to 36 via its build.gradle. Other Firebase modules (auth, firestore, remote-config) also request 36. Verify SDK Platform 36 is installed via Android Studio SDK Manager.
+
+### react-native-firebase v25+ modular API (migrated 2026-07-08)
+`@react-native-firebase` v22+ deprecates the old namespaced API (`firebase()`, `auth()`, `firestore()`, `remoteConfig()`) in favor of a modular API matching Firebase Web v9+. Warnings logged at app start. All 3 services migrated:
+
+| File | Old (namespaced) | New (modular) |
+|------|-----------------|---------------|
+| `remoteConfig.ts` | `remoteConfig().fetchAndActivate()` | `getRemoteConfig()` + `fetchAndActivate(rc)` |
+| `remoteConfig.ts` | `remoteConfig().getValue('key')` | `getValue(rc, 'key')` |
+| `firestoreService.ts` | `firestore().settings({persistence: true})` | `initializeFirestore(getApp(), {persistence: true})` |
+| `firestoreService.ts` | `firestore().collection().doc().set()` | `setDoc(doc(collection(db, ...), ...), ...)` |
+| `firestoreService.ts` | `firestore.FieldValue.serverTimestamp()` | `serverTimestamp()` |
+| `firestoreService.ts` | `.orderBy().limit().get()` | `getDocs(query(ref, orderBy(...), limit(...)))` |
+| `authService.ts` | `auth().signInWithCredential(c)` | `signInWithCredential(auth, c)` |
+| `authService.ts` | `auth().signOut()` | `signOut(auth)` |
+| `authService.ts` | `auth().onAuthStateChanged(cb)` | `onAuthStateChanged(auth, cb)` |
+| `authService.ts` | `auth.GoogleAuthProvider.credential()` | `GoogleAuthProvider.credential()` |
+
+### AdMob app ID — placeholder causes startup crash
+`react-native-google-mobile-ads` config plugin reads `androidAppId` from `app.json` and writes it to `AndroidManifest.xml` as `com.google.android.gms.ads.APPLICATION_ID`. If set to placeholder `ca-app-pub-xxxxxxxx~xxxxxxxx`, `MobileAdsInitProvider` crashes at native startup with `Invalid application ID`.
+- Fix: use Google's test app ID `ca-app-pub-3940256099942544~3347511713` for dev
+- Swap to real production AdMob app ID before Play Store release
+- Config lives in `app.json` under `plugins → react-native-google-mobile-ads`

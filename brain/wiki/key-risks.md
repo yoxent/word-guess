@@ -1,5 +1,5 @@
 # Key Risks
-updated: 2026-07-08 (P25 — Kotlin metadata incompatibility with ads library, MITIGATED)
+updated: 2026-07-08 (P26 — early return before hooks crash; fixed duplicate P21 numbering)
 tags: [risks, pitfalls, critical]
 related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync]
 
@@ -129,7 +129,7 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Fix: Replace with bottom sheet or slide-out drawer.
 - Phase: Deferred
 
-### P21: No tutorial/onboarding for new players
+### P27: No tutorial/onboarding for new players
 - Cause: Game assumes Wordle familiarity. No "How to Play" flow, example guess, or help icon.
 - Risk: New users confused about rules (Hard Mode, tile colors, daily completion).
 - Phase: 3 (Stats & Settings) or 6 (Pre-Launch)
@@ -142,6 +142,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Mitigation: `ext.kotlinVersion = '2.3.0'` in `android/build.gradle` + `scripts/patch-kotlin-version.mjs` postinstall patch script
 - Detection: Gradle build fails at `:react-native-google-mobile-ads:compileDebugKotlin`
 - Phase: All (first build after adding the ads dependency)
+
+### P26: Early return before hooks causes "Rendered more hooks" crash (FIXED 2026-07-08)
+- Cause: 4 `useCallback` hooks placed after `if (!session || session.status === 'playing') { return null; }` guard in ResultModal. First renders returned early (7 hooks), then won/lost render hit all 11 hooks → "Rendered more hooks than during the previous render".
+- Impact: Red-screen crash when game transitions to result. Full React error.
+- Fix: Move all hooks before the early return. Use optional chaining (`session?.mode`) and store `.getState()` for ad/iap calls so callbacks are safe to define when session is null.
+- Detection: React error screen with `updateWorkInProgressHook` in stack trace, pointing to `ResultModal.tsx`.
+- Phase: 2 (Core Gameplay)
 
 ## Phase 5 planning findings (plan checker)
 

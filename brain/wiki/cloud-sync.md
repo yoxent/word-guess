@@ -1,5 +1,5 @@
 # cloud-sync
-updated: 2026-07-06
+updated: 2026-07-08 (auth API: namespaced→modular)
 tags: [cloud, firebase, firestore, sync, leaderboard, auth, phase-5]
 related: [google-signin, phase-structure, architecture, tech-stack, key-risks]
 
@@ -15,7 +15,7 @@ Optional Google Sign-In enabling cloud-synced stats and competitive leaderboards
 User taps "Sign in with Google" button
   → authService.signInWithGoogle()
     → GoogleSignin.signIn() → idToken
-    → Firebase auth().signInWithCredential(credential)
+    → signInWithCredential(firebaseAuth, credential)  // modular API
     → authStore.setPlayer(firebaseUser)
     → drain syncQueue (deferred scores)
 ```
