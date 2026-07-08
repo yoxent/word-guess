@@ -1,5 +1,5 @@
 # Tech Stack
-updated: 2026-07-06 (Phase 5 deps + build gotchas)
+updated: 2026-07-08 (build fix — Kotlin metadata mismatch, google-services ignore)
 tags: [stack, dependencies, versions, compat]
 related: [architecture, storage-strategy, project-overview, android-build-setup, dev-workflow]
 
@@ -171,3 +171,34 @@ Only `@react-native-firebase/app` has a config plugin (`app.plugin.js`), which c
 
 ### google-services.json placement for Firebase
 Must be at project root (not `android/app/`). Add `expo.android.googleServicesFile: "./google-services.json"` to `app.json`. The `@react-native-firebase/app` config plugin copies it from source to `android/app/` during prebuild. If already placed at `android/app/`, move to project root before prebuild.
+
+### google-services.json not tracked in git
+`google-services.json` contains Firebase API keys and client config (project_number, mobilesdk_app_id, api_key). Not committed to git — listed in `.gitignore`. Each dev/CI env places its own copy at project root.
+
+### Package name must match google-services.json
+`app.json android.package` must match `package_name` in `google-services.json`. Mismatch causes Gradle failure:
+```
+No matching client found for package name 'com.wordguess.app' in google-services.json
+```
+Fix: align `android.package` in `app.json` with Firebase project's registered package name.
+In this project: `com.vorithstudio.wordguess` (also matches IAP product ID `com.vorithstudio.wordguess.pro`).
+
+### Kotlin metadata version — play-services-ads 25.4.0 needs Kotlin 2.3.0
+`react-native-google-mobile-ads` 16.4.0 depends on `play-services-ads:25.4.0`, which was compiled with Kotlin metadata version 2.3.0. RN 0.86 ships Kotlin 2.1.20 in its Gradle version catalog (`node_modules/react-native/gradle/libs.versions.toml`). The Kotlin compiler 2.1.20 cannot read metadata 2.3.0:
+```
+Module was compiled with an incompatible version of Kotlin.
+The binary version of its metadata is 2.3.0, expected version is 2.1.0.
+```
+**Scope quirk:** `expo-build-properties` sets `android.kotlinVersion` in `gradle.properties`, but `react-native-google-mobile-ads` reads Kotlin version via `getExtOrDefault('kotlinVersion', '1.8.22')` which checks `rootProject.ext.kotlinVersion` — a different scope. Gradle properties do NOT flow into `rootProject.ext`.
+**Fix:** Pin Kotlin in `android/build.gradle`:
+```groovy
+buildscript {
+  ext.kotlinVersion = '2.3.0'
+  // ...
+  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+}
+```
+**Persistence:** `android/` is regenerated on prebuild — the above edit gets wiped. Fix: `scripts/patch-kotlin-version.mjs` patches `android/build.gradle` after each prebuild via `postinstall` npm script.
+
+### react-native-google-mobile-ads requests compileSdk 36
+`react-native-google-mobile-ads` 16.4.0 sets compileSdk/targetSdk to 36 via its build.gradle. Other Firebase modules (auth, firestore, remote-config) also request 36. Verify SDK Platform 36 is installed via Android Studio SDK Manager.

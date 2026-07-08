@@ -1,7 +1,7 @@
 # android-build-setup
-updated: 2026-07-05 (emulator storage, AGP warning)
+updated: 2026-07-08 (Kotlin version metadata mismatch, patch script)
 tags: [android, build, gradle, sdk, config]
-related: [tech-stack, dev-workflow]
+related: [tech-stack, dev-workflow, phase-structure]
 
 ## SDK versions (Expo SDK 57 / RN 0.86 defaults)
 | Setting | Value | Source |
@@ -76,6 +76,27 @@ adb shell "df -h /data"
 ```
 If >90% used, emulator can't install debug APK (~74MB).
 
+## Kotlin version — metadata mismatch with play-services-ads 25.4.0
+`react-native-google-mobile-ads` 16.4.0 depends on `play-services-ads:25.4.0`, compiled with Kotlin metadata 2.3.0. RN 0.86 ships Kotlin 2.1.20 — the compiler can't read metadata 2.3.0.
+
+**Root cause:** `expo-build-properties` sets `android.kotlinVersion` in `gradle.properties`, but the ads module checks `rootProject.ext.kotlinVersion` via `getExtOrDefault()`. Different scopes.
+
+**Fix:** Pin Kotlin 2.3.0 in `android/build.gradle`:
+```groovy
+buildscript {
+  ext.kotlinVersion = '2.3.0'
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+  }
+}
+```
+Also set in `app.json` via expo-build-properties (for non-ads modules):
+```json
+["expo-build-properties", {"android": {"kotlinVersion": "2.3.0"}}]
+```
+
+Persistence: `scripts/patch-kotlin-version.mjs` patches build.gradle after each prebuild, hooked via `postinstall`.
+
 ## Known pain points
 | Issue | Workaround |
 |-------|-----------|
@@ -83,3 +104,5 @@ If >90% used, emulator can't install debug APK (~74MB).
 | MMKV nitro-modules not found | npm install separately + prebuild |
 | SDK not found | Create local.properties with sdk.dir |
 | npx expo prebuild overwrites android/ | Use Expo config plugins in app.json instead of editing android/ directly |
+| Kotlin metadata mismatch (play-services-ads 25.4.0) | Pin Kotlin 2.3.0 in build.gradle + postinstall patch script |
+| google-services.json package name mismatch | Align app.json android.package with Firebase project config |

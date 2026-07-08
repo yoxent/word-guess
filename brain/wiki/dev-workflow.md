@@ -1,5 +1,5 @@
 # dev-workflow
-updated: 2026-07-05 (prebuild wipe, version check)
+updated: 2026-07-08 (postinstall Kotlin patch script)
 tags: [workflow, android-studio, metro, emulator, dev-loop]
 related: [tech-stack, android-build-setup]
 
@@ -53,6 +53,11 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 - Fix mismatches with `npx expo install <package>` (handles version alignment automatically)
 - Never `npm install expo-*` packages directly — always use `npx expo install`
 - Symptom of mismatched versions: `NoClassDefFoundError` at runtime (native Kotlin/Java classes missing from expo-modules-core)
+
+## Postinstall script — Kotlin version patch
+`package.json` has a `postinstall` hook that runs `node scripts/patch-kotlin-version.mjs` after each install/prebuild. This patches `android/build.gradle` to pin Kotlin 2.3.0 (required by `react-native-google-mobile-ads`'s `play-services-ads:25.4.0` dependency).
+
+The `android/` dir is regenerated on prebuild — the Kotlin pin would be lost without this hook.
 
 ## Asset icons
 Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 (Pre-Launch & Polish).

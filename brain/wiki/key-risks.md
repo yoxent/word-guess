@@ -1,5 +1,5 @@
 # Key Risks
-updated: 2026-07-06 (Phase 5 plan-checker findings — P22/P23/P24 added)
+updated: 2026-07-08 (P25 — Kotlin metadata incompatibility with ads library, MITIGATED)
 tags: [risks, pitfalls, critical]
 related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync]
 
@@ -133,6 +133,15 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Cause: Game assumes Wordle familiarity. No "How to Play" flow, example guess, or help icon.
 - Risk: New users confused about rules (Hard Mode, tile colors, daily completion).
 - Phase: 3 (Stats & Settings) or 6 (Pre-Launch)
+
+## Build risks
+
+### P25: Kotlin metadata version mismatch — play-services-ads 25.4.0 needs Kotlin 2.3.0 (MITIGATED)
+- Cause: `react-native-google-mobile-ads` 16.4.0 depends on `play-services-ads:25.4.0`, compiled with Kotlin metadata 2.3.0. RN 0.86 ships Kotlin 2.1.20 via Gradle version catalog. Compiler can't read metadata 2.3.0 — fails with `Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0.`
+- Scope quirk: `expo-build-properties` sets `android.kotlinVersion` in `gradle.properties`, but the ads module reads `rootProject.ext.kotlinVersion` via `getExtOrDefault()`. Different scopes — the gradle property doesn't propagate.
+- Mitigation: `ext.kotlinVersion = '2.3.0'` in `android/build.gradle` + `scripts/patch-kotlin-version.mjs` postinstall patch script
+- Detection: Gradle build fails at `:react-native-google-mobile-ads:compileDebugKotlin`
+- Phase: All (first build after adding the ads dependency)
 
 ## Phase 5 planning findings (plan checker)
 

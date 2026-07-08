@@ -1,5 +1,5 @@
 # Phase Structure
-updated: 2026-07-06 (Phase 4 executed — three plans, 2 waves complete; Phase 5 planned — 3 plans, 3 waves)
+updated: 2026-07-08 (Phase 5 verified — 28/28 must-haves passed)
 tags: [roadmap, phases, planning]
 related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
 
@@ -85,15 +85,17 @@ Phase 1 (Foundation)
 - **Config plugins added:** react-native-google-mobile-ads (with androidAppId placeholder), react-native-iap, expo-build-properties (kotlinVersion 2.2.0)
 - **See:** [monetization](monetization.md) for full architecture
 
-### Phase 5: Cloud & Social (Planned)
+### Phase 5: Cloud & Social (Complete, Verified)
 - **Goal:** Google Sign-In, cloud sync, 3 leaderboards
 - **Reqs:** CLOUD-01 → CLOUD-08 (8 reqs)
 - **Critical:** SHA-1 triple registration, Web client ID, event-based sync, offline sync queue with retry
 - **Dependency:** Phase 4 (Monetization)
-- **Status:** Planned (3 plans, 3 waves — see [cloud-sync](cloud-sync.md))
+- **Status:** Executed (3 plans, 3 waves) + Verified (28/28 must-haves passed, 3 human-verify items deferred to device testing)
+- **Build fix needed:** Kotlin 2.3.0 pin for play-services-ads compat — see [tech-stack](tech-stack.md) and [android-build-setup](android-build-setup.md)
 - **Wave 1:** Install cloud deps, create firestoreService (Firestore CRUD), create syncQueue (offline write-ahead log with idempotent events, exponential backoff)
 - **Wave 2:** Create authService (GoogleSignIn + Firebase Auth wrapper), extend authStore, update SettingsScreen sign-in UI, wire silent sign-in + periodic drain in App.tsx
 - **Wave 3:** Create leaderboardService, rebuild LeaderboardScreen (3-tab segment control, 5 states), wire game completion→score submission + stats sync
+- **Verification override:** @react-native-firebase/firestore correctly omitted from app.json plugins (no app.plugin.js — Firestore auto-links via @react-native-firebase/app)
 
 ### Phase 6: Pre-Launch & Polish
 - **Goal:** Accessibility, Play Store submission, performance, production build
