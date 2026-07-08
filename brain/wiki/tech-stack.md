@@ -1,7 +1,7 @@
 # Tech Stack
-updated: 2026-07-06 (Phase 3/4 deps added)
+updated: 2026-07-06 (Phase 5 deps + build gotchas)
 tags: [stack, dependencies, versions, compat]
-related: [architecture, storage-strategy, project-overview, android-build-setup]
+related: [architecture, storage-strategy, project-overview, android-build-setup, dev-workflow]
 
 ## Core
 | Layer | Choice | Version | Why |
@@ -21,6 +21,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 | Screens | react-native-screens | 4.25.2 | 4.26+ only nightly |
 | Safe area | react-native-safe-area-context | 5.7.0 | Aligned with Expo SDK 57 |
 | Animations | react-native-reanimated | 4.5.0 | Aligned with Expo SDK 57 |
+| Worklets | react-native-worklets | ^0.10.1 | Required peer dep of reanimated (installed separately) |
 | Gestures | react-native-gesture-handler | 2.32.0 | Latest stable (v2 line, compatible with SDK 57) |
 | Audio | expo-av | SDK 57 | |
 | Haptics | expo-haptics | SDK 57 | |
@@ -62,6 +63,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup]
 |-------|--------|-------|
 | Build | EAS CLI (dev/preview/production profiles) | |
 | Dev builds | npx expo prebuild + npx expo run:android | Prebuild from day one (Phase 1) |
+| Build properties | expo-build-properties | ~57.0.3 | Config plugin for android.kotlinVersion, googleServicesFile |
 | Prototyping | Expo Go | Limited native modules |
 
 ## Known issues & workarounds
@@ -98,6 +100,9 @@ If `package.json` has a `postinstall` script referencing a file that doesn't exi
 
 ### AGP version — RN 0.86 ships 8.12.0, AS may not support it
 RN 0.86 bundles AGP 8.12.0 via `node_modules/react-native/gradle/libs.versions.toml`. Older Android Studio versions error `Latest supported version is AGP 8.9.1`. Fix: pin version explicitly in `android/build.gradle` — see [android-build-setup](android-build-setup.md).
+
+### react-native-reanimated needs react-native-worklets installed separately
+`react-native-reanimated` requires `react-native-worklets` as a peer dep (not auto-installed). Fix: `npm install react-native-worklets --legacy-peer-deps && npx expo prebuild`. Without this, Gradle fails at build time.
 
 ### react-native-mmkv needs react-native-nitro-modules installed separately
 `react-native-mmkv@4.3.2` has `react-native-nitro-modules` as a **peer dep** (not auto-installed). Fix: `npx expo install react-native-nitro-modules && npx expo prebuild`. Without this, Gradle fails with `Project with path ':react-native-nitro-modules' could not be found`.
@@ -157,3 +162,12 @@ Run `npx expo install --check` to verify all native module versions align with i
 - ❌ Lottie for tile animations — 200KB+ JSON per animation
 - ❌ RevenueCat — 25% fee on $1.99 IAP, SDK 5x larger than react-native-iap
 - ❌ Custom backend (Node/PostgreSQL) — 10x work, Firebase handles all needs
+
+### npx expo prebuild --clean fails with EBUSY on locked android/
+If `android/` directory or files inside are locked by another process (Android Studio, file explorer, stale Gradle daemon), `prebuild --clean` fails with `EBUSY`. Fix: close Android Studio, close file explorer windows on `android/`, kill java/node/gradle processes. Workaround: use `npx expo prebuild` (without `--clean`) — updates in-place without deleting directory.
+
+### @react-native-firebase/firestore has no app.plugin.js
+Only `@react-native-firebase/app` has a config plugin (`app.plugin.js`), which covers all Firebase sub-modules (auth, firestore, remote-config). Do NOT add `@react-native-firebase/firestore` to `app.json plugins` — it will error `PluginError: Unexpected token 'typeof'`. Fix: add `@react-native-firebase/app` to plugins instead.
+
+### google-services.json placement for Firebase
+Must be at project root (not `android/app/`). Add `expo.android.googleServicesFile: "./google-services.json"` to `app.json`. The `@react-native-firebase/app` config plugin copies it from source to `android/app/` during prebuild. If already placed at `android/app/`, move to project root before prebuild.

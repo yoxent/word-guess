@@ -25,7 +25,7 @@ import auth from '@react-native-firebase/auth';
 // D-114: Pass Web client ID (from Firebase Console → Web credentials)
 // IMPORTANT: Must be Web client ID, NOT Android client ID (D-114, P4)
 // Developer must replace this value with their Firebase Web client ID
-const WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID_HERE';
+const WEB_CLIENT_ID = '765565366850-kadse78msbqs0r8gab1gue4faoukbngu.apps.googleusercontent.com';
 
 // D-117: Minimal OAuth scopes
 const OAUTH_SCOPES: string[] = ['profile', 'email'];
