@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "ts:check": "tsc --noEmit",
-    "preprocess-dictionary": "node scripts/preprocess-dictionary.mjs"
+    "preprocess-dictionary": "node scripts/preprocess-dictionary.mjs",
+    "postinstall": "node scripts/patch-kotlin-version.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

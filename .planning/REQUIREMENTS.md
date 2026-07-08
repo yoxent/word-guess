@@ -56,14 +56,14 @@
 
 ### Phase 5: Cloud & Social
 
-- [ ] **CLOUD-01**: Google Play Sign-In via `@react-native-google-signin` + Firebase Auth token exchange; three SHA-1 fingerprints registered (debug, upload, Play App Signing)
-- [ ] **CLOUD-02**: Cloud-synced stats via Firebase Firestore — local stats sync asynchronously when online; uses event-based incremental sync (not full-state overwrite)
-- [ ] **CLOUD-03**: Daily Challenge leaderboard — top players by daily streak; requires sign-in to view
-- [ ] **CLOUD-04**: Endless leaderboard — top players by total consecutive correct guesses; separate from daily
-- [ ] **CLOUD-05**: Endless leaderboard (total words guessed ever) — separate listing viewable independently
-- [ ] **CLOUD-06**: Offline-first sync with write-ahead log — game results appended to sync queue; on connectivity, drain queue with idempotent events; handles 3+ offline games before sync
-- [ ] **CLOUD-07**: Deferred score queue — if sign-in not complete at score time, queue score locally; submit when auth succeeds; retry 3× with exponential backoff
-- [ ] **CLOUD-08**: Google Sign-In configured with Web client ID (not Android client ID); OAuth consent screen set to External
+- [x] **CLOUD-01**: Google Play Sign-In via `@react-native-google-signin` + Firebase Auth token exchange; three SHA-1 fingerprints registered (debug, upload, Play App Signing)
+- [x] **CLOUD-02**: Cloud-synced stats via Firebase Firestore — local stats sync asynchronously when online; uses event-based incremental sync (not full-state overwrite)
+- [x] **CLOUD-03**: Daily Challenge leaderboard — top players by daily streak; requires sign-in to view
+- [x] **CLOUD-04**: Endless leaderboard — top players by total consecutive correct guesses; separate from daily
+- [x] **CLOUD-05**: Endless leaderboard (total words guessed ever) — separate listing viewable independently
+- [x] **CLOUD-06**: Offline-first sync with write-ahead log — game results appended to sync queue; on connectivity, drain queue with idempotent events; handles 3+ offline games before sync
+- [x] **CLOUD-07**: Deferred score queue — if sign-in not complete at score time, queue score locally; submit when auth succeeds; retry 3× with exponential backoff
+- [x] **CLOUD-08**: Google Sign-In configured with Web client ID (not Android client ID); OAuth consent screen set to External
 
 ### Phase 6: Pre-Launch & Polish
 
@@ -147,14 +147,14 @@
 | AD-05 | Phase 4 | Pending |
 | AD-06 | Phase 4 | Pending |
 | AD-07 | Phase 4 | Pending |
-| CLOUD-01 | Phase 5 | Pending |
-| CLOUD-02 | Phase 5 | Pending |
-| CLOUD-03 | Phase 5 | Pending |
-| CLOUD-04 | Phase 5 | Pending |
-| CLOUD-05 | Phase 5 | Pending |
-| CLOUD-06 | Phase 5 | Pending |
-| CLOUD-07 | Phase 5 | Pending |
-| CLOUD-08 | Phase 5 | Pending |
+| CLOUD-01 | Phase 5 | Complete |
+| CLOUD-02 | Phase 5 | Complete |
+| CLOUD-03 | Phase 5 | Complete |
+| CLOUD-04 | Phase 5 | Complete |
+| CLOUD-05 | Phase 5 | Complete |
+| CLOUD-06 | Phase 5 | Complete |
+| CLOUD-07 | Phase 5 | Complete |
+| CLOUD-08 | Phase 5 | Complete |
 | LAUNCH-01 | Phase 6 | Pending |
 | LAUNCH-02 | Phase 6 | Pending |
 | LAUNCH-03 | Phase 6 | Pending |
@@ -166,6 +166,7 @@
 | LAUNCH-09 | Phase 6 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 52 total
 - Mapped to phases: 52
 - Unmapped: 0 ✓

@@ -23,7 +23,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f5f5f0"
       },
-      "package": "com.wordguess.app",
+      "package": "com.vorithstudio.wordguess",
       "googleServicesFile": "./google-services.json"
     },
     "plugins": [
@@ -43,7 +43,7 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.2.0"
+            "kotlinVersion": "2.3.0"
           }
         }
       ]
