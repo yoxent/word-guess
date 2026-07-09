@@ -1,7 +1,7 @@
 # architecture
-updated: 2026-07-08 (Phase 6 additions — accessibility, theme system, BackHandler, How to Play, sound, stagger animation)
+updated: 2026-07-09 (toggle side-effect pattern added — sound/haptic fixes)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility, toggle-side-effects]
 
 ## Layer stack
 ```
@@ -80,7 +80,8 @@ src/
 14. **Centralized BackHandler** — Single BackHandler.addEventListener in Navigation.tsx, not per-screen listeners. Blocks during tile animation (skip-to-final-state), ad display, and IAP flow (D-165–D-167).
 15. **Theme context via useColors() hook** — colors.ts restructured into lightColors/darkColors. useColors() returns active palette based on settingsStore.themeMode ('light'|'dark'|'system'). System mode uses useColorScheme(). React Navigation receives DarkTheme/DefaultTheme. expo-status-bar switches style. ~15-20 files migrated from direct colors import to hook.
 16. **Modal overlay pattern** — How to Play, LengthPickerModal share same pattern: backdrop + centered card + dismiss button. HowToPlayModal triggered from ? icon in Home icon bar.
-17. **Performance markers** — console.time/timeEnd guarded by __DEV__, placed at dictionary load, stats read, stats write. Flipper only if visual check reveals jank.
+17. **Performance markers** — console.time/timeEnd guarded by __DEV__, placed at startup-init (was dictionary-load, renamed 2026-07-09), stats read, stats write. Flipper only if visual check reveals jank. Dictionary require() happens synchronously at module load BEFORE useEffect runs, so it cannot be measured from a useEffect — name marker for the actual code path being measured.
+18. **Toggle side effects** — Toggles that flip Zustand state alone are insufficient when the toggled feature has runtime side effects outside the store (audio, haptics, native modules). Wire side effects explicitly: useEffect watching the store value, or read state at call site via `useSettingsStore.getState()`. See [toggle-side-effects](toggle-side-effects.md).
 
 ## Screens
 | Screen | Route | Composed of |
@@ -109,7 +110,7 @@ src/
 |---------|------|----------------|
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
-| Sound | services/sound.ts | expo-av wired in Phase 6 — loads keypress.wav, reveal.wav, win.wav, loss.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss) |
+| Sound | services/sound.ts | expo-av wired in Phase 6 — loads keypress.wav, reveal.wav, win.wav, lose.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss). `setSoundEnabled()` re-exported from services/index.ts |
 | RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
 
 ## Two-tier dictionary (Phase 2 decision)

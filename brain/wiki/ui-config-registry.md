@@ -1,5 +1,5 @@
 # ui-config-registry
-updated: 2026-07-08 (Phase 6 additions — colorBlindMode, reduceMotion, theme selector row types)
+updated: 2026-07-09 (hardMode removed from settings — redundant with Home)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110, accessibility]
 related: [architecture, phase-structure, storage-strategy, monetization, accessibility]
 
@@ -57,9 +57,12 @@ type SettingsRowConfig =
 ### Phase 4 sections (from config, Account)
 | Section | Rows |
 |---------|------|
-| Gameplay | `hardMode` (toggle) |
 | Audio & Haptics | `sound` (toggle), `haptic` (toggle) |
 | Account | `signIn` (placeholder) + `proStatus` (info) + `removeAds` (purchase) + `restorePurchases` (restore) — D-110, D-111 |
+| Accessibility (Phase 6) | `colorBlind` (toggle), `reduceMotion` (toggle) |
+| Appearance (Phase 6) | `theme` (themeSelector) |
+
+**Removed 2026-07-09:** Gameplay section's `hardMode` toggle (was redundant — Home screen has it inline). Defaults on Home now control Hard Mode; Settings removed for UX clarity.
 
 Rows separated by hairline divider: `1px solid tileEmpty`, 4px vertical margin.
 

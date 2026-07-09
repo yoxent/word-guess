@@ -1,6 +1,6 @@
 # Brain Wiki Index
-updated: 2026-07-08
-tags: [index, mvp, phase-6-context-gathered]
+updated: 2026-07-09
+tags: [index, mvp, phase-6-executed]
 related: []
 
 | Page | Description | Tags |
@@ -26,3 +26,4 @@ related: []
 | monetization | Phase 4 execution — ad manager (Zustand + google-mobile-ads), interstitial timing, rewarded ads, Pro IAP, restore, Remote Config, app.json plugins | ads, iap, monetization, phase-4, complete |
 | cloud-sync | Phase 5 cloud architecture — Firestore data model, offline sync queue, leaderboard design, score submission pipeline, auth flow | cloud, firebase, firestore, sync, leaderboard, auth, phase-5 |
 | accessibility | Phase 6 — TalkBack, color blindness textures, reduce motion, PixelRatio font scaling | accessibility, talkback, color-blindness, reduce-motion, pixelratio |
+| toggle-side-effects | Pattern: Zustand toggles need explicit side-effect wiring (sound, haptics). Bug fix 2026-07-09 | pattern, settings, zustand, side-effect, audio |

@@ -60,11 +60,12 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 The `android/` dir is regenerated on prebuild — the Kotlin pin would be lost without this hook.
 
 ## Performance profiling (Phase 6)
-- console.time/timeEnd markers at: dictionary load (App mount), stats read (StatsScreen mount), stats write (game completion)
+- console.time/timeEnd markers at: `startup-init` (App mount, App.tsx:30-44), `stats-read` (StatsScreen mount), `stats-write` (game completion)
 - All markers guarded behind `__DEV__` — stripped from release builds
 - Visual FPS check on mid-range device (Moto G Power class) for tile animations
 - Flipper only if visual check reveals jank — not needed for baseline threshold verification
-- Thresholds: tile animations 60 FPS, dictionary load < 500ms, stats read/write < 100ms
+- Thresholds: tile animations 60 FPS, stats read/write < 100ms
+- **Note (renamed 2026-07-09):** `dictionary-load` was renamed to `startup-init` because the marker was a no-op — dictionary require() calls happen synchronously at module load BEFORE useEffect runs, so they cannot be measured from inside useEffect. The marker now measures post-module startup work (Remote Config fetch + sound init).
 
 ## Production build checklist (Phase 6)
 Before EAS production build:
