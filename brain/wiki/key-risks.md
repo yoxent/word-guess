@@ -110,6 +110,16 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
+### P32: Audio architecture — BGM with reactive volume + AppState lifecycle (2026-07-09)
+- Cause: BGM (background music) needs to play continuously across the app, but respect (a) user volume preference, (b) app lifecycle (pause on background), and (c) live updates when the user adjusts the volume slider in Settings.
+- Fix: New audio service architecture in `src/services/sound.ts`:
+  - BGM player created on `sound.init()`, `loop = true`, persists for the app's lifetime
+  - `setBgmVolume(v)` and `setSfxVolume(v)` apply volumes reactively — idempotent
+  - `pauseBgm()` / `resumeBgm()` called from `AppState` listener in `App.tsx`
+  - Reactive `useEffect` in `App.tsx` watches `bgmVolume` / `sfxVolume` and applies changes — this is the toggle-side-effects pattern generalized to numeric values
+- Lesson: BGM is a long-lived audio resource, different from SFX. Treat it as a singleton (one player for the whole app), control via volume rather than play/pause, and tie lifecycle to AppState. The `loop = true` flag means the player can be paused/resumed without re-seeking.
+- Phase: 6 (Post-launch) — see [toggle-side-effects](./toggle-side-effects.md) for the pattern.
+
 ### P31: Flat useColors() API produces "wrong key for context" bugs (FIXED 2026-07-09)
 - Cause: The pre-refactor `useColors()` hook returned a flat object (`{ accent, textPrimary, tileCorrect, ... }`). Components picked colors by key name, with no semantic distinction between "button background" and "toggle track" and "icon color" — all three used `colors.accent`. When a component wanted the wrong color (or missed setting any color, as in P30), nothing in the type system caught it.
 - Symptom: Recurring contrast / wrong-color bugs across the dark theme migration. P30 was the most visible (unreadable toggle label) but the underlying anti-pattern was everywhere.
