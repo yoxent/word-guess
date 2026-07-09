@@ -4,7 +4,7 @@ import type { TextStyle } from 'react-native';
 const fontScale = PixelRatio.getFontScale();
 
 // 5-size type scale for Phase 3+ UI (D-84)
-// Note: color is intentionally NOT included here — apply per-theme color from useColors() in each
+// Note: color is intentionally NOT included here — apply per-theme color from useTheme() in each
 // consumer. This lets typography remain a pure type/sizing/weight constant while colors stay
 // reactive to theme switching.
 export const typography: Record<string, TextStyle> = {

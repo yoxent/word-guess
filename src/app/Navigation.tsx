@@ -17,15 +17,14 @@ import {
   SettingsScreen,
   LeaderboardScreen,
 } from '../screens';
-import { darkColors } from '../constants/colors';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { useGameStore } from '../stores/gameStore';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 function NavMenuButton() {
   const navigation = useNavigation<NavProp>();
-  const colors = useColors();
+  const theme = useTheme();
   const handlePress = useCallback(() => {
     Alert.alert('Navigate to...', '', [
       { text: 'Home', onPress: () => navigation.navigate('Home') },
@@ -38,7 +37,7 @@ function NavMenuButton() {
 
   return (
     <TouchableOpacity onPress={handlePress} style={styles.menuButton}>
-      <Text style={[styles.menuIcon, { color: colors.headerText }]}>⋮</Text>
+      <Text style={[styles.menuIcon, { color: theme.colors.text.primary }]}>⋮</Text>
     </TouchableOpacity>
   );
 }
@@ -89,9 +88,9 @@ function BackHandlerController() {
 }
 
 export function Navigation() {
-  const colors = useColors();
+  const theme = useTheme();
   // D-189: Nav theme injection — prevent white flash on navigation
-  const navTheme = colors === darkColors ? DarkTheme : DefaultTheme;
+  const navTheme = theme.colors.mode === 'dark' ? DarkTheme : DefaultTheme;
 
   return (
     <NavigationContainer theme={navTheme}>
@@ -99,9 +98,9 @@ export function Navigation() {
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
-          headerTintColor: colors.headerText,
-          headerStyle: { backgroundColor: colors.headerBackground },
-          contentStyle: { backgroundColor: colors.background },
+          headerTintColor: theme.colors.text.primary,
+          headerStyle: { backgroundColor: theme.colors.surface.header },
+          contentStyle: { backgroundColor: theme.colors.surface.background },
           animationTypeForReplace: 'push',
         }}
       >

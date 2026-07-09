@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-chart-kit';
 import * as Clipboard from 'expo-clipboard';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { statsConfig } from '../config/ui';
 import { StatCard } from '../components/ui/StatCard';
@@ -27,13 +27,13 @@ const CARD_PADDING = 24;
 const CHART_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2 - CARD_PADDING * 2;
 
 export function StatsScreen() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
         },
         scrollContent: {
           padding: SCREEN_PADDING,
@@ -41,12 +41,12 @@ export function StatsScreen() {
         },
         loadingContainer: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
         },
         emptyCard: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 12,
           padding: 24,
           margin: 16,
@@ -59,12 +59,12 @@ export function StatsScreen() {
         },
         emptyTitle: {
           ...typography.cardTitle,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
         },
         emptySubtitle: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
         },
         // Overview grid
@@ -79,11 +79,11 @@ export function StatsScreen() {
         },
         statValue: {
           ...typography.statValue,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
         },
         statLabel: {
           ...typography.statLabel,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           marginTop: 2,
         },
         perModeRow: {
@@ -92,18 +92,18 @@ export function StatsScreen() {
           marginTop: 16,
           paddingTop: 12,
           borderTopWidth: 1,
-          borderTopColor: colors.tileEmpty,
+          borderTopColor: theme.colors.tile.empty,
         },
         perModeItem: {
           alignItems: 'center',
         },
         perModeLabel: {
           ...typography.statLabel,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
         },
         perModeValue: {
           ...typography.body,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           fontWeight: '600',
           marginTop: 2,
         },
@@ -112,12 +112,12 @@ export function StatsScreen() {
           flexDirection: 'row',
           paddingVertical: 8,
           borderBottomWidth: 1,
-          borderBottomColor: colors.tileEmpty,
+          borderBottomColor: theme.colors.tile.empty,
         },
         tableHeaderCell: {
           textAlign: 'center',
           ...typography.statLabel,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
         },
         tableRow: {
           flexDirection: 'row',
@@ -126,7 +126,7 @@ export function StatsScreen() {
           alignItems: 'center',
         },
         tableRowAlt: {
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
         },
         lengthLabel: {
           justifyContent: 'center',
@@ -134,7 +134,7 @@ export function StatsScreen() {
         tableCell: {
           textAlign: 'center',
           ...typography.body,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
         },
         // Chart
         chartContainer: {
@@ -144,7 +144,7 @@ export function StatsScreen() {
         shareButton: {
           position: 'absolute',
           right: SCREEN_PADDING,
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 24,
@@ -155,13 +155,13 @@ export function StatsScreen() {
           elevation: 6,
         },
         shareButtonText: {
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontSize: 16,
           fontWeight: '700',
           textAlign: 'center',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const stats = useStatsStore((s) => s.stats);
@@ -238,7 +238,7 @@ export function StatsScreen() {
   if (isLoading && !stats) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <ActivityIndicator size="large" color={theme.colors.status.accent} />
       </View>
     );
   }
@@ -264,7 +264,7 @@ export function StatsScreen() {
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets.bottom + 80) }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accent]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.status.accent]} />}
       >
         {sortedConfig.map((config, i) => (
           <Animated.View
@@ -410,7 +410,7 @@ export function StatsScreen() {
     if (distribution.length === 0) {
       return (
         <View style={styles.chartContainer}>
-          <Text style={{ ...typography.body, color: colors.textSecondary }}>
+          <Text style={{ ...typography.body, color: theme.colors.text.secondary }}>
             No wins yet — complete a game to see your distribution.
           </Text>
         </View>
@@ -432,18 +432,18 @@ export function StatsScreen() {
           withVerticalLabels={true}
           segments={4}
           chartConfig={{
-            backgroundColor: colors.surface,
-            backgroundGradientFrom: colors.surface,
-            backgroundGradientTo: colors.surface,
+            backgroundColor: theme.colors.surface.card,
+            backgroundGradientFrom: theme.colors.surface.card,
+            backgroundGradientTo: theme.colors.surface.card,
             decimalPlaces: 0,
             color: (opacity, index) => {
               const count = chartData.datasets[0].data[index ?? 0] ?? 0;
               return count > 0 ? 'rgba(106, 170, 100, 1)' : 'rgba(211, 214, 218, 1)';
             },
-            labelColor: () => colors.textSecondary,
+            labelColor: () => theme.colors.text.secondary,
             propsForBackgroundLines: {
               strokeDasharray: '',
-              stroke: colors.tileEmpty,
+              stroke: theme.colors.tile.empty,
             },
             propsForLabels: {
               fontSize: 12,

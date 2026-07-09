@@ -56,7 +56,4 @@ export const darkColors = {
   headerText: '#e8e8e8',
 } as const;
 
-/** @deprecated Use useColors() hook instead during migration. Will be removed after all consumers migrate. */
-export const colors = lightColors;
-
 export type AppColor = keyof typeof lightColors;

@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../services/sound';
 import type { ScreenProps } from '../types';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { useGameStore, useDictionaryStore, useStatsStore } from '../stores';
 import { useSettingsStore } from '../stores/settingsStore';
 import {
@@ -43,22 +43,22 @@ function randomLength(): number {
 }
 
 export function GameScreen({ route }: Props) {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
         },
         loadingContainer: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
         },
         header: {
-          backgroundColor: colors.headerBackground,
+          backgroundColor: theme.colors.surface.header,
           paddingLeft: 20,
           paddingRight: 20,
         },
@@ -75,7 +75,7 @@ export function GameScreen({ route }: Props) {
         },
         headerTitle: {
           fontSize: 17,
-          color: colors.headerText,
+          color: theme.colors.text.primary,
           fontWeight: '600',
         },
 
@@ -92,7 +92,7 @@ export function GameScreen({ route }: Props) {
           marginBottom: 6,
           left: 0,
           right: 0,
-          backgroundColor: colors.danger,
+          backgroundColor: theme.colors.status.danger,
           borderRadius: 8,
           paddingVertical: 8,
           paddingHorizontal: 16,
@@ -100,12 +100,12 @@ export function GameScreen({ route }: Props) {
           zIndex: 10,
         },
         errorText: {
-          color: colors.textInverse,
+          color: theme.colors.text.inverse,
           fontSize: 14,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -350,7 +350,7 @@ export function GameScreen({ route }: Props) {
   if (initializing || !session) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <ActivityIndicator size="large" color={theme.colors.status.accent} />
       </View>
     );
   }
@@ -363,7 +363,7 @@ export function GameScreen({ route }: Props) {
       <View style={[styles.header, { paddingTop: insets.top, marginHorizontal: -20 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <MaterialIcons name="arrow-back-ios" size={22} color={colors.headerText} />
+            <MaterialIcons name="arrow-back-ios" size={22} color={theme.colors.icon.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {modeLabel} · {session.letterCount} Letters

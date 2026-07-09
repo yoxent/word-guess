@@ -7,7 +7,7 @@ import { useGameStore, useSettingsStore } from '../../stores';
 import * as sound from '../../services/sound';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { useAdStore } from '../../stores/adStore';
 import { config } from '../../constants/config';
 import { Button } from '../../components/ui';
@@ -31,7 +31,7 @@ const EMOJI_MAP: Record<string, string> = {
 };
 
 export function ResultModal() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -42,7 +42,7 @@ export function ResultModal() {
           alignItems: 'center',
         },
         card: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 16,
           padding: 24,
           alignItems: 'center',
@@ -63,13 +63,13 @@ export function ResultModal() {
           fontSize: 32,
           fontWeight: '800',
           textTransform: 'uppercase',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
           letterSpacing: 2,
         },
         definition: {
           fontSize: 14,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           fontStyle: 'italic',
           textAlign: 'center',
           marginTop: 4,
@@ -94,7 +94,7 @@ export function ResultModal() {
           // Explicit color for the Text container. The emoji glyphs themselves
           // carry color (🟩🟨⬛), so this primarily guards against a stray default
           // (e.g. if the system font were ever used instead of an emoji font).
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
         },
         buttonContainer: {
           marginTop: 8,
@@ -105,7 +105,7 @@ export function ResultModal() {
           width: '100%',
         },
         watchAdButton: {
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 24,
@@ -114,12 +114,12 @@ export function ResultModal() {
           alignItems: 'center',
         },
         watchAdText: {
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontSize: 16,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const navigation = useNavigation<Nav>();
@@ -271,7 +271,7 @@ export function ResultModal() {
             <Text
               style={[
                 styles.title,
-                { color: isWin ? colors.success : colors.danger },
+                { color: isWin ? theme.colors.status.success : theme.colors.status.danger },
               ]}
             >
               {isWin ? 'You Won!' : 'Game Over'}
@@ -288,7 +288,7 @@ export function ResultModal() {
             <Text
               style={[
                 styles.streak,
-                { color: isWin ? colors.accent : colors.textSecondary },
+                { color: isWin ? theme.colors.status.accent : theme.colors.text.secondary },
               ]}
             >
               {isWin ? `Streak: ${endlessStreak}` : `Final Streak: ${endlessStreak}`}

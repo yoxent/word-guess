@@ -5,9 +5,9 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
 interface ButtonProps {
   title: string;
@@ -24,7 +24,7 @@ export function Button({
   disabled = false,
   style,
 }: ButtonProps) {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -41,25 +41,31 @@ export function Button({
           fontWeight: '700',
         },
       }),
-    [colors],
+    [],
   );
 
-  const bgColor = variant === 'secondary'
-    ? colors.surface
-    : variant === 'danger'
-      ? colors.danger
-      : colors.accent;
-  const textColor = variant === 'secondary' ? colors.accent : colors.textInverse;
-  const borderColor = variant === 'secondary' ? colors.accent : 'transparent';
+  // Pick the semantic button slot for the active variant. Every variant
+  // resolves to a uniform {bg, fg, border} shape so the JSX below is
+  // identical regardless of variant.
+  const slot: { bg: string; fg: string; border: string } =
+    variant === 'secondary'
+      ? { ...theme.colors.button.secondary }
+      : variant === 'danger'
+        ? { ...theme.colors.button.danger, border: 'transparent' }
+        : variant === 'ghost'
+          ? { bg: 'transparent', fg: theme.colors.button.ghost.fg, border: 'transparent' }
+          : { ...theme.colors.button.primary, border: 'transparent' };
+
+  const hasBorder = variant === 'secondary' || variant === 'ghost';
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
         {
-          backgroundColor: bgColor,
-          borderColor,
-          borderWidth: variant === 'secondary' ? 1.5 : 0,
+          backgroundColor: slot.bg,
+          borderColor: slot.border ?? 'transparent',
+          borderWidth: hasBorder ? 1.5 : 0,
           opacity: disabled ? 0.5 : 1,
         },
         style,
@@ -68,7 +74,7 @@ export function Button({
       disabled={disabled}
       activeOpacity={0.7}
     >
-      <Text style={[styles.text, { color: textColor }]}>{title}</Text>
+      <Text style={[styles.text, { color: slot.fg }]}>{title}</Text>
     </TouchableOpacity>
   );
 }

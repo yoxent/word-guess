@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
@@ -19,7 +19,7 @@ function isActionKey(key: string): boolean {
 }
 
 function KeyboardComponent() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -53,18 +53,18 @@ function KeyboardComponent() {
           textTransform: 'uppercase',
         },
       }),
-    [colors],
+    [],
   );
 
   // Build feedback → color map from active theme
   const keyColorMap = useMemo<Record<string, string>>(
     () => ({
-      correct: colors.keyCorrect,
-      present: colors.keyPresent,
-      absent: colors.keyAbsent,
-      unused: colors.keyUnused,
+      correct: theme.colors.key.correct,
+      present: theme.colors.key.present,
+      absent: theme.colors.key.absent,
+      unused: theme.colors.key.unused,
     }),
-    [colors],
+    [theme],
   );
 
   const session = useGameStore((s) => s.session);
@@ -110,11 +110,11 @@ function KeyboardComponent() {
 
   const getKeyBackground = (key: string): string => {
     if (isActionKey(key)) {
-      return colors.keySpecial;
+      return theme.colors.key.special;
     }
     const feedback = session?.keyColors?.[key];
     const status: TileFeedback | 'unused' = feedback ?? 'unused';
-    return keyColorMap[status] || colors.keyUnused;
+    return keyColorMap[status] || theme.colors.key.unused;
   };
 
   const isKeyDisabled = (key: string): boolean => {
@@ -142,16 +142,16 @@ function KeyboardComponent() {
 
   const getKeyTextColor = (key: string): string => {
     if (isActionKey(key)) {
-      return colors.textInverse;
+      return theme.colors.key.actionText;
     }
     const feedback = session?.keyColors?.[key];
     // Unused keys get dark text; used keys get inverse white text
     if (!feedback) {
-      return colors.keyText;
+      return theme.colors.key.text;
     }
     // Present keys use dark text for contrast (D-180)
-    if (feedback === 'present') return '#1a1a2e';
-    return colors.textInverse;
+    if (feedback === 'present') return theme.colors.text.onPresent;
+    return theme.colors.text.inverse;
   };
 
   return (

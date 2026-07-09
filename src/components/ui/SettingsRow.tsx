@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { setSoundEnabled } from '../../services';
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -55,8 +55,8 @@ export function SettingsRow({
 }
 
 function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   const value = useSettingsStore((s) => s[config.storeKey]);
   const toggleAction = useSettingsStore((s) => {
     switch (config.storeKey) {
@@ -82,16 +82,16 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
       <Switch
         value={!!value}
         onValueChange={toggleAction}
-        trackColor={{ false: colors.tileEmpty, true: colors.accent }}
-        thumbColor={colors.textInverse}
+        trackColor={{ false: theme.colors.toggle.trackInactive, true: theme.colors.toggle.trackActive }}
+        thumbColor={theme.colors.toggle.thumb}
       />
     </View>
   );
 }
 
 function PlaceholderRow({ config }: { config: SettingsRowConfig & { type: 'placeholder' } }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{config.label}</Text>
@@ -101,8 +101,8 @@ function PlaceholderRow({ config }: { config: SettingsRowConfig & { type: 'place
 }
 
 function InfoRow({ config }: { config: SettingsRowConfig & { type: 'info' } }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{config.label}</Text>
@@ -112,8 +112,8 @@ function InfoRow({ config }: { config: SettingsRowConfig & { type: 'info' } }) {
 }
 
 function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type: 'restore' }; onRestore?: () => Promise<void> }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   return (
     <TouchableOpacity style={styles.row} onPress={onRestore} activeOpacity={0.7}>
       <Text style={styles.label}>{config.label}</Text>
@@ -122,8 +122,8 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
 }
 
 function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { type: 'purchase' }; onPurchase?: (productId: string) => Promise<void> }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   return (
     <TouchableOpacity style={styles.row} onPress={() => onPurchase?.(config.productId)} activeOpacity={0.7}>
       <View style={{ flex: 1 }}>
@@ -148,14 +148,14 @@ function SignInButtonRow({
   isLoggedIn?: boolean;
   playerName?: string | null;
 }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   if (isLoggedIn) {
     // Signed in: show player name + sign out button
     return (
       <View style={styles.row}>
         <View style={styles.signInInfo}>
-          <MaterialIcons name="person" size={20} color={colors.accent} />
+          <MaterialIcons name="person" size={20} color={theme.colors.icon.accent} />
           <Text style={styles.playerNameLabel}>{playerName ?? 'Player'}</Text>
         </View>
         <TouchableOpacity onPress={onSignOut} activeOpacity={0.7}>
@@ -169,17 +169,17 @@ function SignInButtonRow({
   return (
     <TouchableOpacity style={styles.row} onPress={onSignIn} activeOpacity={0.7}>
       <View style={styles.signInInfo}>
-        <MaterialIcons name="login" size={20} color={colors.accent} />
+        <MaterialIcons name="login" size={20} color={theme.colors.icon.accent} />
         <Text style={styles.signInLabel}>Sign in with Google</Text>
       </View>
-      <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
+      <MaterialIcons name="chevron-right" size={24} color={theme.colors.icon.muted} />
     </TouchableOpacity>
   );
 }
 
 function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { type: 'themeSelector' } }) {
-  const colors = useColors();
-  const styles = useStyles(colors);
+  const theme = useTheme();
+  const styles = useStyles(theme);
   const themeMode = useSettingsStore((s) => s.themeMode);
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
 
@@ -215,7 +215,8 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
 }
 
 // Shared color-aware styles, rebuilt whenever theme changes.
-function useStyles(colors: ReturnType<typeof useColors>) {
+function useStyles(theme: ReturnType<typeof useTheme>) {
+  const c = theme.colors;
   return useMemo(
     () =>
       StyleSheet.create({
@@ -227,25 +228,25 @@ function useStyles(colors: ReturnType<typeof useColors>) {
         },
         label: {
           ...typography.settingsRow,
-          color: colors.textPrimary,
+          color: c.text.primary,
           flex: 1,
         },
         comingSoon: {
           ...typography.statLabel,
-          color: colors.textSecondary,
+          color: c.text.secondary,
         },
         value: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: c.text.secondary,
         },
         purchaseDescription: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: c.text.secondary,
           marginTop: 2,
         },
         purchasePrice: {
           ...typography.settingsRow,
-          color: colors.accent,
+          color: c.status.accent,
           fontWeight: '600',
         },
         signInInfo: {
@@ -255,22 +256,22 @@ function useStyles(colors: ReturnType<typeof useColors>) {
         },
         signInLabel: {
           ...typography.settingsRow,
-          color: colors.accent,
+          color: c.status.accent,
           fontWeight: '500',
         },
         playerNameLabel: {
           ...typography.settingsRow,
-          color: colors.textPrimary,
+          color: c.text.primary,
           flex: 1,
         },
         signOutText: {
           ...typography.settingsRow,
-          color: colors.danger,
+          color: c.status.danger,
           fontWeight: '500',
         },
         segmentedControl: {
           flexDirection: 'row',
-          backgroundColor: colors.tileEmpty,
+          backgroundColor: c.tile.empty,
           borderRadius: 8,
           padding: 2,
           marginLeft: 12,
@@ -282,11 +283,11 @@ function useStyles(colors: ReturnType<typeof useColors>) {
           alignItems: 'center',
         },
         segmentActive: {
-          backgroundColor: colors.surface,
+          backgroundColor: c.surface.card,
           // Subtle border in dark theme so the active segment is visually distinct
           // from the surrounding surface (which has the same color as the card behind it).
           borderWidth: 0.5,
-          borderColor: colors.tileBorder,
+          borderColor: c.tile.border,
         },
         segmentText: {
           // Use textPrimary (not textSecondary) for the inactive label so it stays
@@ -294,21 +295,15 @@ function useStyles(colors: ReturnType<typeof useColors>) {
           // in light theme (fails WCAG AA).
           fontSize: 13,
           fontWeight: '500',
-          color: colors.textPrimary,
+          color: c.text.primary,
           opacity: 0.65,
         },
         segmentTextActive: {
-          color: colors.textPrimary,
+          color: c.text.primary,
           fontWeight: '600',
           opacity: 1,
         },
       }),
-    [colors],
+    [theme],
   );
 }
-
-// All row types now read from useStyles(colors) (theme-aware). The previous
-// module-level `styles` alias was removed in 2026-07-09 — it was the root
-// cause of the 'Sound Effects' label being unreadable in dark theme (no
-// color was set, so the text inherited the OS default = black on Android,
-// blending into the dark surface card).

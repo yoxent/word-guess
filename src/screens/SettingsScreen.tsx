@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
@@ -9,13 +9,13 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 
 export function SettingsScreen() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
         },
         scrollContent: {
           padding: 16,
@@ -25,12 +25,12 @@ export function SettingsScreen() {
         },
         sectionTitle: {
           ...typography.cardTitle,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
           paddingHorizontal: 4,
         },
         sectionCard: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 12,
           padding: 24,
           shadowColor: '#000',
@@ -41,7 +41,7 @@ export function SettingsScreen() {
         },
         divider: {
           height: 1,
-          backgroundColor: colors.tileEmpty,
+          backgroundColor: theme.colors.tile.empty,
           marginVertical: 4,
         },
         toast: {
@@ -55,11 +55,11 @@ export function SettingsScreen() {
         },
         toastText: {
           ...typography.body,
-          color: colors.textInverse,
+          color: theme.colors.text.inverse,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const isPro = useSettingsStore(s => s.isPro);
@@ -179,7 +179,7 @@ export function SettingsScreen() {
         ))}
       </ScrollView>
       {toast && (
-        <View style={[styles.toast, { backgroundColor: toast.isSuccess ? colors.tileCorrect : colors.danger }]}>
+        <View style={[styles.toast, { backgroundColor: toast.isSuccess ? theme.colors.tile.correct : theme.colors.status.danger }]}>
           <Text style={styles.toastText}>{toast.message}</Text>
         </View>
       )}

@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 
 export function LoadingScreen() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 24,
@@ -17,26 +17,26 @@ export function LoadingScreen() {
         title: {
           fontSize: 36,
           fontWeight: '800',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
         },
         subtitle: {
           fontSize: 16,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           marginBottom: 24,
         },
         spinner: {
           transform: [{ scale: 1.5 }],
         },
       }),
-    [colors],
+    [theme],
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Word Guess</Text>
       <Text style={styles.subtitle}>Loading dictionary...</Text>
-      <ActivityIndicator size="large" color={colors.accent} style={styles.spinner} />
+      <ActivityIndicator size="large" color={theme.colors.status.accent} style={styles.spinner} />
     </View>
   );
 }

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
 
 export function GameBoard() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -22,7 +22,7 @@ export function GameBoard() {
         },
         loadingText: {
           fontSize: 16,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
         },
         attemptsContainer: {
           alignItems: 'center',
@@ -30,7 +30,7 @@ export function GameBoard() {
         },
         attemptsText: {
           fontSize: 14,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           fontWeight: '500',
         },
         grid: {
@@ -38,7 +38,7 @@ export function GameBoard() {
           alignItems: 'center',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const session = useGameStore((s) => s.session);

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { useAuthStore } from '../stores/authStore';
 import { getLeaderboardData } from '../services/leaderboardService';
@@ -35,7 +35,7 @@ const EMPTY_MESSAGES: Record<LeaderboardType, string> = {
   endless_total: 'No endless entries yet. Play Endless mode to guess words.',
 };
 
-// ── Top 3 medal colors ──
+// ── Top 3 medal colors (intentionally NOT theme-aware — gold/silver/bronze are universal) ──
 
 const MEDAL_COLORS: Record<number, string> = {
   1: '#FFD700', // gold
@@ -46,21 +46,21 @@ const MEDAL_COLORS: Record<number, string> = {
 // ── Component ──
 
 export function LeaderboardScreen() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
         },
 
         // ── Segment control ──
         segmentContainer: {
           flexDirection: 'row',
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderBottomWidth: 1,
-          borderBottomColor: colors.tileEmpty,
+          borderBottomColor: theme.colors.tile.empty,
         },
         segmentTab: {
           flex: 1,
@@ -70,11 +70,11 @@ export function LeaderboardScreen() {
         },
         segmentText: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           fontWeight: '500',
         },
         activeSegmentText: {
-          color: colors.accent,
+          color: theme.colors.status.accent,
           fontWeight: '700',
         },
         activeIndicator: {
@@ -82,7 +82,7 @@ export function LeaderboardScreen() {
           bottom: 0,
           height: 3,
           width: '60%',
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.status.accent,
           borderRadius: 1.5,
         },
 
@@ -95,13 +95,13 @@ export function LeaderboardScreen() {
         },
         authTitle: {
           ...typography.cardTitle,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginTop: 16,
           marginBottom: 8,
         },
         authSubtitle: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
           marginBottom: 24,
           lineHeight: 20,
@@ -110,7 +110,7 @@ export function LeaderboardScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 24,
@@ -119,7 +119,7 @@ export function LeaderboardScreen() {
         },
         googleSignInText: {
           ...typography.settingsRow,
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontWeight: '600',
         },
 
@@ -140,13 +140,13 @@ export function LeaderboardScreen() {
         },
         emptyTitle: {
           ...typography.cardTitle,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginTop: 12,
           marginBottom: 4,
         },
         emptySubtitle: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
           lineHeight: 20,
         },
@@ -154,20 +154,20 @@ export function LeaderboardScreen() {
         // ── Error ──
         errorTitle: {
           ...typography.body,
-          color: colors.danger,
+          color: theme.colors.status.danger,
           textAlign: 'center',
           marginTop: 12,
           marginBottom: 16,
         },
         retryButton: {
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 10,
           paddingVertical: 10,
           paddingHorizontal: 24,
         },
         retryText: {
           ...typography.settingsRow,
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontWeight: '600',
         },
 
@@ -179,7 +179,7 @@ export function LeaderboardScreen() {
         entryRow: {
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 10,
           paddingVertical: 12,
           paddingHorizontal: 16,
@@ -191,7 +191,7 @@ export function LeaderboardScreen() {
           elevation: 1,
         },
         currentPlayerRow: {
-          backgroundColor: `${colors.accent}1A`, // accent at ~10% opacity
+          backgroundColor: `${theme.colors.status.accent}1A`, // accent at ~10% opacity
         },
         rankContainer: {
           width: 32,
@@ -201,30 +201,30 @@ export function LeaderboardScreen() {
         rankText: {
           ...typography.settingsRow,
           fontWeight: '700',
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           fontSize: 15,
         },
         playerNameText: {
           ...typography.settingsRow,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           flex: 1,
           marginLeft: 8,
         },
         currentPlayerName: {
           fontWeight: '700',
-          color: colors.accent,
+          color: theme.colors.status.accent,
         },
         scoreText: {
           ...typography.settingsRow,
           fontWeight: '700',
-          color: colors.accent,
+          color: theme.colors.status.accent,
           marginLeft: 8,
         },
         currentPlayerScore: {
-          color: colors.accent,
+          color: theme.colors.status.accent,
         },
       }),
-    [colors],
+    [theme],
   );
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -283,7 +283,7 @@ export function LeaderboardScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.authGate}>
-          <MaterialIcons name="emoji-events" size={64} color={colors.textSecondary} />
+          <MaterialIcons name="emoji-events" size={64} color={theme.colors.icon.muted} />
           <Text style={styles.authTitle}>Leaderboards</Text>
           <Text style={styles.authSubtitle}>
             Sign in with Google to see how you rank against other players.
@@ -295,10 +295,10 @@ export function LeaderboardScreen() {
             disabled={isAuthPending}
           >
             {isAuthPending ? (
-              <ActivityIndicator size="small" color={colors.textInverse} />
+              <ActivityIndicator size="small" color={theme.colors.text.inverse} />
             ) : (
               <>
-                <MaterialIcons name="login" size={20} color={colors.textInverse} />
+                <MaterialIcons name="login" size={20} color={theme.colors.icon.inverse} />
                 <Text style={styles.googleSignInText}>Sign in with Google</Text>
               </>
             )}
@@ -335,7 +335,7 @@ export function LeaderboardScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialIcons name="leaderboard" size={48} color={colors.textSecondary} />
+      <MaterialIcons name="leaderboard" size={48} color={theme.colors.icon.muted} />
       <Text style={styles.emptyTitle}>No entries yet</Text>
       <Text style={styles.emptySubtitle}>{EMPTY_MESSAGES[activeTab]}</Text>
     </View>
@@ -343,7 +343,7 @@ export function LeaderboardScreen() {
 
   const renderErrorState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialIcons name="error-outline" size={48} color={colors.danger} />
+      <MaterialIcons name="error-outline" size={48} color={theme.colors.status.danger} />
       <Text style={styles.errorTitle}>{error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={loadLeaderboard} activeOpacity={0.7}>
         <Text style={styles.retryText}>Retry</Text>
@@ -353,7 +353,7 @@ export function LeaderboardScreen() {
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.accent} />
+      <ActivityIndicator size="large" color={theme.colors.status.accent} />
     </View>
   );
 
@@ -428,8 +428,8 @@ export function LeaderboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
+            tintColor={theme.colors.status.accent}
+            colors={[theme.colors.status.accent]}
           />
         }
         showsVerticalScrollIndicator={false}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import type { GameMode } from '../../types';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 
 const LENGTHS = [5, 6, 7, 8, 9, 10];
 
@@ -31,7 +31,7 @@ export function LengthPickerModal({
   onClose,
   completedLengths,
 }: LengthPickerModalProps) {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -42,7 +42,7 @@ export function LengthPickerModal({
           alignItems: 'center',
         },
         card: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 20,
           padding: 24,
           alignItems: 'center',
@@ -52,13 +52,13 @@ export function LengthPickerModal({
         title: {
           fontSize: 20,
           fontWeight: '700',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 4,
           textAlign: 'center',
         },
         subtitle: {
           fontSize: 14,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           marginBottom: 8,
         },
         grid: {
@@ -73,15 +73,15 @@ export function LengthPickerModal({
           width: 130,
           height: 85,
           borderRadius: 12,
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderWidth: 1,
-          borderColor: colors.tileBorder,
+          borderColor: theme.colors.tile.border,
           justifyContent: 'center',
           alignItems: 'center',
         },
         lengthButtonCompleted: {
           backgroundColor: 'rgba(120,124,126,0.3)',
-          borderColor: colors.tileAbsent,
+          borderColor: theme.colors.tile.absent,
         },
         lengthButtonContent: {
           alignItems: 'center',
@@ -90,21 +90,21 @@ export function LengthPickerModal({
         lengthNumber: {
           fontSize: 28,
           fontWeight: '700',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
         },
         lengthNumberCompleted: {
           // Keep high contrast on the translucent overlay — tileAbsent failed
           // WCAG AA on rgba(120,124,126,0.3) in light theme.
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           opacity: 0.5,
         },
         lengthSubtitle: {
           fontSize: 12,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           marginTop: 2,
         },
         lengthSubtitleCompleted: {
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           opacity: 0.5,
         },
         checkmarkContainer: {
@@ -114,7 +114,7 @@ export function LengthPickerModal({
         },
         checkmark: {
           fontSize: 20,
-          color: colors.success,
+          color: theme.colors.status.success,
           fontWeight: '700',
         },
         cancelButton: {
@@ -123,11 +123,11 @@ export function LengthPickerModal({
         },
         cancelText: {
           fontSize: 16,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const isDaily = mode === 'daily';
