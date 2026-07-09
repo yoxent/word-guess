@@ -16,7 +16,8 @@
 - [x] **Phase 2: Core Gameplay** — Full game loop: tile feedback, keyboard, all modes, animations, sounds, Hard Mode, daily seed
 - [x] **Phase 3: Stats & Settings** — Persistent stats, settings screen, share results, local persistence
 - [x] **Phase 4: Monetization** — Interstitial ads, rewarded video, Pro IAP, restore purchases
-- [x] **Phase 5: Cloud & Social** — Google Sign-In, cloud sync, daily/endless leaderboards (completed 2026-07-08)
+- [x] **Phase 5: Cloud & Social** — Google Sign-In, cloud sync, daily/endless leaderboards
+ (completed 2026-07-08)
 - [ ] **Phase 6: Pre-Launch & Polish** — Accessibility, Play Store compliance, performance, production build
 
 ---
@@ -158,7 +159,15 @@
 7. App works fully on first launch with no internet connection — daily word generated locally, no crash on missing network
 8. Play Store compliance complete — ads declared in Play Console, privacy policy URL linked (covers AdMob data collection), content rating completed
 
-**Plans:** TBD
+**Plans:** 5 plans (06-01, 06-02, 06-03, 06-04, 06-05)
+**Plan list:**
+
+1. **06-01** (Wave 1) — Foundation: expo-av install, AppSettings type + settingsStore extensions (colorBlindMode, reduceMotion, themeMode), config/ui.ts extensions (themeSelector type + Accessibility + Appearance sections), animation constants (HOME_STAGGER_DELAY/DURATION)
+2. **06-02** (Wave 1) — Architecture: colors.ts restructured to lightColors/darkColors, useColors() hook, PixelRatio font scaling in typography.ts, sound.ts wired with expo-av + init in App.tsx
+3. **06-03** (Wave 2) — Core Accessibility + Sound + Dead Code: Tile texture overlays + TalkBack + present contrast fix + reduceMotion, Keyboard TalkBack + present key fix + playKeyPress, Confetti fix + reduceMotion gate, ResultModal playWin/playLoss, GameScreen playReveal, delete ResultScreen.tsx + remove route
+4. **06-04** (Wave 2) — UI Polish: Home stagger entrance + HowToPlay modal, SettingsRow ThemeSelectorRow + toggle cases, centralized BackHandler in Navigation.tsx, NavigationContainer theme injection, StatusBar theme switching, remove 500ms setTimeout
+5. **06-05** (Wave 3) — Theme Migration + Compliance: colors-to-useColors migration across ~16 files, docs/privacy.md, performance markers (__DEV__-guarded), EAS build checklist + offline verification docs
+
 **UI hint:** yes
 
 ---
@@ -171,8 +180,8 @@
 | Phase 2: Core Gameplay | 4/4 | ✅ Complete | 2026-07-05 |
 | Phase 3: Stats & Settings | 3/3 | ✅ Complete | 2026-07-06 |
 | Phase 4: Monetization | 3/3 | ✅ Complete | 2026-07-06 |
-| Phase 5: Cloud & Social | 0/3 | 🔵 Planned | — |
-| Phase 6: Pre-Launch & Polish | 0/0 | ❄️ Not started | — |
+| Phase 5: Cloud & Social | 3/3 | ✅ Complete | 2026-07-08 |
+| Phase 6: Pre-Launch & Polish | 0/5 | 📋 Planned | 2026-07-09 |
 
 ---
 
