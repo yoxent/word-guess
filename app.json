@@ -27,6 +27,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-sqlite",
       "react-native-iap",
       "@react-native-firebase/app",
