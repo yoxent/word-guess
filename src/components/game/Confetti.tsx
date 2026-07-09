@@ -8,6 +8,7 @@ import Animated, {
   interpolate,
   Easing,
 } from 'react-native-reanimated';
+import { useSettingsStore } from '../../stores';
 import {
   CONFETTI_PARTICLE_COUNT,
   CONFETTI_DURATION,
@@ -19,7 +20,7 @@ const PARTICLE_COLORS = [
   '#c9b458',
   '#4a9eff',
   '#e74c3c',
-  '#ffffff',
+  '#f1c40f',
   '#f39c12',
   '#9b59b6',
 ];
@@ -99,6 +100,8 @@ function Particle({ index }: ParticleProps) {
 }
 
 export function Confetti() {
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
+  if (reduceMotion) return null;
   return (
     <View style={styles.container} pointerEvents="none">
       {Array.from({ length: CONFETTI_PARTICLE_COUNT }, (_, i) => (

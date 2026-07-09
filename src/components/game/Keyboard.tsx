@@ -4,6 +4,7 @@ import { useGameStore } from '../../stores';
 import { colors } from '../../constants/colors';
 import { layout } from '../../constants/layout';
 import * as Haptics from 'expo-haptics';
+import * as sound from '../../services/sound';
 import type { TileFeedback } from '../../types';
 
 const ROWS = [
@@ -39,6 +40,9 @@ function KeyboardComponent() {
     (key: string) => {
       // Light haptic on any key press (D-18)
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+      // Play key press sound (D-181)
+      sound.playKeyPress();
 
       if (!isPlaying) return;
 
@@ -100,6 +104,8 @@ function KeyboardComponent() {
     if (!feedback) {
       return colors.keyText;
     }
+    // Present keys use dark text for contrast (D-180)
+    if (feedback === 'present') return '#1a1a2e';
     return colors.textInverse;
   };
 
@@ -125,6 +131,9 @@ function KeyboardComponent() {
                 onPress={() => handlePress(key)}
                 disabled={disabled}
                 activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="keyboardkey"
+                accessibilityLabel={key === 'ENTER' ? 'Enter' : key === 'BACKSPACE' ? 'Backspace' : key}
               >
                 <Text
                   style={[

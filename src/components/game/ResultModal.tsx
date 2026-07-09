@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
 import { useGameStore, useSettingsStore } from '../../stores';
+import * as sound from '../../services/sound';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 
 import { colors } from '../../constants/colors';
@@ -71,6 +72,13 @@ export function ResultModal() {
 
         // NEW: Track total endless words guessed (D-145)
         incrementEndlessTotalWords();
+      }
+
+      // Sound effects on game result (D-181-D-183)
+      if (session.status === 'won') {
+        sound.playWin();
+      } else if (session.status === 'lost') {
+        sound.playLoss();
       }
 
       // Clear active game state (D-58)
