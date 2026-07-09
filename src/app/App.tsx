@@ -21,12 +21,13 @@ export default function App() {
     themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;
 
   useEffect(() => {
-    // D-170 / LAUNCH-07: dictionary-load performance marker
-    // All dictionary require() calls happen synchronously at module load (dictionaryStore).
-    // This effect runs once after module init, so it measures total dictionary init cost.
+    // D-170 / LAUNCH-07: startup-init performance marker
+    // Measures non-blocking startup init: Remote Config ad unit fetch + sound system init.
+    // Note: dictionary require() calls happen synchronously at module load
+    // (dictionaryStore.ts), BEFORE this effect runs — they cannot be measured here.
     // Guarded by __DEV__ so it is stripped from production AAB builds.
     if (__DEV__) {
-      console.time('dictionary-load');
+      console.time('startup-init');
     }
 
     // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
@@ -38,7 +39,7 @@ export default function App() {
     sound.setEnabled(useSettingsStore.getState().soundEnabled);
 
     if (__DEV__) {
-      console.timeEnd('dictionary-load');
+      console.timeEnd('startup-init');
     }
 
     // D-175: No artificial delay — Home screen stagger entrance handles visual transition
