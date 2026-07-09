@@ -22,7 +22,18 @@ export { evaluateGuess, validateHardMode, isValidGuess } from './wordLogic';
 
 export { getDailyDateString, getDailyWordIndex } from './dailySeed';
 
-export { init as initSound, setEnabled as setSoundEnabled, playKeyPress, playReveal, playWin, playLoss } from './sound';
+export {
+  init as initSound,
+  setBgmVolume,
+  setSfxVolume,
+  pauseBgm,
+  resumeBgm,
+  playKeyPress,
+  playReveal,
+  playWin,
+  playLoss,
+} from './sound';
+export type { VolumeLevel } from './sound';
 
 export {
   updatePlayerStats,

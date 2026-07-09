@@ -1,4 +1,5 @@
 import type { AppSettings } from '../types/settings';
+import type { VolumeLevel } from '../stores/settingsStore';
 
 // ── Stats Screen ──
 
@@ -23,8 +24,17 @@ export type SettingsRowConfig =
   | { type: 'info'; id: string; label: string; value: string }
   | { type: 'restore'; id: string; label: string; description?: string }
   | { type: 'purchase'; id: string; label: string; description?: string; productId: string }
-  | { type: 'signInButton'; id: string }  // NEW — Phase 5
-  | { type: 'themeSelector'; id: string; label: string };  // NEW — Phase 6 (06-01)
+  | { type: 'signInButton'; id: string }  // Phase 5
+  | { type: 'themeSelector'; id: string; label: string }  // Phase 6 (06-01)
+  // Phase 6 (07-09): 3-position volume slider for BGM and SFX.
+  | { type: 'volumeSelector'; id: string; label: string; description?: string; storeKey: 'bgmVolume' | 'sfxVolume' };
+
+/** The three options for a volumeSelector. Order = array index. */
+export const VOLUME_OPTIONS: { value: VolumeLevel; label: string }[] = [
+  { value: 0, label: 'Off' },
+  { value: 0.75, label: 'Default' },
+  { value: 1, label: 'Max' },
+];
 
 // ── Config Arrays ──
 
@@ -39,7 +49,10 @@ export const settingsConfig: SettingsSectionConfig[] = [
     id: 'audioHaptics',
     title: 'Audio & Haptics',
     rows: [
-      { type: 'toggle', id: 'sound', label: 'Sound Effects', storeKey: 'soundEnabled' },
+      // 2026-07-09: replaced single soundEnabled toggle with two volume
+      // sliders (bgm + sfx). Haptic stays as a binary toggle.
+      { type: 'volumeSelector', id: 'bgm', label: 'Background Music', storeKey: 'bgmVolume' },
+      { type: 'volumeSelector', id: 'sfx', label: 'Sound Effects', storeKey: 'sfxVolume' },
       { type: 'toggle', id: 'haptic', label: 'Haptic Feedback', storeKey: 'hapticEnabled' },
     ],
   },
@@ -75,3 +88,6 @@ export const settingsConfig: SettingsSectionConfig[] = [
 // Phase 4 (04-02): Added restore, purchase row types and Account section rows
 // Phase 5: Swap placeholder → signInButton row in account section
 // Phase 6 (06-01): Added Accessibility section (colorBlind toggle, reduceMotion toggle) + Appearance section (themeSelector)
+// 2026-07-09: Added volumeSelector row type. Replaced soundEnabled toggle
+// with bgmVolume + sfxVolume sliders. Persisted state version bumped 1→2
+// with a migrate function to convert the old boolean to two numeric volumes.

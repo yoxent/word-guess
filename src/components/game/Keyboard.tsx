@@ -86,7 +86,7 @@ function KeyboardComponent() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       }
 
-      // Play key press sound (D-181) — gated by sound service setEnabled()
+      // Play key press sound (D-181) — gated by sfxVolume in the sound service
       sound.playKeyPress();
 
       if (!isPlaying) return;

@@ -20,6 +20,31 @@ export default function App() {
   const activeTheme: 'light' | 'dark' =
     themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;
 
+  // Subscribe to volume changes — when user adjusts a slider in Settings,
+  // apply the new volume to the audio players immediately. This is the
+  // toggle-side-effects pattern (see brain/wiki/toggle-side-effects.md)
+  // generalized to numeric values.
+  const bgmVolume = useSettingsStore((s) => s.bgmVolume);
+  const sfxVolume = useSettingsStore((s) => s.sfxVolume);
+  useEffect(() => {
+    sound.setBgmVolume(bgmVolume);
+  }, [bgmVolume]);
+  useEffect(() => {
+    sound.setSfxVolume(sfxVolume);
+  }, [sfxVolume]);
+
+  // App lifecycle: pause BGM on background, resume on foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'background' || state === 'inactive') {
+        sound.pauseBgm();
+      } else if (state === 'active') {
+        sound.resumeBgm();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     // D-170 / LAUNCH-07: startup-init performance marker
     // Measures non-blocking startup init: Remote Config ad unit fetch + sound system init.
@@ -33,10 +58,9 @@ export default function App() {
     // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
     fetchAdUnitIds();
 
-    // Initialize sound system — fire-and-forget, does not block startup
+    // Initialize sound system (loads BGM + SFX players) — fire-and-forget
     sound.init();
-    // Sync sound enabled state on init
-    sound.setEnabled(useSettingsStore.getState().soundEnabled);
+    // BGM start is handled by sound.init() (plays if volume > 0)
 
     if (__DEV__) {
       console.timeEnd('startup-init');

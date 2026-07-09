@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
-import { setSoundEnabled } from '../../services';
+import React, { useMemo } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
-import { useSettingsStore } from '../../stores/settingsStore';
+import { VOLUME_OPTIONS } from '../../config/ui';
+import { useSettingsStore, type VolumeLevel } from '../../stores/settingsStore';
+import { setBgmVolume, setSfxVolume } from '../../services';
 
 interface SettingsRowProps {
   config: SettingsRowConfig;
@@ -31,6 +32,8 @@ export function SettingsRow({
       return <ToggleRow config={config} />;
     case 'themeSelector':
       return <ThemeSelectorRow config={config} />;
+    case 'volumeSelector':
+      return <VolumeSelectorRow config={config} />;
     case 'placeholder':
       return <PlaceholderRow config={config} />;
     case 'info':
@@ -61,20 +64,12 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
   const toggleAction = useSettingsStore((s) => {
     switch (config.storeKey) {
       case 'hardModeEnabled': return s.toggleHardMode;
-      case 'soundEnabled': return s.toggleSound;
       case 'hapticEnabled': return s.toggleHaptic;
       case 'colorBlindMode': return s.toggleColorBlindMode;
       case 'reduceMotion': return s.toggleReduceMotion;
       default: return () => {};
     }
   });
-
-  // Side effects for toggles that need to apply changes outside the store
-  useEffect(() => {
-    if (config.storeKey === 'soundEnabled') {
-      setSoundEnabled(!!value);
-    }
-  }, [value, config.storeKey]);
 
   return (
     <View style={styles.row}>
@@ -214,6 +209,70 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
   );
 }
 
+/**
+ * 3-position volume slider for BGM and SFX. Each option corresponds to a
+ * discrete numeric value (0 / 0.75 / 1). Changing the value calls the
+ * appropriate sound service function (setBgmVolume / setSfxVolume) so the
+ * audio players update immediately.
+ */
+function VolumeSelectorRow({
+  config,
+}: {
+  config: SettingsRowConfig & { type: 'volumeSelector' };
+}) {
+  const theme = useTheme();
+  const styles = useStyles(theme);
+  const value = useSettingsStore((s) => s[config.storeKey]);
+  const setBgm = useSettingsStore((s) => s.setBgmVolume);
+  const setSfx = useSettingsStore((s) => s.setSfxVolume);
+
+  const handleSelect = (v: VolumeLevel) => {
+    if (config.storeKey === 'bgmVolume') {
+      setBgm(v);
+      setBgmVolume(v);
+    } else {
+      setSfx(v);
+      setSfxVolume(v);
+    }
+  };
+
+  return (
+    <View style={styles.volumeRow}>
+      <View style={styles.volumeHeader}>
+        <Text style={styles.label}>{config.label}</Text>
+        {config.description && (
+          <Text style={styles.volumeDescription}>{config.description}</Text>
+        )}
+      </View>
+      <View style={styles.segmentedControlFullWidth}>
+        {VOLUME_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[
+              styles.segment,
+              styles.segmentFlex,
+              value === opt.value && styles.segmentActive,
+            ]}
+            onPress={() => handleSelect(opt.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: value === opt.value }}
+            accessibilityLabel={`${config.label} ${opt.label}`}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                value === opt.value && styles.segmentTextActive,
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // Shared color-aware styles, rebuilt whenever theme changes.
 function useStyles(theme: ReturnType<typeof useTheme>) {
   const c = theme.colors;
@@ -282,17 +341,19 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           borderRadius: 6,
           alignItems: 'center',
         },
+        segmentFlex: { flex: 1 },
+        segmentedControlFullWidth: {
+          flexDirection: 'row',
+          backgroundColor: c.tile.empty,
+          borderRadius: 8,
+          padding: 2,
+        },
         segmentActive: {
           backgroundColor: c.surface.card,
-          // Subtle border in dark theme so the active segment is visually distinct
-          // from the surrounding surface (which has the same color as the card behind it).
           borderWidth: 0.5,
           borderColor: c.tile.border,
         },
         segmentText: {
-          // Use textPrimary (not textSecondary) for the inactive label so it stays
-          // readable on the tileEmpty track. textSecondary was 1.4:1 on tileEmpty
-          // in light theme (fails WCAG AA).
           fontSize: 13,
           fontWeight: '500',
           color: c.text.primary,
@@ -302,6 +363,19 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           color: c.text.primary,
           fontWeight: '600',
           opacity: 1,
+        },
+        // Volume row gets a stacked layout (label on top, slider below) since
+        // the segmented control is wider than the label.
+        volumeRow: {
+          paddingVertical: 8,
+        },
+        volumeHeader: {
+          marginBottom: 8,
+        },
+        volumeDescription: {
+          ...typography.statLabel,
+          color: c.text.secondary,
+          marginTop: 2,
         },
       }),
     [theme],

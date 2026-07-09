@@ -209,7 +209,7 @@ export function GameScreen({ route }: Props) {
         setIsRevealing(false); // Unblock keyboard input
         flushPendingInputs(); // Process queued inputs (D-66)
 
-        // Play tile reveal sound before haptic (D-181) — gated by sound service setEnabled()
+        // Play tile reveal sound before haptic (D-181) — gated by sfxVolume in the sound service
         sound.playReveal();
 
         // Haptic on reveal completion (D-18) — only if user has haptics enabled
