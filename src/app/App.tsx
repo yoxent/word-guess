@@ -21,6 +21,14 @@ export default function App() {
     themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;
 
   useEffect(() => {
+    // D-170 / LAUNCH-07: dictionary-load performance marker
+    // All dictionary require() calls happen synchronously at module load (dictionaryStore).
+    // This effect runs once after module init, so it measures total dictionary init cost.
+    // Guarded by __DEV__ so it is stripped from production AAB builds.
+    if (__DEV__) {
+      console.time('dictionary-load');
+    }
+
     // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
     fetchAdUnitIds();
 
@@ -28,6 +36,10 @@ export default function App() {
     sound.init();
     // Sync sound enabled state on init
     sound.setEnabled(useSettingsStore.getState().soundEnabled);
+
+    if (__DEV__) {
+      console.timeEnd('dictionary-load');
+    }
 
     // D-175: No artificial delay — Home screen stagger entrance handles visual transition
     setIsReady(true);

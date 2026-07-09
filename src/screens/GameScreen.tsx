@@ -230,6 +230,11 @@ export function GameScreen({ route }: Props) {
             persistEndlessStreak(currentSession.status === 'won' ? streak + 1 : 0);
           }
 
+          // D-170 / LAUNCH-07: stats-write performance marker (SQLite write)
+          // Guarded by __DEV__ so it is stripped from production AAB builds.
+          if (__DEV__) {
+            console.time('stats-write');
+          }
           // Record game result for stats tracking (Phase 3 — STAT-01, D-72)
           useStatsStore.getState().recordGame({
             id: currentSession.id,
@@ -243,6 +248,9 @@ export function GameScreen({ route }: Props) {
             completedAt: currentSession.completedAt || new Date().toISOString(),
             feedback: currentSession.feedback,
           });
+          if (__DEV__) {
+            console.timeEnd('stats-write');
+          }
 
           // Increment interstitial frequency counter
           useAdStore.getState().incrementGamesSinceLastAd();

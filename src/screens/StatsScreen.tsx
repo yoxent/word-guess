@@ -178,7 +178,15 @@ export function StatsScreen() {
   ).current;
 
   useEffect(() => {
+    // D-170 / LAUNCH-07: stats-read performance marker (SQLite read)
+    // Guarded by __DEV__ so it is stripped from production AAB builds.
+    if (__DEV__) {
+      console.time('stats-read');
+    }
     loadStats();
+    if (__DEV__) {
+      console.timeEnd('stats-read');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
