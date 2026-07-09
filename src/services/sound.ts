@@ -1,58 +1,62 @@
-/**
- * No-op sound service stub.
- *
- * Provides the expected API surface so components can wire up sound
- * calls without blocking on implementation. Developer adds real sound
- * files later (~4-6 SFX files under 500KB total via expo-av).
- *
- * @see D-32, D-33, D-34
- */
+import { Audio } from 'expo-av';
 
-/** Whether sound effects are enabled (default: true) */
 let _enabled = true;
+let _sounds: Record<string, Audio.Sound> = {};
 
-/** Whether the sound system has been initialized */
-let _initialized = false;
-
-/**
- * Initializes the sound system.
- *
- * Future: load sound assets via expo-av Audio.Sound.createAsync().
- * Currently just sets initialized flag.
- */
 export async function init(): Promise<void> {
-  _initialized = true;
+  await Audio.setAudioModeAsync({
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: false,
+    shouldDuckAndroid: true,
+  });
+
+  const soundFiles: Record<string, any> = {
+    keypress: require('../../assets/sounds/keypress.wav'),
+    reveal: require('../../assets/sounds/reveal.wav'),
+    win: require('../../assets/sounds/win.wav'),
+    loss: require('../../assets/sounds/lose.wav'),
+  };
+
+  const entries = Object.entries(soundFiles);
+  await Promise.all(
+    entries.map(async ([name, source]) => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(source);
+        _sounds[name] = sound;
+      } catch (e) {
+        console.warn(`[sound] Failed to load ${name}:`, e);
+      }
+    }),
+  );
 }
 
-/**
- * Enables or disables sound effects.
- *
- * @param enabled - true to enable, false to mute
- */
 export function setEnabled(enabled: boolean): void {
   _enabled = enabled;
 }
 
-/** Plays a key-press click sound. No-op when disabled. */
+async function play(name: string): Promise<void> {
+  if (!_enabled) return;
+  const sound = _sounds[name];
+  if (!sound) return;
+  try {
+    await sound.replayAsync();
+  } catch (e) {
+    console.warn(`[sound] Failed to play ${name}:`, e);
+  }
+}
+
 export function playKeyPress(): void {
-  if (!_enabled) return;
-  // Future: await keyPressSound.replayAsync();
+  play('keypress');
 }
 
-/** Plays the tile reveal animation sound. No-op when disabled. */
 export function playReveal(): void {
-  if (!_enabled) return;
-  // Future: await revealSound.replayAsync();
+  play('reveal');
 }
 
-/** Plays the win celebration sound. No-op when disabled. */
 export function playWin(): void {
-  if (!_enabled) return;
-  // Future: await winSound.replayAsync();
+  play('win');
 }
 
-/** Plays the loss/game-over sound. No-op when disabled. */
 export function playLoss(): void {
-  if (!_enabled) return;
-  // Future: await lossSound.replayAsync();
+  play('loss');
 }

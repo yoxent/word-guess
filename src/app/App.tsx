@@ -7,8 +7,10 @@ import { LoadingScreen } from '../screens/LoadingScreen';
 import { fetchAdUnitIds } from '../services/remoteConfig';
 import { configureGoogleSignIn } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
+import * as sound from '../services/sound';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -16,6 +18,11 @@ export default function App() {
   useEffect(() => {
     // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
     fetchAdUnitIds();
+
+    // Initialize sound system — fire-and-forget, does not block startup
+    sound.init();
+    // Sync sound enabled state on init
+    sound.setEnabled(useSettingsStore.getState().soundEnabled);
 
     // Brief delay ensures dictionary JSON is fully parsed and
     // provides a smooth splash-to-app transition
