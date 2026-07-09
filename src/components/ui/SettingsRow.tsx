@@ -28,6 +28,8 @@ export function SettingsRow({
   switch (config.type) {
     case 'toggle':
       return <ToggleRow config={config} />;
+    case 'themeSelector':
+      return <ThemeSelectorRow config={config} />;
     case 'placeholder':
       return <PlaceholderRow config={config} />;
     case 'info':
@@ -58,6 +60,8 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
       case 'hardModeEnabled': return s.toggleHardMode;
       case 'soundEnabled': return s.toggleSound;
       case 'hapticEnabled': return s.toggleHaptic;
+      case 'colorBlindMode': return s.toggleColorBlindMode;
+      case 'reduceMotion': return s.toggleReduceMotion;
       default: return () => {};
     }
   });
@@ -153,6 +157,41 @@ function SignInButtonRow({
   );
 }
 
+function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { type: 'themeSelector' } }) {
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const setThemeMode = useSettingsStore((s) => s.setThemeMode);
+
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>Theme</Text>
+      <View style={styles.segmentedControl}>
+        {(['light', 'dark', 'system'] as const).map((mode) => (
+          <TouchableOpacity
+            key={mode}
+            style={[
+              styles.segment,
+              themeMode === mode && styles.segmentActive,
+            ]}
+            onPress={() => setThemeMode(mode)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: themeMode === mode }}
+            accessibilityLabel={mode === 'light' ? 'Light theme' : mode === 'dark' ? 'Dark theme' : 'System theme'}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                themeMode === mode && styles.segmentTextActive,
+              ]}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -200,5 +239,30 @@ const styles = StyleSheet.create({
     ...typography.settingsRow,
     color: colors.danger,
     fontWeight: '500',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: colors.tileEmpty,
+    borderRadius: 8,
+    padding: 2,
+    marginLeft: 12,
+  },
+  segment: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.surface,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: colors.textPrimary,
+    fontWeight: '600',
   },
 });
