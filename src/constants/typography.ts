@@ -1,36 +1,39 @@
+import { PixelRatio } from 'react-native';
 import { colors } from './colors';
 import type { TextStyle } from 'react-native';
+
+const fontScale = PixelRatio.getFontScale();
 
 // 5-size type scale for Phase 3+ UI (D-84)
 export const typography: Record<string, TextStyle> = {
   statValue: {
-    fontSize: 32,
+    fontSize: Math.round(32 * fontScale),
     fontWeight: '700',
-    lineHeight: 35,
+    lineHeight: Math.round(35 * fontScale),
     color: colors.textPrimary,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: Math.round(18 * fontScale),
     fontWeight: '700',
-    lineHeight: 23,
+    lineHeight: Math.round(23 * fontScale),
     color: colors.textPrimary,
   },
   settingsRow: {
-    fontSize: 16,
+    fontSize: Math.round(16 * fontScale),
     fontWeight: '400',
-    lineHeight: 24,
+    lineHeight: Math.round(24 * fontScale),
     color: colors.textPrimary,
   },
   body: {
-    fontSize: 14,
+    fontSize: Math.round(14 * fontScale),
     fontWeight: '400',
-    lineHeight: 21,
+    lineHeight: Math.round(21 * fontScale),
     color: colors.textPrimary,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: Math.round(12 * fontScale),
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: Math.round(16 * fontScale),
     color: colors.textSecondary,
   },
 } as const;
