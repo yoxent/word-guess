@@ -7,6 +7,7 @@ import {
   StyleSheet,
   PanResponder,
   LayoutChangeEvent,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -237,7 +238,11 @@ function VolumeSliderRow({
   const setBgm = useSettingsStore((s) => s.setBgmVolume);
   const setSfx = useSettingsStore((s) => s.setSfxVolume);
 
-  const handleChange = (v: number) => {
+  // Stable callback via ref. The slider's PanResponder was created once
+  // on first render; without this ref it would capture the first
+  // handleChange and miss any later changes to the closure.
+  const handleChangeRef = useRef<(v: number) => void>(() => {});
+  handleChangeRef.current = (v: number) => {
     if (config.storeKey === 'bgmVolume') {
       setBgm(v);
       setBgmVolume(v);
@@ -261,7 +266,7 @@ function VolumeSliderRow({
       <View style={styles.sliderSpacer} />
       <VolumeSlider
         value={value}
-        onChange={handleChange}
+        onChange={(v) => handleChangeRef.current(v)}
         accessibilityLabel={config.label}
       />
     </View>
@@ -271,6 +276,15 @@ function VolumeSliderRow({
 const THUMB_SIZE = 24;
 const TRACK_HEIGHT = 6;
 const TOUCH_HEIGHT = 40;
+
+// Initial width estimate so the slider renders with the correct fill
+// position on the first frame. Without this, width starts at 0 and
+// the fill+thumb 'pop in' once onLayout fires (visible blink on
+// mount). The estimate is screen-width minus standard padding — close
+// enough to the actual measured width that the brief onLayout
+// adjustment is imperceptible.
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const INITIAL_WIDTH_ESTIMATE = SCREEN_WIDTH - 2 * 20; // matches layout.screenPadding (20)
 
 function VolumeSlider({
   value,
@@ -283,23 +297,29 @@ function VolumeSlider({
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
-  const [width, setWidth] = useState(0);
-  // Keep a ref so PanResponder callbacks always see the latest width
-  // without re-creating the responder on every layout.
-  const widthRef = useRef(0);
+  // Width starts at the screen-width estimate so the first render
+  // already shows the slider in its final position. onLayout refines
+  // it to the actual measured width on the first layout pass.
+  const [width, setWidth] = useState(INITIAL_WIDTH_ESTIMATE);
+  const widthRef = useRef(INITIAL_WIDTH_ESTIMATE);
 
   const updateFromX = (x: number) => {
     const w = widthRef.current;
-    if (w <= 0) return;
-    const ratio = Math.max(0, Math.min(1, x / w));
-    // Round to 2 decimal places to keep the persisted state clean
-    onChange(Math.round(ratio * 100) / 100);
+    if (w <= 0 || !Number.isFinite(w)) return;
+    const ratio = x / w;
+    if (!Number.isFinite(ratio)) return;
+    const clamped = Math.max(0, Math.min(1, ratio));
+    onChange(Math.round(clamped * 100) / 100);
   };
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      // Claim the move before any parent ScrollView can. Without this,
+      // the parent ScrollView sometimes wins the gesture race on
+      // Android and the slider stops responding mid-drag.
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (e) => {
         updateFromX(e.nativeEvent.locationX);
       },
@@ -311,8 +331,15 @@ function VolumeSlider({
 
   const onLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
-    widthRef.current = w;
-    setWidth(w);
+    if (w > 0 && Number.isFinite(w)) {
+      widthRef.current = w;
+      // Only update state if the measured width differs meaningfully
+      // from the current — avoids a re-render just to set the same
+      // value (which could itself cause visible jitter).
+      if (Math.abs(w - width) > 0.5) {
+        setWidth(w);
+      }
+    }
   };
 
   const thumbLeft = value * width - THUMB_SIZE / 2;
@@ -331,9 +358,7 @@ function VolumeSlider({
       <View style={styles.sliderTrack}>
         <View style={[styles.sliderFill, { width: fillWidth }]} />
       </View>
-      {width > 0 && (
-        <View style={[styles.sliderThumb, { left: thumbLeft }]} />
-      )}
+      <View style={[styles.sliderThumb, { left: thumbLeft }]} />
     </View>
   );
 }

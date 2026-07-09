@@ -116,8 +116,14 @@ export function setSfxVolume(v: VolumeLevel): void {
 /**
  * Pause BGM (called from AppState 'background' / 'inactive' listener).
  * Does NOT destroy the player — playback resumes from where it stopped.
+ * Cancels any pending duck-restore timer so a stale timer doesn't
+ * restore the BGM volume while the user expects it to stay paused.
  */
 export function pauseBgm(): void {
+  if (_duckRestoreTimer) {
+    clearTimeout(_duckRestoreTimer);
+    _duckRestoreTimer = null;
+  }
   if (!_bgmPlayer) return;
   try {
     _bgmPlayer.pause();
@@ -140,13 +146,45 @@ export function resumeBgm(): void {
   }
 }
 
-// ── SFX playback (unchanged public API) ──
+// ── SFX playback (with BGM ducking) ──
+
+/**
+ * How long to duck the BGM (reduce to 30% of its intended volume) while
+ * each SFX plays. After the duration elapses, the BGM is restored to
+ * its intended volume. These are approximate — slightly too long is
+ * fine, slightly too short risks a brief volume jump mid-tail.
+ */
+const SFX_DUCK_DURATION_MS: Record<string, number> = {
+  keypress: 200,
+  reveal: 350,
+  win: 2200,
+  loss: 1800,
+};
+const DUCK_RATIO = 0.3;
+let _duckRestoreTimer: ReturnType<typeof setTimeout> | null = null;
 
 function play(name: string): void {
   if (_currentSfxVolume === 0) return;
   const player = _sfxPlayers[name];
   if (!player) return;
   try {
+    // Duck the BGM while the SFX plays. Without this, the combined
+    // audio output of BGM + SFX can exceed 1.0 and clip — which the
+    // user hears as static / distortion. We restore the BGM to its
+    // intended volume after the SFX has finished.
+    // We set the player volume directly (bypassing setBgmVolume) so
+    // the play/pause transition logic in setBgmVolume isn't disturbed.
+    if (_bgmPlayer && _currentBgmVolume > 0) {
+      _bgmPlayer.volume = _currentBgmVolume * DUCK_RATIO;
+      if (_duckRestoreTimer) clearTimeout(_duckRestoreTimer);
+      const duckMs = SFX_DUCK_DURATION_MS[name] ?? 300;
+      _duckRestoreTimer = setTimeout(() => {
+        if (_bgmPlayer) {
+          _bgmPlayer.volume = _currentBgmVolume;
+        }
+        _duckRestoreTimer = null;
+      }, duckMs);
+    }
     player.seekTo(0);
     player.play();
   } catch (e) {

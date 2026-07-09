@@ -110,7 +110,19 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
-### P34: BGM `player.play()` called on every volume change — multi-playback + JS thread block (FIXED 2026-07-09)
+### P35: Slider "blink from 0%" on mount + stale closure + BGM static from volume clipping (FIXED 2026-07-09)
+- Cause (slider blink): the VolumeSlider started with `useState(0)` for width, so the first render had `fillWidth = 0` (invisible fill) and the thumb hidden behind `{width > 0 && ...}`. The visible slider was empty until `onLayout` fired and set the actual width — a single-frame 'pop in' from 0% to the real value.
+- Cause (stale closure): the PanResponder was created once via `useRef` and captured the first render's `updateFromX`, which closed over the first render's `handleChange` (and its `config.storeKey`). If anything changed the closure identity later, the slider would call the wrong action.
+- Cause (BGM static): the audio mode `interruptionMode: 'duckOthers'` only affects OTHER apps, not the app's own BGM+SFX mix. When an SFX played on top of the BGM at full volume, the combined output exceeded 1.0 and clipped, producing audible static/distortion.
+- Fixes:
+  - Slider: width initialized to `screenWidth - 2 * 20` (estimate) so the first render already shows the slider in its final visual position. `onLayout` refines to actual.
+  - Slider: `handleChangeRef` ref pattern — the latest `handleChange` is stored in a ref each render and the PanResponder calls `handleChangeRef.current(v)`. Always the freshest closure.
+  - Slider: added `onMoveShouldSetPanResponderCapture: () => true` to claim the gesture before the parent ScrollView can (Android gesture race fix).
+  - Slider: NaN/Infinity guards in `updateFromX` and `onLayout`.
+  - BGM: when an SFX plays, the BGM is ducked to 30% of its intended volume for the SFX's duration (200-2200ms depending on the SFX). After the duck timer elapses, the BGM is restored to its intended volume. The duck sets `_bgmPlayer.volume` directly (bypassing `setBgmVolume`'s play/pause transition logic) so it's purely a volume change.
+  - Padding: `layout.screenPadding` bumped from 16 to 20 (per user feedback — 16 was too tight, especially for the top-right settings icons in the Home topBar). All screens now use the constant consistently.
+- Lesson: Three unrelated symptoms shared a single category: 'a real-world app needs more defensive defaults than a quick prototype does'. Initialize width to a sensible estimate instead of 0. Use refs for callbacks captured by long-lived objects (PanResponder). Implement ducking when mixing two audio sources.
+- Phase: 6 (Post-launch)
 - Cause: `setBgmVolume(v)` unconditionally called `_bgmPlayer.play()` when `v > 0`. The volume slider fires `setBgmVolume` 10-30 times per second during a drag, so `play()` was called on every drag tick. On a looping player, this either restarted playback (audible glitches) or stacked audio sessions (static noise). The same native call also blocked the JS thread on each invocation, which caused the PanResponder to queue up events and produced the slider "rubberbanding" effect (visual position lagging behind the finger).
 - Symptom: Erratic BGM playback (restarts mid-loop), audible static, and the slider snapping back to lower values when dragged higher.
 - Fix: `setBgmVolume` now only calls `play()` on the 0→>0 transition (start playback) and `pause()` on the >0→0 transition (stop playback). Mid-range volume changes just update `player.volume` without touching playback state. Both bugs (audio + slider) are fixed by this single change.

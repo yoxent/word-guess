@@ -71,7 +71,7 @@ export function HomeScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingLeft: 12,
+          paddingLeft: layout.screenPadding,
         },
         topBarIcons: {
           flexDirection: 'row',
@@ -310,7 +310,11 @@ export function HomeScreen() {
       <Animated.View
         style={[
           styles.topBar,
-          { top: insets.top, paddingRight: insets.right },
+          // paddingRight: respect both the standard 20px padding AND the
+          // device's right safe area inset (for landscape on notched
+          // devices). The icons should never be closer than 20px to the
+          // screen edge.
+          { top: insets.top, paddingRight: Math.max(layout.screenPadding, insets.right) },
           fadeSlide(iconAnim),
         ]}
       >

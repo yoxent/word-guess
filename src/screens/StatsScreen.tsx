@@ -22,7 +22,7 @@ import { useStatsStore } from '../stores';
 import { generateShareText } from '../utils/share';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_PADDING = 16;
+const SCREEN_PADDING = 20; // matches layout.screenPadding
 const CARD_PADDING = 24;
 const CHART_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2 - CARD_PADDING * 2;
 

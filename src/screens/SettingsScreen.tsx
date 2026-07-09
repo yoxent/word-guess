@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
 import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
+import { layout } from '../constants/layout';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -18,7 +19,7 @@ export function SettingsScreen() {
           backgroundColor: theme.colors.surface.background,
         },
         scrollContent: {
-          padding: 16,
+          padding: layout.screenPadding,
         },
         section: {
           marginBottom: 24,
