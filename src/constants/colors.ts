@@ -56,9 +56,4 @@ export const darkColors = {
   headerText: '#e8e8e8',
 } as const;
 
-/** @deprecated Use useTheme() instead. The flat `colors` alias was used during
- * the dark-theme migration as a transitional step; all consumers have now
- * migrated to the semantic `useTheme()` API. */
-export const colors = lightColors;
-
 export type AppColor = keyof typeof lightColors;

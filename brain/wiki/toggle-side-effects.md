@@ -1,7 +1,7 @@
 # toggle-side-effects
 updated: 2026-07-09
 tags: [pattern, settings, zustand, side-effect, audio, haptics]
-related: [architecture, ui-config-registry, settingsStore]
+related: [architecture, ui-config-registry, dev-workflow]
 
 ## Pattern
 

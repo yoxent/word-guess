@@ -1,5 +1,6 @@
-import { useColors } from './useColors';
+import { useColorScheme } from 'react-native';
 import { lightColors, darkColors } from '../constants/colors';
+import { useSettingsStore } from '../stores/settingsStore';
 import type { Theme, ThemeColors } from '../types/theme';
 
 /**
@@ -83,9 +84,8 @@ function buildSemantic(
  * color groups (button / toggle / icon / tile / key / status) for the
  * active theme.
  *
- * Use this instead of `useColors()` in new code. `useColors()` returns the
- * raw flat palette and is kept only for backwards compatibility — it will
- * be removed in a follow-up commit once all consumers have migrated.
+ * Mode is resolved from `settingsStore.themeMode` ('light' | 'dark' | 'system')
+ * plus the OS color scheme. Resolves to 'light' or 'dark' before building.
  *
  * @example
  *   const theme = useTheme();
@@ -94,10 +94,10 @@ function buildSemantic(
  *   </View>
  */
 export function useTheme(): Theme {
-  const raw = useColors();
-  // useColors() returns either lightColors or darkColors — both share the
-  // same keys, so we can safely use `raw.background === lightColors.background`
-  // to detect mode. (Cheaper than re-reading the settings store.)
-  const mode: 'light' | 'dark' = raw === darkColors ? 'dark' : 'light';
-  return { colors: buildSemantic(raw, mode) };
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const systemScheme = useColorScheme();
+  const isDark =
+    themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
+  const raw = isDark ? darkColors : lightColors;
+  return { colors: buildSemantic(raw, isDark ? 'dark' : 'light') };
 }
