@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "ts:check": "tsc --noEmit",
     "preprocess-dictionary": "node scripts/preprocess-dictionary.mjs",
-    "postinstall": "node scripts/patch-kotlin-version.mjs"
+    "postinstall": "node scripts/patch-kotlin-version.mjs && node scripts/patch-audio-attribution-tag.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
