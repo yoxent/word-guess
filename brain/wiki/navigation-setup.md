@@ -25,13 +25,19 @@ Home → Game → Result → Home (Random/Daily modes)
 ```
 Free Play removed (merged into Endless).
 
-## NavMenuButton pattern (D-18, modified 2026-07-05)
-- `NavMenuButton` renders in `headerRight` of Stats, Settings, Leaderboard screens
+## NavMenuButton pattern (D-18, REMOVED 2026-07-09)
+- `NavMenuButton` rendered in `headerRight` of Stats, Settings, Leaderboard screens and showed an Alert "Navigate to..." with 4 destinations. **Removed 2026-07-09** — user found the alert redundant since the Home screen already has icon buttons for the same 4 destinations (and the OS back button handles going home). NavMenuButton function and its styles were deleted from `Navigation.tsx`.
 - Home screen: `headerShown: false` — navigation header removed entirely
-- Home navigation replaced by top-right icon bar with MaterialIcons (order left→right): `emoji-events` (Stats/medal), `leaderboard` (Leaderboard), `settings` (Settings)
+- Home navigation replaced by top-right icon bar with MaterialIcons (order left→right): `help-outline` (How to Play), `emoji-events` (Stats/medal), `leaderboard` (Leaderboard), `settings` (Settings)
 - Uses `@expo/vector-icons/MaterialIcons` — installed as explicit dependency
-- Game screen: `headerShown: false`, custom header with arrow-back-ios icon (40×40, default nav style). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: 20`. Header spans full width via `marginHorizontal: -20`. No attempts counter (shown in GameBoard).
+- Game screen: `headerShown: false`, custom header with arrow-back-ios icon (40×40, default nav style). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: layout.screenPadding` (16). Header spans full width via `marginHorizontal: -layout.screenPadding`. No attempts counter (shown in GameBoard).
 - Result screen: `headerShown: false` — clean reveal experience
+
+## Screen padding (consistent 16px, 2026-07-09)
+- All screens use `layout.screenPadding = 16` for outer screen-edge padding
+- Inner card/modal padding stays at 24px (intentional visual hierarchy)
+- GameScreen header is full-width (marginHorizontal: -layout.screenPadding)
+- HomeScreen adds `paddingBottom: layout.screenPadding + insets.bottom` for the bottom safe area
 
 ## TypeScript setup — RootStackParamList
 ```typescript
