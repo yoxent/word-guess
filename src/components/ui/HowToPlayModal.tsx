@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { typography } from '../../constants/typography';
 
 interface HowToPlayModalProps {
@@ -9,6 +9,86 @@ interface HowToPlayModalProps {
 }
 
 export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        card: {
+          backgroundColor: colors.surface,
+          borderRadius: 20,
+          padding: 24,
+          alignItems: 'center',
+          maxWidth: '85%',
+          minWidth: 280,
+        },
+        title: {
+          fontSize: 22,
+          fontWeight: '700',
+          color: colors.textPrimary,
+          marginBottom: 20,
+        },
+        examplesRow: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 12,
+          marginBottom: 20,
+        },
+        exampleItem: {
+          alignItems: 'center',
+          width: 80,
+        },
+        exampleTile: {
+          width: 48,
+          height: 48,
+          borderRadius: 6,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 6,
+        },
+        exampleTileText: {
+          fontSize: 24,
+          fontWeight: '700',
+          color: colors.textInverse,
+        },
+        exampleTileTextDark: {
+          color: '#1a1a2e',
+        },
+        exampleLabel: {
+          fontSize: 11,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          lineHeight: 14,
+        },
+        rulesText: {
+          ...typography.body,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          marginBottom: 20,
+          lineHeight: 20,
+        },
+        gotItButton: {
+          backgroundColor: colors.accent,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 40,
+          width: '100%',
+          alignItems: 'center',
+        },
+        gotItText: {
+          color: colors.textInverse,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity
@@ -66,78 +146,3 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    maxWidth: '85%',
-    minWidth: 280,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 20,
-  },
-  examplesRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  exampleItem: {
-    alignItems: 'center',
-    width: 80,
-  },
-  exampleTile: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  exampleTileText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textInverse,
-  },
-  exampleTileTextDark: {
-    color: '#1a1a2e',
-  },
-  exampleLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  rulesText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  gotItButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    width: '100%',
-    alignItems: 'center',
-  },
-  gotItText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

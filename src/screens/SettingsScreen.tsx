@@ -25,6 +25,7 @@ export function SettingsScreen() {
         },
         sectionTitle: {
           ...typography.cardTitle,
+          color: colors.textPrimary,
           marginBottom: 8,
           paddingHorizontal: 4,
         },

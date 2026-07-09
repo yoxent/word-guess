@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -54,6 +54,7 @@ export function SettingsRow({
 }
 
 function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } }) {
+  const colors = useColors();
   const value = useSettingsStore((s) => s[config.storeKey]);
   const toggleAction = useSettingsStore((s) => {
     switch (config.storeKey) {
@@ -80,6 +81,8 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
 }
 
 function PlaceholderRow({ config }: { config: SettingsRowConfig & { type: 'placeholder' } }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{config.label}</Text>
@@ -89,6 +92,8 @@ function PlaceholderRow({ config }: { config: SettingsRowConfig & { type: 'place
 }
 
 function InfoRow({ config }: { config: SettingsRowConfig & { type: 'info' } }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{config.label}</Text>
@@ -98,6 +103,8 @@ function InfoRow({ config }: { config: SettingsRowConfig & { type: 'info' } }) {
 }
 
 function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type: 'restore' }; onRestore?: () => Promise<void> }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   return (
     <TouchableOpacity style={styles.row} onPress={onRestore} activeOpacity={0.7}>
       <Text style={styles.label}>{config.label}</Text>
@@ -106,6 +113,8 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
 }
 
 function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { type: 'purchase' }; onPurchase?: (productId: string) => Promise<void> }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   return (
     <TouchableOpacity style={styles.row} onPress={() => onPurchase?.(config.productId)} activeOpacity={0.7}>
       <View style={{ flex: 1 }}>
@@ -130,6 +139,8 @@ function SignInButtonRow({
   isLoggedIn?: boolean;
   playerName?: string | null;
 }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   if (isLoggedIn) {
     // Signed in: show player name + sign out button
     return (
@@ -158,6 +169,8 @@ function SignInButtonRow({
 }
 
 function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { type: 'themeSelector' } }) {
+  const colors = useColors();
+  const styles = useStyles(colors);
   const themeMode = useSettingsStore((s) => s.themeMode);
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
 
@@ -192,6 +205,92 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
   );
 }
 
+// Shared color-aware styles, rebuilt whenever theme changes.
+function useStyles(colors: ReturnType<typeof useColors>) {
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingVertical: 8,
+        },
+        label: {
+          ...typography.settingsRow,
+          color: colors.textPrimary,
+          flex: 1,
+        },
+        comingSoon: {
+          ...typography.statLabel,
+          color: colors.textSecondary,
+        },
+        value: {
+          ...typography.body,
+          color: colors.textSecondary,
+        },
+        purchaseDescription: {
+          ...typography.body,
+          color: colors.textSecondary,
+          marginTop: 2,
+        },
+        purchasePrice: {
+          ...typography.settingsRow,
+          color: colors.accent,
+          fontWeight: '600',
+        },
+        signInInfo: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        },
+        signInLabel: {
+          ...typography.settingsRow,
+          color: colors.accent,
+          fontWeight: '500',
+        },
+        playerNameLabel: {
+          ...typography.settingsRow,
+          color: colors.textPrimary,
+          flex: 1,
+        },
+        signOutText: {
+          ...typography.settingsRow,
+          color: colors.danger,
+          fontWeight: '500',
+        },
+        segmentedControl: {
+          flexDirection: 'row',
+          backgroundColor: colors.tileEmpty,
+          borderRadius: 8,
+          padding: 2,
+          marginLeft: 12,
+        },
+        segment: {
+          paddingVertical: 6,
+          paddingHorizontal: 12,
+          borderRadius: 6,
+          alignItems: 'center',
+        },
+        segmentActive: {
+          backgroundColor: colors.surface,
+        },
+        segmentText: {
+          fontSize: 13,
+          fontWeight: '500',
+          color: colors.textSecondary,
+        },
+        segmentTextActive: {
+          color: colors.textPrimary,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+}
+
+// Backwards-compatible alias for the original module-level styles export
+// (used by ToggleRow above which reads styles.row/styles.label directly).
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -202,67 +301,5 @@ const styles = StyleSheet.create({
   label: {
     ...typography.settingsRow,
     flex: 1,
-  },
-  comingSoon: {
-    ...typography.statLabel,
-    color: colors.textSecondary,
-  },
-  value: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  purchaseDescription: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  purchasePrice: {
-    ...typography.settingsRow,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-  signInInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  signInLabel: {
-    ...typography.settingsRow,
-    color: colors.accent,
-    fontWeight: '500',
-  },
-  playerNameLabel: {
-    ...typography.settingsRow,
-    flex: 1,
-  },
-  signOutText: {
-    ...typography.settingsRow,
-    color: colors.danger,
-    fontWeight: '500',
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: colors.tileEmpty,
-    borderRadius: 8,
-    padding: 2,
-    marginLeft: 12,
-  },
-  segment: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  segmentActive: {
-    backgroundColor: colors.surface,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  segmentTextActive: {
-    color: colors.textPrimary,
-    fontWeight: '600',
   },
 });

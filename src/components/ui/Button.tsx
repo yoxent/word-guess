@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -24,6 +24,26 @@ export function Button({
   disabled = false,
   style,
 }: ButtonProps) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        button: {
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 120,
+        },
+        text: {
+          fontSize: 16,
+          fontWeight: '700',
+        },
+      }),
+    [colors],
+  );
+
   const bgColor = variant === 'secondary'
     ? colors.surface
     : variant === 'danger'
@@ -52,18 +72,3 @@ export function Button({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 120,
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});

@@ -95,6 +95,7 @@ export function LeaderboardScreen() {
         },
         authTitle: {
           ...typography.cardTitle,
+          color: colors.textPrimary,
           marginTop: 16,
           marginBottom: 8,
         },
@@ -139,6 +140,7 @@ export function LeaderboardScreen() {
         },
         emptyTitle: {
           ...typography.cardTitle,
+          color: colors.textPrimary,
           marginTop: 12,
           marginBottom: 4,
         },
@@ -204,6 +206,7 @@ export function LeaderboardScreen() {
         },
         playerNameText: {
           ...typography.settingsRow,
+          color: colors.textPrimary,
           flex: 1,
           marginLeft: 8,
         },

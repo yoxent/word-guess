@@ -59,6 +59,7 @@ export function StatsScreen() {
         },
         emptyTitle: {
           ...typography.cardTitle,
+          color: colors.textPrimary,
           marginBottom: 8,
         },
         emptySubtitle: {
@@ -78,9 +79,11 @@ export function StatsScreen() {
         },
         statValue: {
           ...typography.statValue,
+          color: colors.textPrimary,
         },
         statLabel: {
           ...typography.statLabel,
+          color: colors.textSecondary,
           marginTop: 2,
         },
         perModeRow: {
@@ -96,9 +99,11 @@ export function StatsScreen() {
         },
         perModeLabel: {
           ...typography.statLabel,
+          color: colors.textSecondary,
         },
         perModeValue: {
           ...typography.body,
+          color: colors.textPrimary,
           fontWeight: '600',
           marginTop: 2,
         },
@@ -112,6 +117,7 @@ export function StatsScreen() {
         tableHeaderCell: {
           textAlign: 'center',
           ...typography.statLabel,
+          color: colors.textSecondary,
         },
         tableRow: {
           flexDirection: 'row',
@@ -128,6 +134,7 @@ export function StatsScreen() {
         tableCell: {
           textAlign: 'center',
           ...typography.body,
+          color: colors.textPrimary,
         },
         // Chart
         chartContainer: {
