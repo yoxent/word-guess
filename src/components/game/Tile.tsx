@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import type { TileFeedback } from '../../types';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { useSettingsStore } from '../../stores';
 import {
@@ -41,7 +41,7 @@ function getAccessibilityLabel(letter: string, feedback: TileFeedback, index: nu
 }
 
 export function Tile({ letter, feedback, index, isRevealing, tileSize }: TileProps) {
-  const colors = useColors();
+  const theme = useTheme();
   const colorBlindMode = useSettingsStore((s) => s.colorBlindMode);
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const flipProgress = useSharedValue(0);
@@ -50,20 +50,21 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
 
   // Build dynamic styles + feedback color map from active theme
   const { styles, feedbackColors } = useMemo(() => {
+    const c = theme.colors;
     const feedbackColors: Record<TileFeedback, string> = {
-      correct: colors.tileCorrect,
-      present: colors.tilePresent,
-      absent: colors.tileAbsent,
-      empty: colors.tileEmpty,
+      correct: c.tile.correct,
+      present: c.tile.present,
+      absent: c.tile.absent,
+      empty: c.tile.empty,
     };
     const styles = StyleSheet.create({
       tileBorder: {
         borderWidth: 2,
-        borderColor: colors.tileBorder,
+        borderColor: c.tile.border,
       },
       letter: {
         fontWeight: '700',
-        color: colors.textInverse,
+        color: c.text.inverse,
         textTransform: 'uppercase',
       },
       textureContainer: {
@@ -86,7 +87,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       },
     });
     return { styles, feedbackColors };
-  }, [colors]);
+  }, [theme]);
 
   // isEmpty: only check the letter value, not feedback status
   // (active row tiles have feedback='empty' but still need to show letters)
@@ -142,7 +143,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     const bgColor = interpolateColor(
       flipProgress.value,
       [0, 0.5, 1],
-      [colors.tileEmpty, colors.tileEmpty, feedbackColors[feedback]],
+      [theme.colors.tile.empty, theme.colors.tile.empty, feedbackColors[feedback]],
     );
 
     const rotateX = interpolate(
@@ -166,7 +167,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
   }));
 
   // Compute dynamic text color — present tiles use dark text for contrast (D-180)
-  const letterColor = feedback === 'present' ? '#1a1a2e' : colors.textInverse;
+  const letterColor = feedback === 'present' ? theme.colors.text.onPresent : theme.colors.text.inverse;
 
   // Dynamic tile dimensions derived from tileSize
   const tileStyle: ViewStyle = {
@@ -175,7 +176,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     borderRadius: layout.tileBorderRadius,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.tileEmpty,
+    backgroundColor: theme.colors.tile.empty,
     overflow: 'hidden',
   };
   const tileFontSize = Math.round(tileSize * 0.48);

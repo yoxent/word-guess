@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 
 interface HowToPlayModalProps {
@@ -9,7 +9,7 @@ interface HowToPlayModalProps {
 }
 
 export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -20,7 +20,7 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
           alignItems: 'center',
         },
         card: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 20,
           padding: 24,
           alignItems: 'center',
@@ -30,7 +30,7 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
         title: {
           fontSize: 22,
           fontWeight: '700',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 20,
         },
         examplesRow: {
@@ -54,26 +54,27 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
         exampleTileText: {
           fontSize: 24,
           fontWeight: '700',
-          color: colors.textInverse,
+          color: theme.colors.text.inverse,
         },
         exampleTileTextDark: {
-          color: '#1a1a2e',
+          // P16: dark text on yellow present tile (was hardcoded '#1a1a2e')
+          color: theme.colors.text.onPresent,
         },
         exampleLabel: {
           fontSize: 11,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
           lineHeight: 14,
         },
         rulesText: {
           ...typography.body,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
           marginBottom: 20,
           lineHeight: 20,
         },
         gotItButton: {
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 40,
@@ -81,12 +82,12 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
           alignItems: 'center',
         },
         gotItText: {
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontSize: 16,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   return (
@@ -105,21 +106,21 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
           <View style={styles.examplesRow}>
             {/* Correct tile */}
             <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: colors.tileCorrect }]}>
+              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.correct }]}>
                 <Text style={styles.exampleTileText}>A</Text>
               </View>
               <Text style={styles.exampleLabel}>Correct letter, right spot</Text>
             </View>
             {/* Present tile */}
             <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: colors.tilePresent }]}>
+              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.present }]}>
                 <Text style={[styles.exampleTileText, styles.exampleTileTextDark]}>B</Text>
               </View>
               <Text style={styles.exampleLabel}>Correct letter, wrong spot</Text>
             </View>
             {/* Absent tile */}
             <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: colors.tileAbsent }]}>
+              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.absent }]}>
                 <Text style={styles.exampleTileText}>C</Text>
               </View>
               <Text style={styles.exampleLabel}>Letter not in word</Text>

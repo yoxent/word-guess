@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
-import { useColors } from '../hooks/useColors';
+import { useTheme } from '../hooks/useTheme';
 import { HOME_STAGGER_DELAY, HOME_STAGGER_DURATION } from '../constants/animations';
 import { Button, HowToPlayModal } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
@@ -20,13 +20,13 @@ import {
 type HomeNav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export function HomeScreen() {
-  const colors = useColors();
+  const theme = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 24,
@@ -34,12 +34,12 @@ export function HomeScreen() {
         title: {
           fontSize: 36,
           fontWeight: '800',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
         },
         subtitle: {
           fontSize: 16,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           marginBottom: 40,
         },
         modes: {
@@ -59,7 +59,7 @@ export function HomeScreen() {
         },
         hardModeLabel: {
           fontSize: 16,
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           fontWeight: '600',
         },
         topBar: {
@@ -90,7 +90,7 @@ export function HomeScreen() {
           alignItems: 'center',
         },
         modalCard: {
-          backgroundColor: colors.surface,
+          backgroundColor: theme.colors.surface.card,
           borderRadius: 16,
           padding: 24,
           alignItems: 'center',
@@ -100,12 +100,12 @@ export function HomeScreen() {
         modalTitle: {
           fontSize: 22,
           fontWeight: '700',
-          color: colors.textPrimary,
+          color: theme.colors.text.primary,
           marginBottom: 8,
         },
         modalMessage: {
           fontSize: 14,
-          color: colors.textSecondary,
+          color: theme.colors.text.secondary,
           textAlign: 'center',
           marginBottom: 20,
           lineHeight: 20,
@@ -115,14 +115,14 @@ export function HomeScreen() {
           gap: 8,
         },
         modalButtonContinue: {
-          backgroundColor: colors.accent,
+          backgroundColor: theme.colors.button.primary.bg,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 10,
           alignItems: 'center',
         },
         modalButtonContinueText: {
-          color: colors.textInverse,
+          color: theme.colors.button.primary.fg,
           fontSize: 16,
           fontWeight: '600',
         },
@@ -132,15 +132,15 @@ export function HomeScreen() {
           paddingHorizontal: 10,
           alignItems: 'center',
           borderWidth: 1,
-          borderColor: colors.danger,
+          borderColor: theme.colors.status.danger,
         },
         modalButtonNewText: {
-          color: colors.danger,
+          color: theme.colors.status.danger,
           fontSize: 16,
           fontWeight: '600',
         },
       }),
-    [colors],
+    [theme],
   );
 
   const navigation = useNavigation<HomeNav>();
@@ -312,7 +312,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="How to Play"
           >
-            <MaterialIcons name="help-outline" size={26} color={colors.headerText} />
+            <MaterialIcons name="help-outline" size={26} color={theme.colors.icon.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
@@ -322,7 +322,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Statistics"
           >
-            <MaterialIcons name="emoji-events" size={26} color={colors.headerText} />
+            <MaterialIcons name="emoji-events" size={26} color={theme.colors.icon.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
@@ -332,7 +332,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Leaderboard"
           >
-            <MaterialIcons name="leaderboard" size={26} color={colors.headerText} />
+            <MaterialIcons name="leaderboard" size={26} color={theme.colors.icon.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
@@ -342,7 +342,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
-            <MaterialIcons name="settings" size={26} color={colors.headerText} />
+            <MaterialIcons name="settings" size={26} color={theme.colors.icon.primary} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -373,8 +373,8 @@ export function HomeScreen() {
         <Switch
           value={hardMode}
           onValueChange={toggleHardMode}
-          trackColor={{ false: colors.tileBorder, true: colors.accent }}
-          thumbColor={hardMode ? colors.accentDark : colors.tileBorder}
+          trackColor={{ false: theme.colors.toggle.trackInactive, true: theme.colors.toggle.trackActive }}
+          thumbColor={theme.colors.toggle.thumb}
         />
       </View>
 
