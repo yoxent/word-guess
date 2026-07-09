@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-chart-kit';
 import * as Clipboard from 'expo-clipboard';
-import { colors } from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { typography } from '../constants/typography';
 import { statsConfig } from '../config/ui';
 import { StatCard } from '../components/ui/StatCard';
@@ -27,6 +27,136 @@ const CARD_PADDING = 24;
 const CHART_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2 - CARD_PADDING * 2;
 
 export function StatsScreen() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        scrollContent: {
+          padding: SCREEN_PADDING,
+          paddingTop: 8,
+        },
+        loadingContainer: {
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        emptyCard: {
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          padding: 24,
+          margin: 16,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 3,
+        },
+        emptyTitle: {
+          ...typography.cardTitle,
+          marginBottom: 8,
+        },
+        emptySubtitle: {
+          ...typography.body,
+          color: colors.textSecondary,
+          textAlign: 'center',
+        },
+        // Overview grid
+        statGrid: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+        },
+        statItem: {
+          width: '50%',
+          alignItems: 'center',
+          paddingVertical: 8,
+        },
+        statValue: {
+          ...typography.statValue,
+        },
+        statLabel: {
+          ...typography.statLabel,
+          marginTop: 2,
+        },
+        perModeRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+          marginTop: 16,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.tileEmpty,
+        },
+        perModeItem: {
+          alignItems: 'center',
+        },
+        perModeLabel: {
+          ...typography.statLabel,
+        },
+        perModeValue: {
+          ...typography.body,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        // By-length table
+        tableHeader: {
+          flexDirection: 'row',
+          paddingVertical: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.tileEmpty,
+        },
+        tableHeaderCell: {
+          textAlign: 'center',
+          ...typography.statLabel,
+        },
+        tableRow: {
+          flexDirection: 'row',
+          paddingVertical: 8,
+          minHeight: 36,
+          alignItems: 'center',
+        },
+        tableRowAlt: {
+          backgroundColor: colors.background,
+        },
+        lengthLabel: {
+          justifyContent: 'center',
+        },
+        tableCell: {
+          textAlign: 'center',
+          ...typography.body,
+        },
+        // Chart
+        chartContainer: {
+          alignItems: 'center',
+        },
+        // Share button (FAB)
+        shareButton: {
+          position: 'absolute',
+          right: SCREEN_PADDING,
+          backgroundColor: colors.accent,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          elevation: 6,
+        },
+        shareButtonText: {
+          color: colors.textInverse,
+          fontSize: 16,
+          fontWeight: '700',
+          textAlign: 'center',
+        },
+      }),
+    [colors],
+  );
+
   const stats = useStatsStore((s) => s.stats);
   const isLoading = useStatsStore((s) => s.isLoading);
   const lastGameResult = useStatsStore((s) => s.lastGameResult);
@@ -314,128 +444,3 @@ export function StatsScreen() {
     );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    padding: SCREEN_PADDING,
-    paddingTop: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 24,
-    margin: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  emptyTitle: {
-    ...typography.cardTitle,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  // Overview grid
-  statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  statItem: {
-    width: '50%',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  statValue: {
-    ...typography.statValue,
-  },
-  statLabel: {
-    ...typography.statLabel,
-    marginTop: 2,
-  },
-  perModeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.tileEmpty,
-  },
-  perModeItem: {
-    alignItems: 'center',
-  },
-  perModeLabel: {
-    ...typography.statLabel,
-  },
-  perModeValue: {
-    ...typography.body,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  // By-length table
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.tileEmpty,
-  },
-  tableHeaderCell: {
-    textAlign: 'center',
-    ...typography.statLabel,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    minHeight: 36,
-    alignItems: 'center',
-  },
-  tableRowAlt: {
-    backgroundColor: colors.background,
-  },
-  lengthLabel: {
-    justifyContent: 'center',
-  },
-  tableCell: {
-    textAlign: 'center',
-    ...typography.body,
-  },
-  // Chart
-  chartContainer: {
-    alignItems: 'center',
-  },
-  // Share button (FAB)
-  shareButton: {
-    position: 'absolute',
-    right: SCREEN_PADDING,
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  shareButtonText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-});

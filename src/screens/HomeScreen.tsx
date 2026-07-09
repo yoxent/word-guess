@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Switch, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
-import { colors } from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { HOME_STAGGER_DELAY, HOME_STAGGER_DURATION } from '../constants/animations';
 import { Button, HowToPlayModal } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
@@ -20,6 +20,129 @@ import {
 type HomeNav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export function HomeScreen() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        },
+        title: {
+          fontSize: 36,
+          fontWeight: '800',
+          color: colors.textPrimary,
+          marginBottom: 8,
+        },
+        subtitle: {
+          fontSize: 16,
+          color: colors.textSecondary,
+          marginBottom: 40,
+        },
+        modes: {
+          width: '100%',
+          maxWidth: 280,
+          marginBottom: 32,
+        },
+        spacer: {
+          height: 12,
+        },
+        hardModeRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 12,
+          marginBottom: 32,
+        },
+        hardModeLabel: {
+          fontSize: 16,
+          color: colors.textPrimary,
+          fontWeight: '600',
+        },
+        topBar: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          height: 48,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingLeft: 12,
+        },
+        topBarIcons: {
+          flexDirection: 'row',
+          gap: 4,
+        },
+        topIconButton: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        modalOverlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        modalCard: {
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          padding: 24,
+          alignItems: 'center',
+          minWidth: 280,
+          maxWidth: '85%',
+        },
+        modalTitle: {
+          fontSize: 22,
+          fontWeight: '700',
+          color: colors.textPrimary,
+          marginBottom: 8,
+        },
+        modalMessage: {
+          fontSize: 14,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          marginBottom: 20,
+          lineHeight: 20,
+        },
+        modalButtons: {
+          width: '100%',
+          gap: 8,
+        },
+        modalButtonContinue: {
+          backgroundColor: colors.accent,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 10,
+          alignItems: 'center',
+        },
+        modalButtonContinueText: {
+          color: colors.textInverse,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+        modalButtonNew: {
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 10,
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: colors.danger,
+        },
+        modalButtonNewText: {
+          color: colors.danger,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+
   const navigation = useNavigation<HomeNav>();
 
   const insets = useSafeAreaInsets();
@@ -289,121 +412,3 @@ export function HomeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 40,
-  },
-  modes: {
-    width: '100%',
-    maxWidth: 280,
-    marginBottom: 32,
-  },
-  spacer: {
-    height: 12,
-  },
-  hardModeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 32,
-  },
-  hardModeLabel: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  topBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: 12,
-  },
-  topBarIcons: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  topIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    minWidth: 280,
-    maxWidth: '85%',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  modalMessage: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  modalButtons: {
-    width: '100%',
-    gap: 8,
-  },
-  modalButtonContinue: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-  },
-  modalButtonContinueText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalButtonNew: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger,
-  },
-  modalButtonNewText: {
-    color: colors.danger,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

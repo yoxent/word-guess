@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { typography } from '../constants/typography';
 import { useAuthStore } from '../stores/authStore';
 import { getLeaderboardData } from '../services/leaderboardService';
@@ -46,6 +46,184 @@ const MEDAL_COLORS: Record<number, string> = {
 // ── Component ──
 
 export function LeaderboardScreen() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+
+        // ── Segment control ──
+        segmentContainer: {
+          flexDirection: 'row',
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.tileEmpty,
+        },
+        segmentTab: {
+          flex: 1,
+          alignItems: 'center',
+          paddingVertical: 14,
+          position: 'relative',
+        },
+        segmentText: {
+          ...typography.body,
+          color: colors.textSecondary,
+          fontWeight: '500',
+        },
+        activeSegmentText: {
+          color: colors.accent,
+          fontWeight: '700',
+        },
+        activeIndicator: {
+          position: 'absolute',
+          bottom: 0,
+          height: 3,
+          width: '60%',
+          backgroundColor: colors.accent,
+          borderRadius: 1.5,
+        },
+
+        // ── Auth gate ──
+        authGate: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 32,
+        },
+        authTitle: {
+          ...typography.cardTitle,
+          marginTop: 16,
+          marginBottom: 8,
+        },
+        authSubtitle: {
+          ...typography.body,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          marginBottom: 24,
+          lineHeight: 20,
+        },
+        googleSignInButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.accent,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          gap: 10,
+          minWidth: 220,
+        },
+        googleSignInText: {
+          ...typography.settingsRow,
+          color: colors.textInverse,
+          fontWeight: '600',
+        },
+
+        // ── Loading ──
+        loadingContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        },
+
+        // ── Empty ──
+        emptyContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 32,
+        },
+        emptyTitle: {
+          ...typography.cardTitle,
+          marginTop: 12,
+          marginBottom: 4,
+        },
+        emptySubtitle: {
+          ...typography.body,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          lineHeight: 20,
+        },
+
+        // ── Error ──
+        errorTitle: {
+          ...typography.body,
+          color: colors.danger,
+          textAlign: 'center',
+          marginTop: 12,
+          marginBottom: 16,
+        },
+        retryButton: {
+          backgroundColor: colors.accent,
+          borderRadius: 10,
+          paddingVertical: 10,
+          paddingHorizontal: 24,
+        },
+        retryText: {
+          ...typography.settingsRow,
+          color: colors.textInverse,
+          fontWeight: '600',
+        },
+
+        // ── List ──
+        listContent: {
+          padding: 16,
+          paddingBottom: 32,
+        },
+        entryRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.surface,
+          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          marginBottom: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 1,
+        },
+        currentPlayerRow: {
+          backgroundColor: `${colors.accent}1A`, // accent at ~10% opacity
+        },
+        rankContainer: {
+          width: 32,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        rankText: {
+          ...typography.settingsRow,
+          fontWeight: '700',
+          color: colors.textSecondary,
+          fontSize: 15,
+        },
+        playerNameText: {
+          ...typography.settingsRow,
+          flex: 1,
+          marginLeft: 8,
+        },
+        currentPlayerName: {
+          fontWeight: '700',
+          color: colors.accent,
+        },
+        scoreText: {
+          ...typography.settingsRow,
+          fontWeight: '700',
+          color: colors.accent,
+          marginLeft: 8,
+        },
+        currentPlayerScore: {
+          color: colors.accent,
+        },
+      }),
+    [colors],
+  );
+
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isAuthPending = useAuthStore((s) => s.isAuthPending);
   const googleSignIn = useAuthStore((s) => s.googleSignIn);
@@ -263,178 +441,3 @@ export function LeaderboardScreen() {
     </View>
   );
 }
-
-// ── Styles ──
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-
-  // ── Segment control ──
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.tileEmpty,
-  },
-  segmentTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 14,
-    position: 'relative',
-  },
-  segmentText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeSegmentText: {
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    height: 3,
-    width: '60%',
-    backgroundColor: colors.accent,
-    borderRadius: 1.5,
-  },
-
-  // ── Auth gate ──
-  authGate: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  authTitle: {
-    ...typography.cardTitle,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  authSubtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  googleSignInButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    gap: 10,
-    minWidth: 220,
-  },
-  googleSignInText: {
-    ...typography.settingsRow,
-    color: colors.textInverse,
-    fontWeight: '600',
-  },
-
-  // ── Loading ──
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-
-  // ── Empty ──
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    ...typography.cardTitle,
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-
-  // ── Error ──
-  errorTitle: {
-    ...typography.body,
-    color: colors.danger,
-    textAlign: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-  retryText: {
-    ...typography.settingsRow,
-    color: colors.textInverse,
-    fontWeight: '600',
-  },
-
-  // ── List ──
-  listContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  entryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  currentPlayerRow: {
-    backgroundColor: `${colors.accent}1A`, // accent at ~10% opacity
-  },
-  rankContainer: {
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankText: {
-    ...typography.settingsRow,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    fontSize: 15,
-  },
-  playerNameText: {
-    ...typography.settingsRow,
-    flex: 1,
-    marginLeft: 8,
-  },
-  currentPlayerName: {
-    fontWeight: '700',
-    color: colors.accent,
-  },
-  scoreText: {
-    ...typography.settingsRow,
-    fontWeight: '700',
-    color: colors.accent,
-    marginLeft: 8,
-  },
-  currentPlayerScore: {
-    color: colors.accent,
-  },
-});

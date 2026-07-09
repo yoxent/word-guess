@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, AppState, AppStateStatus, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../services/sound';
 import type { ScreenProps } from '../types';
-import { colors } from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { useGameStore, useDictionaryStore, useStatsStore } from '../stores';
 import {
   getActiveGame,
@@ -42,6 +42,71 @@ function randomLength(): number {
 }
 
 export function GameScreen({ route }: Props) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        loadingContainer: {
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        header: {
+          backgroundColor: colors.headerBackground,
+          paddingLeft: 20,
+          paddingRight: 20,
+        },
+        headerRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 48,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        headerTitle: {
+          fontSize: 17,
+          color: colors.headerText,
+          fontWeight: '600',
+        },
+
+        keyboardArea: {
+          position: 'relative',
+        },
+        boardArea: {
+          flex: 1,
+          justifyContent: 'center',
+        },
+        errorToast: {
+          position: 'absolute',
+          bottom: '100%',
+          marginBottom: 6,
+          left: 0,
+          right: 0,
+          backgroundColor: colors.danger,
+          borderRadius: 8,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          alignItems: 'center',
+          zIndex: 10,
+        },
+        errorText: {
+          color: colors.textInverse,
+          fontSize: 14,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { mode, letterCount } = route.params;
   const session = useGameStore((s) => s.session);
@@ -315,63 +380,3 @@ export function GameScreen({ route }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    backgroundColor: colors.headerBackground,
-    paddingLeft: 20,
-    paddingRight: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 48,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    color: colors.headerText,
-    fontWeight: '600',
-  },
-
-  keyboardArea: {
-    position: 'relative',
-  },
-  boardArea: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  errorToast: {
-    position: 'absolute',
-    bottom: '100%',
-    marginBottom: 6,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  errorText: {
-    color: colors.textInverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});

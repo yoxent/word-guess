@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
-import { colors } from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 import { typography } from '../constants/typography';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
@@ -9,6 +9,58 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 
 export function SettingsScreen() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        scrollContent: {
+          padding: 16,
+        },
+        section: {
+          marginBottom: 24,
+        },
+        sectionTitle: {
+          ...typography.cardTitle,
+          marginBottom: 8,
+          paddingHorizontal: 4,
+        },
+        sectionCard: {
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          padding: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 3,
+        },
+        divider: {
+          height: 1,
+          backgroundColor: colors.tileEmpty,
+          marginVertical: 4,
+        },
+        toast: {
+          position: 'absolute',
+          bottom: 32,
+          left: 16,
+          right: 16,
+          padding: 14,
+          borderRadius: 10,
+          alignItems: 'center',
+        },
+        toastText: {
+          ...typography.body,
+          color: colors.textInverse,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+
   const isPro = useSettingsStore(s => s.isPro);
   const [toast, setToast] = useState<{ message: string; isSuccess: boolean } | null>(null);
 
@@ -133,50 +185,3 @@ export function SettingsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    ...typography.cardTitle,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  sectionCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.tileEmpty,
-    marginVertical: 4,
-  },
-  toast: {
-    position: 'absolute',
-    bottom: 32,
-    left: 16,
-    right: 16,
-    padding: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  toastText: {
-    ...typography.body,
-    color: colors.textInverse,
-    fontWeight: '600',
-  },
-});
