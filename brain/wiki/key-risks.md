@@ -103,6 +103,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 
 ## Moderate risks (UI review findings, July 2026)
 
+### P28: expo-av JSI ABI mismatch on RN 0.86 (FIXED 2026-07-09)
+- Cause: `expo-av@16.0.8` is the legacy SDK ~50/51 package. Its `libexpo-av.so` was built against an old RN JSI ABI. On RN 0.86.0, `facebook::jsi::Value::asObject(Runtime&)` symbol has changed → `dlopen failed: cannot locate symbol` at `AVManager.<clinit>` → `FATAL EXCEPTION` on `pool-5-thread-1` at app launch.
+- Symptom: App crashes immediately on startup with `UnsatisfiedLinkError` referencing `libexpo-av.so`. Misleading "Pinning is deprecated since Android Q" warning precedes it (unrelated noise).
+- Fix: Migrate to `expo-audio@~57.0.0` (modern Expo modules). API: `createAudioPlayer(source)` returns `AudioPlayer` directly (no `{sound}` wrapper). `player.seekTo(0); player.play()` replaces `sound.replayAsync()`. Re-run `npx expo prebuild` after install.
+- Lesson: Always verify package version aligns with current Expo SDK. `expo-av` was deprecated in SDK 52. Use `npx expo install` for Expo modules — it enforces version alignment.
+- Phase: 6 (Post-launch)
+
 ### P17: Dead ResultScreen route in navigator (FIXED 2026-07-08)
 - Cause: Phase 2 switched from navigated ResultScreen to modal overlay, but route remained registered in Navigation.tsx + src/screens/ResultScreen.tsx existed with placeholder text.
 - Fix: Delete file and remove route from Navigation.tsx and RootStackParamList.

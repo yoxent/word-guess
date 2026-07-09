@@ -23,7 +23,7 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 | Animations | react-native-reanimated | 4.5.0 | Aligned with Expo SDK 57 |
 | Worklets | react-native-worklets | ^0.10.1 | Required peer dep of reanimated (installed separately) |
 | Gestures | react-native-gesture-handler | 2.32.0 | Latest stable (v2 line, compatible with SDK 57) |
-| Audio | expo-av | SDK 57 | |
+| Audio | expo-audio | ~57.0.0 | Replaced expo-av 2026-07-09 — see FIXED issue above. expo-audio uses modern Expo modules JSI binding (compat with RN 0.86). |
 | Haptics | expo-haptics | SDK 57 | |
 | Clipboard | expo-clipboard | SDK 57 | Copy share text to clipboard (Phase 3, STAT-04) |
 
@@ -67,6 +67,15 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 | Prototyping | Expo Go | Limited native modules |
 
 ## Known issues & workarounds
+
+### expo-av on RN 0.86 — UnsatisfiedLinkError on AVManager.<clinit> (FIXED 2026-07-09)
+`expo-av@^16.0.8` (legacy SDK ~50/51) ships `libexpo-av.so` compiled against an old JSI ABI. On RN 0.86.0 the symbol `_ZNKR8facebook3jsi5Value8asObjectERNS0_7RuntimeE` (i.e. `facebook::jsi::Value::asObject(Runtime&)`) no longer matches → `dlopen` fails during `AVManager.<clinit>` static init → `FATAL EXCEPTION` on `pool-5-thread-1` immediately at app launch. The "Pinning is deprecated since Android Q" warning in logcat is unrelated noise.
+**Fix:** Replace `expo-av` with `expo-audio@~57.0.0` (modern Expo modules, SDK 57). API migration in `src/services/sound.ts`:
+- `Audio.setAudioModeAsync({playsInSilentModeIOS, staysActiveInBackground, shouldDuckAndroid})` → `setAudioModeAsync({playsInSilentMode, shouldPlayInBackground, interruptionMode: 'duckOthers'})`
+- `Audio.Sound.createAsync(source)` returns `{sound}` → `createAudioPlayer(source)` returns `AudioPlayer` directly
+- `sound.replayAsync()` → `player.seekTo(0); player.play()`
+Public API (`init`, `setEnabled`, `playKeyPress/Reveal/Win/Loss`) preserved — no callsite changes.
+After: re-run `npx expo prebuild` (regenerates `android/`, requires re-creating `android/local.properties`).
 
 ### TypeScript 6 — baseUrl + paths deprecation
 TS 6.0 deprecates `baseUrl` with `paths`. To silence TS5101 error:

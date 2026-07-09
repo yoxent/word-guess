@@ -110,7 +110,7 @@ src/
 |---------|------|----------------|
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
-| Sound | services/sound.ts | expo-av wired in Phase 6 — loads keypress.wav, reveal.wav, win.wav, lose.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss). `setSoundEnabled()` re-exported from services/index.ts |
+| Sound | services/sound.ts | **expo-audio** wired in Phase 6 (migrated from expo-av 2026-07-09 — see [tech-stack](tech-stack.md)). Loads keypress.wav, reveal.wav, win.wav, lose.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss). `setSoundEnabled()` re-exported from services/index.ts |
 | RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
 
 ## Two-tier dictionary (Phase 2 decision)
