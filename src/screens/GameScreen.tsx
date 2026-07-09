@@ -23,6 +23,7 @@ import {
   ANIMATION_COMPLETION_BUFFER,
   TILE_CORRECT_BOUNCE_EXTRA,
 } from '../constants/animations';
+import { layout } from '../constants/layout';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
@@ -59,8 +60,8 @@ export function GameScreen({ route }: Props) {
         },
         header: {
           backgroundColor: theme.colors.surface.header,
-          paddingLeft: 20,
-          paddingRight: 20,
+          paddingLeft: layout.screenPadding,
+          paddingRight: layout.screenPadding,
         },
         headerRow: {
           flexDirection: 'row',
@@ -358,7 +359,7 @@ export function GameScreen({ route }: Props) {
   const modeLabel = capitalize(session.mode);
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom, paddingHorizontal: 20 }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, paddingHorizontal: layout.screenPadding }]}>
       {/* Header (matches home page top bar padding) */}
       <View style={[styles.header, { paddingTop: insets.top, marginHorizontal: -20 }]}>
         <View style={styles.headerRow}>

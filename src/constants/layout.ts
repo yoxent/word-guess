@@ -6,7 +6,8 @@ export const layout = {
   keyboardKeyMinWidth: 28,
   keyboardKeyGap: 4,
   keyboardKeyBorderRadius: 6,
-  screenPadding: 6,
+  /** Standard screen-edge padding applied to all screens (top/right/bottom/left). */
+  screenPadding: 16,
   headerHeight: 56,
   maxTileCount: 10,
 } as const;

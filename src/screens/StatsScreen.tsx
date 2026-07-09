@@ -37,7 +37,6 @@ export function StatsScreen() {
         },
         scrollContent: {
           padding: SCREEN_PADDING,
-          paddingTop: 8,
         },
         loadingContainer: {
           flex: 1,

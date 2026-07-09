@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { HOME_STAGGER_DELAY, HOME_STAGGER_DURATION } from '../constants/animations';
+import { layout } from '../constants/layout';
 import { Button, HowToPlayModal } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { useSettingsStore } from '../stores';
@@ -29,7 +30,7 @@ export function HomeScreen() {
           backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 24,
+          padding: layout.screenPadding,
         },
         title: {
           fontSize: 36,
@@ -226,17 +227,29 @@ export function HomeScreen() {
   }, [reduceMotion, titleAnim, subtitleAnim, buttonAnims, iconAnim]);
 
   // ── Check for saved game and prompt to continue or start fresh ──
+  // 2026-07-09: a game with 0 attempts is treated as "not really played"
+  // — the user just tapped a mode, the game started, then they went back.
+  // In that case skip the continue prompt and navigate directly (same
+  // behavior as the daily-mode auto-continue).
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
     const saved = getActiveGame();
-    if (saved && saved.mode === mode && saved.letterCount === length && saved.status === 'playing') {
+    const hasProgress =
+      saved &&
+      saved.mode === mode &&
+      saved.letterCount === length &&
+      saved.status === 'playing' &&
+      saved.guesses.length > 0;
+    if (hasProgress) {
       // Daily: auto-continue without prompt
       if (mode === 'daily') {
         navigation.navigate('Game', { mode, letterCount: length });
         return;
       }
-      // Non-daily: show continue modal
+      // Non-daily with actual progress: show continue modal
       setContinueModal({ mode, length });
     } else {
+      // No progress (no saved game, different mode/length, 0 attempts, or
+      // game already over): just navigate directly.
       navigation.navigate('Game', { mode, letterCount: length });
     }
   };
@@ -292,7 +305,7 @@ export function HomeScreen() {
   });
 
   return (
-    <View style={[styles.container, { paddingBottom: 24 + insets.bottom }]}>
+    <View style={[styles.container, { paddingBottom: layout.screenPadding + insets.bottom }]}>
       {/* Top bar with icons (offset for status bar) */}
       <Animated.View
         style={[

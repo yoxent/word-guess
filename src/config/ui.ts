@@ -37,17 +37,10 @@ export const statsConfig: StatCardConfig[] = [
 ];
 
 export const settingsConfig: SettingsSectionConfig[] = [
-  {
-    id: 'audioHaptics',
-    title: 'Audio & Haptics',
-    rows: [
-      // 2026-07-09: continuous volume sliders (replaced the 3-position
-      // segmented control). Haptic stays as a binary toggle.
-      { type: 'volumeSlider', id: 'bgm', label: 'Background Music', storeKey: 'bgmVolume' },
-      { type: 'volumeSlider', id: 'sfx', label: 'Sound Effects', storeKey: 'sfxVolume' },
-      { type: 'toggle', id: 'haptic', label: 'Haptic Feedback', storeKey: 'hapticEnabled' },
-    ],
-  },
+  // 2026-07-09: reordered per user request. Account first (the action
+  // that matters most to a new user), then Audio & Haptics (where the
+  // user customizes their experience), then Appearance (theme is global
+  // and one of the first things people want to set), then Accessibility.
   {
     id: 'account',
     title: 'Account',
@@ -59,11 +52,12 @@ export const settingsConfig: SettingsSectionConfig[] = [
     ],
   },
   {
-    id: 'accessibility',
-    title: 'Accessibility',
+    id: 'audioHaptics',
+    title: 'Audio & Haptics',
     rows: [
-      { type: 'toggle', id: 'colorBlind', label: 'Color Blind Mode', description: 'Shows patterns on tiles', storeKey: 'colorBlindMode' },
-      { type: 'toggle', id: 'reduceMotion', label: 'Reduce Motion', description: 'Skip all animations', storeKey: 'reduceMotion' },
+      { type: 'volumeSlider', id: 'bgm', label: 'Background Music', storeKey: 'bgmVolume' },
+      { type: 'volumeSlider', id: 'sfx', label: 'Sound Effects', storeKey: 'sfxVolume' },
+      { type: 'toggle', id: 'haptic', label: 'Haptic Feedback', storeKey: 'hapticEnabled' },
     ],
   },
   {
@@ -71,6 +65,14 @@ export const settingsConfig: SettingsSectionConfig[] = [
     title: 'Appearance',
     rows: [
       { type: 'themeSelector', id: 'theme', label: 'Theme' },
+    ],
+  },
+  {
+    id: 'accessibility',
+    title: 'Accessibility',
+    rows: [
+      { type: 'toggle', id: 'colorBlind', label: 'Color Blind Mode', description: 'Shows patterns on tiles', storeKey: 'colorBlindMode' },
+      { type: 'toggle', id: 'reduceMotion', label: 'Reduce Motion', description: 'Skip all animations', storeKey: 'reduceMotion' },
     ],
   },
 ];

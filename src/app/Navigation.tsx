@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
-import { TouchableOpacity, Text, Alert, StyleSheet, BackHandler } from 'react-native';
+import { BackHandler } from 'react-native';
 import {
-  useNavigation,
   useFocusEffect,
   NavigationContainer,
   DefaultTheme,
@@ -19,38 +18,6 @@ import {
 } from '../screens';
 import { useTheme } from '../hooks/useTheme';
 import { useGameStore } from '../stores/gameStore';
-
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
-
-function NavMenuButton() {
-  const navigation = useNavigation<NavProp>();
-  const theme = useTheme();
-  const handlePress = useCallback(() => {
-    Alert.alert('Navigate to...', '', [
-      { text: 'Home', onPress: () => navigation.navigate('Home') },
-      { text: 'Statistics', onPress: () => navigation.navigate('Stats') },
-      { text: 'Settings', onPress: () => navigation.navigate('Settings') },
-      { text: 'Leaderboard', onPress: () => navigation.navigate('Leaderboard') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }, [navigation]);
-
-  return (
-    <TouchableOpacity onPress={handlePress} style={styles.menuButton}>
-      <Text style={[styles.menuIcon, { color: theme.colors.text.primary }]}>⋮</Text>
-    </TouchableOpacity>
-  );
-}
-
-const styles = StyleSheet.create({
-  menuButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  menuIcon: {
-    fontSize: 24,
-  },
-});
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -121,7 +88,6 @@ export function Navigation() {
           component={StatsScreen}
           options={{
             title: 'Statistics',
-            headerRight: () => <NavMenuButton />,
           }}
         />
         <Stack.Screen
@@ -129,7 +95,6 @@ export function Navigation() {
           component={SettingsScreen}
           options={{
             title: 'Settings',
-            headerRight: () => <NavMenuButton />,
           }}
         />
         <Stack.Screen
@@ -137,7 +102,6 @@ export function Navigation() {
           component={LeaderboardScreen}
           options={{
             title: 'Leaderboard',
-            headerRight: () => <NavMenuButton />,
           }}
         />
       </Stack.Navigator>

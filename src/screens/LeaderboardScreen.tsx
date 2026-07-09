@@ -11,6 +11,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { layout } from '../constants/layout';
 import { typography } from '../constants/typography';
 import { useAuthStore } from '../stores/authStore';
 import { getLeaderboardData } from '../services/leaderboardService';
@@ -53,6 +54,7 @@ export function LeaderboardScreen() {
         container: {
           flex: 1,
           backgroundColor: theme.colors.surface.background,
+          padding: layout.screenPadding,
         },
 
         // ── Segment control ──
@@ -173,7 +175,6 @@ export function LeaderboardScreen() {
 
         // ── List ──
         listContent: {
-          padding: 16,
           paddingBottom: 32,
         },
         entryRow: {

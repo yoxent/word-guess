@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { layout } from '../constants/layout';
 
 export function LoadingScreen() {
   const theme = useTheme();
@@ -12,7 +13,7 @@ export function LoadingScreen() {
           backgroundColor: theme.colors.surface.background,
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 24,
+          padding: layout.screenPadding,
         },
         title: {
           fontSize: 36,
