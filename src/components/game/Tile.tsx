@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
 import Animated, {
   useSharedValue,
   withTiming,
@@ -13,6 +13,7 @@ import Animated, {
 import type { TileFeedback } from '../../types';
 import { colors } from '../../constants/colors';
 import { layout } from '../../constants/layout';
+import { useSettingsStore } from '../../stores';
 import {
   TILE_FLIP_DURATION,
   TILE_STAGGER_DELAY,
@@ -37,7 +38,18 @@ const FEEDBACK_COLORS: Record<TileFeedback, string> = {
   empty: colors.tileEmpty,
 };
 
+function getAccessibilityLabel(letter: string, feedback: TileFeedback, index: number): string {
+  const position = index + 1;
+  if (letter === ' ' || letter === '') {
+    return `Position ${position}: empty`;
+  }
+  const state = feedback === 'empty' ? 'active' : feedback;
+  return `Position ${position}: ${letter.toUpperCase()}, ${state}`;
+}
+
 export function Tile({ letter, feedback, index, isRevealing, tileSize }: TileProps) {
+  const colorBlindMode = useSettingsStore((s) => s.colorBlindMode);
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const flipProgress = useSharedValue(0);
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
@@ -51,6 +63,13 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
   useEffect(() => {
     if (!isRevealing) {
       flipProgress.value = 0;
+      scale.value = 1;
+      return;
+    }
+
+    // When reduceMotion is on, skip animation and jump to final state
+    if (reduceMotion) {
+      flipProgress.value = 1;
       scale.value = 1;
       return;
     }
@@ -112,6 +131,9 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
   }));
 
+  // Compute dynamic text color — present tiles use dark text for contrast (D-180)
+  const letterColor = feedback === 'present' ? '#1a1a2e' : colors.textInverse;
+
   // Dynamic tile dimensions derived from tileSize
   const tileStyle: ViewStyle = {
     width: tileSize,
@@ -120,11 +142,15 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.tileEmpty,
+    overflow: 'hidden',
   };
   const tileFontSize = Math.round(tileSize * 0.48);
 
   return (
     <Animated.View
+      accessible={true}
+      accessibilityLabel={getAccessibilityLabel(letter, feedback, index)}
+      accessibilityRole="text"
       style={[
         tileStyle,
         showBorder && styles.tileBorder,
@@ -135,12 +161,35 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         <Animated.Text
           style={[
             styles.letter,
-            { fontSize: tileFontSize },
+            { fontSize: tileFontSize, color: letterColor },
             animatedTextStyle,
           ]}
         >
           {letter.toUpperCase()}
         </Animated.Text>
+      )}
+
+      {/* Texture overlay for color blind mode (LAUNCH-01) */}
+      {colorBlindMode && feedback !== 'empty' && (
+        <View style={[StyleSheet.absoluteFill, styles.textureContainer]} pointerEvents="none">
+          {feedback === 'correct' && (
+            <>
+              <View style={[styles.dot, { top: '25%', left: '50%', marginLeft: -3, marginTop: -3 }]} />
+              <View style={[styles.dot, { top: '60%', left: '25%', marginLeft: -3, marginTop: -3 }]} />
+              <View style={[styles.dot, { top: '60%', left: '75%', marginLeft: -3, marginTop: -3 }]} />
+            </>
+          )}
+          {feedback === 'present' && (
+            <View style={[StyleSheet.absoluteFill, { transform: [{ rotate: '45deg' }] }]}>
+              <View style={[styles.stripeBar, { top: '20%' }]} />
+              <View style={[styles.stripeBar, { top: '50%' }]} />
+              <View style={[styles.stripeBar, { top: '80%' }]} />
+            </View>
+          )}
+          {feedback === 'absent' && (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.15)' }]} />
+          )}
+        </View>
       )}
     </Animated.View>
   );
@@ -155,5 +204,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textInverse,
     textTransform: 'uppercase',
+  },
+  textureContainer: {
+    borderRadius: layout.tileBorderRadius,
+    overflow: 'hidden',
+  },
+  dot: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  stripeBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
 });
