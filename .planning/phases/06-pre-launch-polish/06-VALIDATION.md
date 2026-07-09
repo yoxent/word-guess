@@ -35,23 +35,25 @@ created: 2026-07-09
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Verification Method |
-|---------|------|------|-------------|-----------|-------------------|
-| 06-01-01 | 01 | 1 | D-155–D-162 | visual | Theme switch renders correctly on emulator |
-| 06-01-02 | 01 | 1 | D-181–D-183 | manual | sound.ts init + playback in dev build |
-| 06-02-01 | 02 | 1 | LAUNCH-01 | visual | Texture overlays visible when toggle ON |
-| 06-02-02 | 02 | 1 | LAUNCH-02 | manual | TalkBack reads correct labels |
-| 06-02-03 | 02 | 1 | LAUNCH-03 | visual | Font scales with system font size |
-| 06-02-04 | 02 | 1 | LAUNCH-04 | visual | All animations skip when toggle ON |
-| 06-02-05 | 02 | 1 | LAUNCH-05 | manual | Back button skips-to-final-state during animation |
-| 06-03-01 | 03 | 2 | D-175–D-177 | visual | Stagger entrance on Home screen |
-| 06-03-02 | 03 | 2 | D-192–D-194 | manual | How to Play modal renders correctly |
-| 06-03-03 | 03 | 2 | D-156, D-163, D-191 | visual | Settings rows appear and toggle correctly |
-| 06-03-04 | 03 | 2 | D-178–D-180 | code | ResultScreen.tsx deleted, confetti color changed |
-| 06-04-01 | 04 | 2 | LAUNCH-06 | manual | Privacy policy URL reachable, Play Console listing |
-| 06-04-02 | 04 | 2 | LAUNCH-07 | manual | console.time markers show in dev build |
-| 06-04-03 | 04 | 2 | LAUNCH-08 | manual | AAB builds via EAS, installs on device |
-| 06-04-04 | 04 | 2 | LAUNCH-09 | manual | Airplane mode → game works fully |
+| Task ID | Plan | Wave | Requirements | Test Type | Description |
+|---------|------|------|-------------|-----------|-------------|
+| 06-01-01 | 01 | 1 | D-181, D-182 | automated | Install expo-av, create assets/sounds/.gitkeep |
+| 06-01-02 | 01 | 1 | D-155, D-163, D-184 | automated | Extend AppSettings + settingsStore with 3 new fields |
+| 06-01-03 | 01 | 1 | D-155, D-163, D-184 | automated | Extend config registry (themeSelector type) + animation constants |
+| 06-02-01 | 02 | 1 | D-184–D-187 | automated | colors.ts restructured to lightColors+darkColors + useColors() hook |
+| 06-02-02 | 02 | 1 | LAUNCH-03 (D-161) | automated | typography.ts PixelRatio font scaling applied |
+| 06-02-03 | 02 | 1 | D-181–D-183 | automated | sound.ts wired with expo-av + init() in App.tsx |
+| 06-03-01 | 03 | 2 | LAUNCH-01, LAUNCH-02, LAUNCH-04 (D-155–D-160, D-163–D-180) | automated + visual | Tile.tsx: textures, TalkBack, contrast fix, reduceMotion (direct store reads) |
+| 06-03-02 | 03 | 2 | LAUNCH-02, LAUNCH-04 (D-159, D-164, D-179–D-183) | automated | Keyboard.tsx TalkBack + sound; Confetti.tsx fix + reduceMotion; ResultModal.tsx sound |
+| 06-03-03 | 03 | 2 | LAUNCH-04, LAUNCH-05 (D-167, D-178–D-183) | automated | GameScreen.tsx playReveal; delete ResultScreen; remove from types/navigation.ts |
+| 06-04-01 | 04 | 3 | D-175–D-177, D-192–D-194 | automated + visual | Home stagger animation + ? icon + HowToPlayModal + App.tsx setTimeout removal |
+| 06-04-02 | 04 | 3 | D-156, D-163, D-191 | automated | SettingsRow.tsx ThemeSelectorRow + toggle dispatch cases |
+| 06-04-03 | 04 | 3 | LAUNCH-05 (D-165–D-167), D-178, D-189–D-190 | automated | Navigation.tsx: BackHandler (setIsRevealing+flushPendingInputs), Result route removal, Nav theme; App.tsx StatusBar |
+| 06-05-01a | 05 | 3 | D-188 | automated | Screen files migration: 6 screens (Home, Game, Stats, Settings, Leaderboard, Loading) |
+| 06-05-01b | 05 | 3 | D-188 | automated | Game component files migration: Tile, Keyboard, Confetti, ResultModal, LengthPickerModal, GameBoard |
+| 06-05-01c | 05 | 3 | D-188 | automated | UI components + app files: Button, StatCard, SettingsRow, Navigation, App |
+| 06-06-01 | 06 | 3 | LAUNCH-06 (D-168), LAUNCH-07 (D-169–D-171) | automated + manual | Privacy policy creation + performance markers in App/GameScreen/StatsScreen |
+| 06-06-02 | 06 | 3 | LAUNCH-08 (D-172–D-173), LAUNCH-09 (D-174) | manual | Build checklist + offline-first test procedure |
 
 ---
 
@@ -72,7 +74,9 @@ created: 2026-07-09
 | Offline mode | LAUNCH-09 | Requires airplane mode | Enable airplane mode, launch app, play a full game |
 | Privacy policy | LAUNCH-06 | Requires Play Store | Submit to Play Console, verify privacy policy link in listing |
 | Performance markers | LAUNCH-07 | Requires dev build console | Run dev build, check Metro console for time/timeEnd output |
-| Ad display | LAUNCH-06 | Requires real ad units | Swap to test IDs, verify interstitial/rewarded ads display correctly |
+| Texture overlays | LAUNCH-01 | Visual check | Toggle colorBlindMode ON, verify dots/stripes/solid visible on tiles |
+| Home stagger animation | D-175–D-177 | Visual check | Verify title → buttons → icons stagger sequence on app launch |
+| How to Play modal | D-192–D-194 | Visual check | Tap ? icon, verify tile examples + rules + dismiss button |
 
 ---
 
