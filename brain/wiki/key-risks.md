@@ -110,6 +110,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
+### P31: Flat useColors() API produces "wrong key for context" bugs (FIXED 2026-07-09)
+- Cause: The pre-refactor `useColors()` hook returned a flat object (`{ accent, textPrimary, tileCorrect, ... }`). Components picked colors by key name, with no semantic distinction between "button background" and "toggle track" and "icon color" — all three used `colors.accent`. When a component wanted the wrong color (or missed setting any color, as in P30), nothing in the type system caught it.
+- Symptom: Recurring contrast / wrong-color bugs across the dark theme migration. P30 was the most visible (unreadable toggle label) but the underlying anti-pattern was everywhere.
+- Fix: Replaced `useColors()` with `useTheme()` that returns a semantic structure. Components now ask for `theme.colors.button.primary.bg` instead of `colors.accent`. The type system forces every consumer to pick a semantically valid color slot — there is no `theme.colors.accent` shortcut.
+- Lesson: When you have "one color used for many things" in a flat namespace, the type system can't help you. Semantic grouping makes intent explicit and prevents the wrong-key bug by construction.
+- Phase: 6 (Post-launch) — see [theme-system](./theme-system.md) for full architecture.
+
 ### P30: Text contrast — module-level styles without color (FIXED 2026-07-09)
 - Cause: `SettingsRow.ToggleRow` was the only row type using a module-level `styles` constant (the others all use `useStyles(colors)`). The module-level `styles.label` had no `color` property, so the label inherited the OS default text color (black on Android).
 - Symptom: Toggle row labels ("Sound Effects", "Haptic Feedback", "Color Blind Mode", "Reduce Motion") were black on the dark `surface` card (`#2a2a3e`) in dark theme — essentially invisible.
