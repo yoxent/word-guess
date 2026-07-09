@@ -56,6 +56,7 @@ export function SettingsRow({
 
 function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } }) {
   const colors = useColors();
+  const styles = useStyles(colors);
   const value = useSettingsStore((s) => s[config.storeKey]);
   const toggleAction = useSettingsStore((s) => {
     switch (config.storeKey) {
@@ -282,32 +283,32 @@ function useStyles(colors: ReturnType<typeof useColors>) {
         },
         segmentActive: {
           backgroundColor: colors.surface,
+          // Subtle border in dark theme so the active segment is visually distinct
+          // from the surrounding surface (which has the same color as the card behind it).
+          borderWidth: 0.5,
+          borderColor: colors.tileBorder,
         },
         segmentText: {
+          // Use textPrimary (not textSecondary) for the inactive label so it stays
+          // readable on the tileEmpty track. textSecondary was 1.4:1 on tileEmpty
+          // in light theme (fails WCAG AA).
           fontSize: 13,
           fontWeight: '500',
-          color: colors.textSecondary,
+          color: colors.textPrimary,
+          opacity: 0.65,
         },
         segmentTextActive: {
           color: colors.textPrimary,
           fontWeight: '600',
+          opacity: 1,
         },
       }),
     [colors],
   );
 }
 
-// Backwards-compatible alias for the original module-level styles export
-// (used by ToggleRow above which reads styles.row/styles.label directly).
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  label: {
-    ...typography.settingsRow,
-    flex: 1,
-  },
-});
+// All row types now read from useStyles(colors) (theme-aware). The previous
+// module-level `styles` alias was removed in 2026-07-09 — it was the root
+// cause of the 'Sound Effects' label being unreadable in dark theme (no
+// color was set, so the text inherited the OS default = black on Android,
+// blending into the dark surface card).

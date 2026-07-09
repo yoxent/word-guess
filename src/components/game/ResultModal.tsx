@@ -91,6 +91,10 @@ export function ResultModal() {
           lineHeight: 20,
           fontFamily: 'monospace',
           textAlign: 'center',
+          // Explicit color for the Text container. The emoji glyphs themselves
+          // carry color (🟩🟨⬛), so this primarily guards against a stray default
+          // (e.g. if the system font were ever used instead of an emoji font).
+          color: colors.textPrimary,
         },
         buttonContainer: {
           marginTop: 8,

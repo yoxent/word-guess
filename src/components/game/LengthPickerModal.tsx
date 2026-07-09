@@ -93,7 +93,10 @@ export function LengthPickerModal({
           color: colors.textPrimary,
         },
         lengthNumberCompleted: {
-          color: colors.textSecondary,
+          // Keep high contrast on the translucent overlay — tileAbsent failed
+          // WCAG AA on rgba(120,124,126,0.3) in light theme.
+          color: colors.textPrimary,
+          opacity: 0.5,
         },
         lengthSubtitle: {
           fontSize: 12,
@@ -101,7 +104,8 @@ export function LengthPickerModal({
           marginTop: 2,
         },
         lengthSubtitleCompleted: {
-          color: colors.tileAbsent,
+          color: colors.textPrimary,
+          opacity: 0.5,
         },
         checkmarkContainer: {
           position: 'absolute',
