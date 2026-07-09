@@ -1,12 +1,46 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { layout } from '../../constants/layout';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
 
 export function GameBoard() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          justifyContent: 'center',
+        },
+        emptyContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        loadingText: {
+          fontSize: 16,
+          color: colors.textSecondary,
+        },
+        attemptsContainer: {
+          alignItems: 'center',
+          marginBottom: 8,
+        },
+        attemptsText: {
+          fontSize: 14,
+          color: colors.textSecondary,
+          fontWeight: '500',
+        },
+        grid: {
+          gap: layout.tileGap,
+          alignItems: 'center',
+        },
+      }),
+    [colors],
+  );
+
   const session = useGameStore((s) => s.session);
   const currentGuess = useGameStore((s) => s.currentGuess);
   const error = useGameStore((s) => s.error);
@@ -111,32 +145,3 @@ export function GameBoard() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  attemptsContainer: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  attemptsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  grid: {
-    gap: layout.tileGap,
-    alignItems: 'center',
-  },
-});

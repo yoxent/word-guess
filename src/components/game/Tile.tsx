@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -11,7 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import type { TileFeedback } from '../../types';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { layout } from '../../constants/layout';
 import { useSettingsStore } from '../../stores';
 import {
@@ -31,13 +31,6 @@ interface TileProps {
   tileSize: number;
 }
 
-const FEEDBACK_COLORS: Record<TileFeedback, string> = {
-  correct: colors.tileCorrect,
-  present: colors.tilePresent,
-  absent: colors.tileAbsent,
-  empty: colors.tileEmpty,
-};
-
 function getAccessibilityLabel(letter: string, feedback: TileFeedback, index: number): string {
   const position = index + 1;
   if (letter === ' ' || letter === '') {
@@ -48,11 +41,52 @@ function getAccessibilityLabel(letter: string, feedback: TileFeedback, index: nu
 }
 
 export function Tile({ letter, feedback, index, isRevealing, tileSize }: TileProps) {
+  const colors = useColors();
   const colorBlindMode = useSettingsStore((s) => s.colorBlindMode);
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const flipProgress = useSharedValue(0);
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
+
+  // Build dynamic styles + feedback color map from active theme
+  const { styles, feedbackColors } = useMemo(() => {
+    const feedbackColors: Record<TileFeedback, string> = {
+      correct: colors.tileCorrect,
+      present: colors.tilePresent,
+      absent: colors.tileAbsent,
+      empty: colors.tileEmpty,
+    };
+    const styles = StyleSheet.create({
+      tileBorder: {
+        borderWidth: 2,
+        borderColor: colors.tileBorder,
+      },
+      letter: {
+        fontWeight: '700',
+        color: colors.textInverse,
+        textTransform: 'uppercase',
+      },
+      textureContainer: {
+        borderRadius: layout.tileBorderRadius,
+        overflow: 'hidden',
+      },
+      dot: {
+        position: 'absolute',
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+      },
+      stripeBar: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: 'rgba(255,255,255,0.35)',
+      },
+    });
+    return { styles, feedbackColors };
+  }, [colors]);
 
   // isEmpty: only check the letter value, not feedback status
   // (active row tiles have feedback='empty' but still need to show letters)
@@ -108,7 +142,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     const bgColor = interpolateColor(
       flipProgress.value,
       [0, 0.5, 1],
-      [colors.tileEmpty, colors.tileEmpty, FEEDBACK_COLORS[feedback]],
+      [colors.tileEmpty, colors.tileEmpty, feedbackColors[feedback]],
     );
 
     const rotateX = interpolate(
@@ -194,33 +228,3 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  tileBorder: {
-    borderWidth: 2,
-    borderColor: colors.tileBorder,
-  },
-  letter: {
-    fontWeight: '700',
-    color: colors.textInverse,
-    textTransform: 'uppercase',
-  },
-  textureContainer: {
-    borderRadius: layout.tileBorderRadius,
-    overflow: 'hidden',
-  },
-  dot: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-  },
-  stripeBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
-});

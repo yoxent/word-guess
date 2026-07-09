@@ -7,7 +7,7 @@ import { useGameStore, useSettingsStore } from '../../stores';
 import * as sound from '../../services/sound';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { useAdStore } from '../../stores/adStore';
 import { config } from '../../constants/config';
 import { Button } from '../../components/ui';
@@ -31,6 +31,93 @@ const EMOJI_MAP: Record<string, string> = {
 };
 
 export function ResultModal() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        card: {
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+          padding: 24,
+          alignItems: 'center',
+          minWidth: 280,
+          maxWidth: '85%',
+        },
+        titleRow: {
+          alignItems: 'center',
+          width: '100%',
+          marginBottom: 12,
+        },
+        title: {
+          fontSize: 28,
+          fontWeight: '700',
+          textAlign: 'center',
+        },
+        word: {
+          fontSize: 32,
+          fontWeight: '800',
+          textTransform: 'uppercase',
+          color: colors.textPrimary,
+          marginBottom: 8,
+          letterSpacing: 2,
+        },
+        definition: {
+          fontSize: 14,
+          color: colors.textSecondary,
+          fontStyle: 'italic',
+          textAlign: 'center',
+          marginTop: 4,
+          marginBottom: 12,
+          paddingHorizontal: 8,
+        },
+        streak: {
+          fontSize: 16,
+          fontWeight: '600',
+          textAlign: 'center',
+          marginBottom: 4,
+        },
+        emojiContainer: {
+          marginVertical: 16,
+          alignItems: 'center',
+        },
+        emojiText: {
+          fontSize: 14,
+          lineHeight: 20,
+          fontFamily: 'monospace',
+          textAlign: 'center',
+        },
+        buttonContainer: {
+          marginTop: 8,
+          width: '100%',
+          alignItems: 'center',
+        },
+        playNextButton: {
+          width: '100%',
+        },
+        watchAdButton: {
+          backgroundColor: colors.accent,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          marginTop: 8,
+          width: '100%',
+          alignItems: 'center',
+        },
+        watchAdText: {
+          color: colors.textInverse,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
+
   const navigation = useNavigation<Nav>();
   const session = useGameStore((s) => s.session);
   const resetGame = useGameStore((s) => s.resetGame);
@@ -233,85 +320,3 @@ export function ResultModal() {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    minWidth: 280,
-    maxWidth: '85%',
-  },
-  titleRow: {
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  word: {
-    fontSize: 32,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    color: colors.textPrimary,
-    marginBottom: 8,
-    letterSpacing: 2,
-  },
-  definition: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  streak: {
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  emojiContainer: {
-    marginVertical: 16,
-    alignItems: 'center',
-  },
-  emojiText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    marginTop: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  playNextButton: {
-    width: '100%',
-  },
-  watchAdButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  watchAdText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

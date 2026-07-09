@@ -1,7 +1,7 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
-import { colors } from '../../constants/colors';
+import { useColors } from '../../hooks/useColors';
 import { layout } from '../../constants/layout';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
@@ -17,14 +17,55 @@ function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
 }
 
-const KEY_COLOR_MAP: Record<string, string> = {
-  correct: colors.keyCorrect,
-  present: colors.keyPresent,
-  absent: colors.keyAbsent,
-  unused: colors.keyUnused,
-};
-
 function KeyboardComponent() {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          width: '100%',
+          paddingBottom: 16,
+        },
+        row: {
+          flexDirection: 'row',
+          gap: layout.keyboardKeyGap,
+          marginBottom: 4,
+        },
+        spacer: {
+          flex: 0.5,
+        },
+        key: {
+          flex: 1,
+          height: layout.keyboardKeyHeight,
+          borderRadius: layout.keyboardKeyBorderRadius,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        wideKey: {
+          flex: 1.5,
+        },
+        keyDisabled: {
+          opacity: 0.4,
+        },
+        keyText: {
+          fontWeight: '700',
+          textTransform: 'uppercase',
+        },
+      }),
+    [colors],
+  );
+
+  // Build feedback → color map from active theme
+  const keyColorMap = useMemo<Record<string, string>>(
+    () => ({
+      correct: colors.keyCorrect,
+      present: colors.keyPresent,
+      absent: colors.keyAbsent,
+      unused: colors.keyUnused,
+    }),
+    [colors],
+  );
+
   const session = useGameStore((s) => s.session);
   const addLetter = useGameStore((s) => s.addLetter);
   const removeLetter = useGameStore((s) => s.removeLetter);
@@ -69,7 +110,7 @@ function KeyboardComponent() {
     }
     const feedback = session?.keyColors?.[key];
     const status: TileFeedback | 'unused' = feedback ?? 'unused';
-    return KEY_COLOR_MAP[status] || colors.keyUnused;
+    return keyColorMap[status] || colors.keyUnused;
   };
 
   const isKeyDisabled = (key: string): boolean => {
@@ -155,35 +196,3 @@ function KeyboardComponent() {
 KeyboardComponent.displayName = 'Keyboard';
 
 export const Keyboard = memo(KeyboardComponent);
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    paddingBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: layout.keyboardKeyGap,
-    marginBottom: 4,
-  },
-  spacer: {
-    flex: 0.5,
-  },
-  key: {
-    flex: 1,
-    height: layout.keyboardKeyHeight,
-    borderRadius: layout.keyboardKeyBorderRadius,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  wideKey: {
-    flex: 1.5,
-  },
-  keyDisabled: {
-    opacity: 0.4,
-  },
-  keyText: {
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-});
