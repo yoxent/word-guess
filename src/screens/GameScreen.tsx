@@ -7,6 +7,7 @@ import * as sound from '../services/sound';
 import type { ScreenProps } from '../types';
 import { useColors } from '../hooks/useColors';
 import { useGameStore, useDictionaryStore, useStatsStore } from '../stores';
+import { useSettingsStore } from '../stores/settingsStore';
 import {
   getActiveGame,
   saveActiveGame,
@@ -208,11 +209,13 @@ export function GameScreen({ route }: Props) {
         setIsRevealing(false); // Unblock keyboard input
         flushPendingInputs(); // Process queued inputs (D-66)
 
-        // Play tile reveal sound before haptic (D-181)
+        // Play tile reveal sound before haptic (D-181) — gated by sound service setEnabled()
         sound.playReveal();
 
-        // Haptic on reveal completion (D-18)
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        // Haptic on reveal completion (D-18) — only if user has haptics enabled
+        if (useSettingsStore.getState().hapticEnabled) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        }
 
         // Check for game over and persist result
         const currentSession = useGameStore.getState().session;

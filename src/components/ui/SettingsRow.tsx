@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { setSoundEnabled } from '../../services';
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColors } from '../../hooks/useColors';
@@ -66,6 +67,13 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
       default: return () => {};
     }
   });
+
+  // Side effects for toggles that need to apply changes outside the store
+  useEffect(() => {
+    if (config.storeKey === 'soundEnabled') {
+      setSoundEnabled(!!value);
+    }
+  }, [value, config.storeKey]);
 
   return (
     <View style={styles.row}>

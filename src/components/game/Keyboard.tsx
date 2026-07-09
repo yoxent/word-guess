@@ -5,6 +5,7 @@ import { useColors } from '../../hooks/useColors';
 import { layout } from '../../constants/layout';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
+import { useSettingsStore } from '../../stores/settingsStore';
 import type { TileFeedback } from '../../types';
 
 const ROWS = [
@@ -73,16 +74,19 @@ function KeyboardComponent() {
   const currentGuess = useGameStore((s) => s.currentGuess);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
+  const hapticEnabled = useSettingsStore((s) => s.hapticEnabled);
 
   const isPlaying = session?.status === 'playing';
   const isBlocked = !isPlaying || isRevealing;
 
   const handlePress = useCallback(
     (key: string) => {
-      // Light haptic on any key press (D-18)
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      // Light haptic on any key press (D-18) — only if user has haptics enabled
+      if (hapticEnabled) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
 
-      // Play key press sound (D-181)
+      // Play key press sound (D-181) — gated by sound service setEnabled()
       sound.playKeyPress();
 
       if (!isPlaying) return;

@@ -36,13 +36,6 @@ export const statsConfig: StatCardConfig[] = [
 
 export const settingsConfig: SettingsSectionConfig[] = [
   {
-    id: 'gameplay',
-    title: 'Gameplay',
-    rows: [
-      { type: 'toggle', id: 'hardMode', label: 'Hard Mode', storeKey: 'hardModeEnabled' },
-    ],
-  },
-  {
     id: 'audioHaptics',
     title: 'Audio & Haptics',
     rows: [
