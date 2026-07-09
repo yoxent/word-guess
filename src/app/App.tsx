@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
 import { Navigation } from './Navigation';
 import { LoadingScreen } from '../screens/LoadingScreen';
 import { fetchAdUnitIds } from '../services/remoteConfig';
@@ -14,6 +13,12 @@ import * as sound from '../services/sound';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
+
+  // D-190: StatusBar style based on active theme
+  const systemScheme = useColorScheme();
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const activeTheme: 'light' | 'dark' =
+    themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;
 
   useEffect(() => {
     // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
@@ -93,7 +98,7 @@ export default function App() {
   if (!isReady) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
         <LoadingScreen />
       </>
     );
@@ -101,10 +106,8 @@ export default function App() {
 
   return (
     <>
-      <StatusBar style="dark" />
-      <NavigationContainer>
-        <Navigation />
-      </NavigationContainer>
+      <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
+      <Navigation />
     </>
   );
 }
