@@ -24,13 +24,8 @@ export default function App() {
     // Sync sound enabled state on init
     sound.setEnabled(useSettingsStore.getState().soundEnabled);
 
-    // Brief delay ensures dictionary JSON is fully parsed and
-    // provides a smooth splash-to-app transition
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 500);
-
-    return () => clearTimeout(timer);
+    // D-175: No artificial delay — Home screen stagger entrance handles visual transition
+    setIsReady(true);
   }, []);
 
   // D-118: Silent sign-in on startup — non-blocking, fire-and-forget

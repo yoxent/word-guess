@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Switch } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Switch, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
 import { colors } from '../constants/colors';
-import { Button } from '../components/ui';
+import { HOME_STAGGER_DELAY, HOME_STAGGER_DURATION } from '../constants/animations';
+import { Button, HowToPlayModal } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { useSettingsStore } from '../stores';
 import {
@@ -27,6 +28,14 @@ export function HomeScreen() {
   const [pickerMode, setPickerMode] = useState<GameMode>('daily');
   const [completedDailyLengths, setCompletedDailyLengths] = useState<number[]>([]);
   const [continueModal, setContinueModal] = useState<{ mode: GameMode; length: number } | null>(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  // D-176: Stagger entrance animation refs (D-175-D-177)
+  const titleAnim = useRef(new Animated.Value(0)).current;
+  const subtitleAnim = useRef(new Animated.Value(0)).current;
+  const buttonAnims = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  const iconAnim = useRef(new Animated.Value(0)).current;
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
 
   const hardMode = useSettingsStore((s) => s.hardModeEnabled);
   const toggleHardMode = useSettingsStore((s) => s.toggleHardMode);
@@ -37,6 +46,61 @@ export function HomeScreen() {
     const completed = getDailyCompletedLengths(dateStr);
     setCompletedDailyLengths(completed);
   }, []);
+
+  // D-176: Stagger entrance animation — title (0ms) → buttons (80ms each) → icons (after last)
+  useEffect(() => {
+    if (reduceMotion) {
+      titleAnim.setValue(1);
+      subtitleAnim.setValue(1);
+      buttonAnims.forEach(a => a.setValue(1));
+      iconAnim.setValue(1);
+      return;
+    }
+
+    // Title (0ms delay)
+    Animated.timing(titleAnim, {
+      toValue: 1,
+      duration: HOME_STAGGER_DURATION,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.ease),
+    }).start();
+
+    // Subtitle (50ms after title start per UI spec)
+    const subtitleTimer = setTimeout(() => {
+      Animated.timing(subtitleAnim, {
+        toValue: 1,
+        duration: HOME_STAGGER_DURATION,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }).start();
+    }, 50);
+
+    // Buttons (80ms stagger per button — D-176)
+    Animated.stagger(HOME_STAGGER_DELAY, buttonAnims.map(anim =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: HOME_STAGGER_DURATION,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      })
+    )).start();
+
+    // Icon bar (starts after last button animation completes)
+    const lastButtonDelay = HOME_STAGGER_DELAY * 3 + HOME_STAGGER_DURATION;
+    const iconTimer = setTimeout(() => {
+      Animated.timing(iconAnim, {
+        toValue: 1,
+        duration: HOME_STAGGER_DURATION,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }).start();
+    }, lastButtonDelay);
+
+    return () => {
+      clearTimeout(subtitleTimer);
+      clearTimeout(iconTimer);
+    };
+  }, [reduceMotion, titleAnim, subtitleAnim, buttonAnims, iconAnim]);
 
   // ── Check for saved game and prompt to continue or start fresh ──
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
@@ -91,16 +155,49 @@ export function HomeScreen() {
     navigateWithContinueCheck(pickerMode, length);
   };
 
+  // Build staggered translate+opacity style
+  const fadeSlide = (anim: Animated.Value) => ({
+    opacity: anim,
+    transform: [
+      {
+        translateY: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [10, 0],
+        }),
+      },
+    ],
+  });
+
   return (
     <View style={[styles.container, { paddingBottom: 24 + insets.bottom }]}>
       {/* Top bar with icons (offset for status bar) */}
-      <View style={[styles.topBar, { top: insets.top, paddingRight: insets.right }]}>
+      <Animated.View
+        style={[
+          styles.topBar,
+          { top: insets.top, paddingRight: insets.right },
+          fadeSlide(iconAnim),
+        ]}
+      >
         <View />
         <View style={styles.topBarIcons}>
+          {/* D-194: ? icon for How to Play — leftmost per UI spec */}
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => setShowHowToPlay(true)}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="How to Play"
+          >
+            <MaterialIcons name="help-outline" size={26} color={colors.headerText} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Stats')}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Statistics"
           >
             <MaterialIcons name="emoji-events" size={26} color={colors.headerText} />
           </TouchableOpacity>
@@ -108,6 +205,9 @@ export function HomeScreen() {
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Leaderboard')}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Leaderboard"
           >
             <MaterialIcons name="leaderboard" size={26} color={colors.headerText} />
           </TouchableOpacity>
@@ -115,21 +215,34 @@ export function HomeScreen() {
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Settings')}
             activeOpacity={0.7}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
           >
             <MaterialIcons name="settings" size={26} color={colors.headerText} />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
-      <Text style={styles.title}>Word Guess</Text>
-      <Text style={styles.subtitle}>Choose a mode to play</Text>
+      <Animated.View style={fadeSlide(titleAnim)}>
+        <Text style={styles.title}>Word Guess</Text>
+      </Animated.View>
+      <Animated.View style={fadeSlide(subtitleAnim)}>
+        <Text style={styles.subtitle}>Choose a mode to play</Text>
+      </Animated.View>
 
       <View style={styles.modes}>
-        <Button title="Daily Challenge" onPress={handleDaily} />
+        <Animated.View style={fadeSlide(buttonAnims[0])}>
+          <Button title="Daily Challenge" onPress={handleDaily} />
+        </Animated.View>
         <View style={styles.spacer} />
-        <Button title="Endless" onPress={handleEndless} />
+        <Animated.View style={fadeSlide(buttonAnims[1])}>
+          <Button title="Endless" onPress={handleEndless} />
+        </Animated.View>
         <View style={styles.spacer} />
-        <Button title="Random" onPress={handleRandom} />
+        <Animated.View style={fadeSlide(buttonAnims[2])}>
+          <Button title="Random" onPress={handleRandom} />
+        </Animated.View>
       </View>
 
       <View style={styles.hardModeRow}>
@@ -148,6 +261,11 @@ export function HomeScreen() {
         onSelect={handleLengthSelect}
         onClose={() => setShowPicker(false)}
         completedLengths={pickerMode === 'daily' ? completedDailyLengths : []}
+      />
+
+      <HowToPlayModal
+        visible={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
       />
 
       <Modal visible={continueModal !== null} transparent animationType="fade">
