@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, AppState, AppStateStat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as sound from '../services/sound';
 import type { ScreenProps } from '../types';
 import { colors } from '../constants/colors';
 import { useGameStore, useDictionaryStore, useStatsStore } from '../stores';
@@ -141,6 +142,9 @@ export function GameScreen({ route }: Props) {
       const timer = setTimeout(() => {
         setIsRevealing(false); // Unblock keyboard input
         flushPendingInputs(); // Process queued inputs (D-66)
+
+        // Play tile reveal sound before haptic (D-181)
+        sound.playReveal();
 
         // Haptic on reveal completion (D-18)
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
