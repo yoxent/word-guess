@@ -1,45 +1,46 @@
-import { Audio } from 'expo-av';
+import {
+  createAudioPlayer,
+  setAudioModeAsync,
+  type AudioPlayer,
+} from 'expo-audio';
 
 let _enabled = true;
-let _sounds: Record<string, Audio.Sound> = {};
+let _players: Record<string, AudioPlayer> = {};
 
 export async function init(): Promise<void> {
-  await Audio.setAudioModeAsync({
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: false,
-    shouldDuckAndroid: true,
+  await setAudioModeAsync({
+    playsInSilentMode: true,
+    shouldPlayInBackground: false,
+    interruptionMode: 'duckOthers',
   });
 
-  const soundFiles: Record<string, any> = {
+  const soundFiles: Record<string, number> = {
     keypress: require('../../assets/sounds/keypress.wav'),
     reveal: require('../../assets/sounds/reveal.wav'),
     win: require('../../assets/sounds/win.wav'),
     loss: require('../../assets/sounds/lose.wav'),
   };
 
-  const entries = Object.entries(soundFiles);
-  await Promise.all(
-    entries.map(async ([name, source]) => {
-      try {
-        const { sound } = await Audio.Sound.createAsync(source);
-        _sounds[name] = sound;
-      } catch (e) {
-        console.warn(`[sound] Failed to load ${name}:`, e);
-      }
-    }),
-  );
+  for (const [name, source] of Object.entries(soundFiles)) {
+    try {
+      _players[name] = createAudioPlayer(source);
+    } catch (e) {
+      console.warn(`[sound] Failed to load ${name}:`, e);
+    }
+  }
 }
 
 export function setEnabled(enabled: boolean): void {
   _enabled = enabled;
 }
 
-async function play(name: string): Promise<void> {
+function play(name: string): void {
   if (!_enabled) return;
-  const sound = _sounds[name];
-  if (!sound) return;
+  const player = _players[name];
+  if (!player) return;
   try {
-    await sound.replayAsync();
+    player.seekTo(0);
+    player.play();
   } catch (e) {
     console.warn(`[sound] Failed to play ${name}:`, e);
   }

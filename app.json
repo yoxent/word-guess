@@ -46,7 +46,14 @@
             "kotlinVersion": "2.3.0"
           }
         }
-      ]
-    ]
+      ],
+      "expo-audio",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6a882883-5561-4b6a-bd2f-05d4b8f8cd3e"
+      }
+    }
   }
 }
