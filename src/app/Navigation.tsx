@@ -55,15 +55,14 @@ const styles = StyleSheet.create({
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export function Navigation() {
-  const colors = useColors();
-  // D-189: Nav theme injection — prevent white flash on navigation
-  const navTheme = colors === darkColors ? DarkTheme : DefaultTheme;
-
-  // D-165-D-167: Centralized BackHandler — block back during tile animation (skip-to-final-state)
-  // NOTE: isAdShowing and isIAPActive are not present in the current adStore/settingsStore; the
-  // ad and IAP lifecycles are managed in their respective screens. Future phase may add these
-  // flags so the BackHandler can block during ad display / IAP flow. (Deviation 06-04-1)
+// D-165-D-167: Centralized BackHandler — block back during tile animation (skip-to-final-state)
+// NOTE: isAdShowing and isIAPActive are not present in the current adStore/settingsStore; the
+// ad and IAP lifecycles are managed in their respective screens. Future phase may add these
+// flags so the BackHandler can block during ad display / IAP flow. (Deviation 06-04-1)
+// MUST be rendered INSIDE <NavigationContainer> so useFocusEffect has navigation context.
+// Previously this hook was called in the outer Navigation() function alongside the
+// <NavigationContainer> JSX, which crashed with "Couldn't find a navigation object" on RN 0.86.
+function BackHandlerController() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -86,9 +85,17 @@ export function Navigation() {
       return () => subscription.remove();
     }, [])
   );
+  return null;
+}
+
+export function Navigation() {
+  const colors = useColors();
+  // D-189: Nav theme injection — prevent white flash on navigation
+  const navTheme = colors === darkColors ? DarkTheme : DefaultTheme;
 
   return (
     <NavigationContainer theme={navTheme}>
+      <BackHandlerController />
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
