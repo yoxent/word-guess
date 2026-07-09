@@ -110,6 +110,16 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
+### P33: Continuous volume slider — custom PanResponder implementation (2026-07-09)
+- Cause: The user wanted a real continuous slider for volume control, not a 3-position segmented control. A community slider package (`@react-native-community/slider`) would have added a native module, but the user has been burned by native-module JSI issues before (P28), and a custom slider is only ~50 lines of code with PanResponder.
+- Fix: `VolumeSlider` component built on `PanResponder` in `SettingsRow.tsx`:
+  - Touch area is 40px tall (track is 6px — easier to grab)
+  - PanResponder handles both tap-to-jump and drag
+  - Value rounded to 2 decimals before persisting (avoids float noise from rapid drags writing dozens of unique values)
+  - `accessibilityRole="adjustable"` + `accessibilityValue` for screen readers
+- Lesson: For a single-purpose control with a well-defined input range (0-1), a custom PanResponder-based component is cheaper than a native dep. Native deps add build complexity, prebuild risk, and a runtime surface for ABI mismatches. Custom RN components are fine when the control fits in ~50 lines and doesn't need 60fps gesture handling.
+- Phase: 6 (Post-launch)
+
 ### P32: Audio architecture — BGM with reactive volume + AppState lifecycle (2026-07-09)
 - Cause: BGM (background music) needs to play continuously across the app, but respect (a) user volume preference, (b) app lifecycle (pause on background), and (c) live updates when the user adjusts the volume slider in Settings.
 - Fix: New audio service architecture in `src/services/sound.ts`:

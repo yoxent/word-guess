@@ -3,13 +3,18 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { mmkvZustandStorage } from '../services/storage';
 import type { AppSettings } from '../types';
 
-/** Allowed discrete volume values. 0 = Off, 0.75 = Default, 1 = Max. */
-export type VolumeLevel = 0 | 0.75 | 1;
+/**
+ * Valid volume range. Values outside this are clamped when applied to
+ * audio players (the slider UI never produces them, but the persisted
+ * state from older schemas could in theory).
+ */
+export const MIN_VOLUME = 0;
+export const MAX_VOLUME = 1;
 
 interface SettingsState extends AppSettings {
   toggleHardMode: () => void;
-  setBgmVolume: (v: VolumeLevel) => void;
-  setSfxVolume: (v: VolumeLevel) => void;
+  setBgmVolume: (v: number) => void;
+  setSfxVolume: (v: number) => void;
   toggleHaptic: () => void;
   setPro: (value: boolean) => void;
   toggleColorBlindMode: () => void;
@@ -29,8 +34,8 @@ export const useSettingsStore = create<SettingsState>()(
       reduceMotion: false,
       themeMode: 'system',
       toggleHardMode: () => set((s) => ({ hardModeEnabled: !s.hardModeEnabled })),
-      setBgmVolume: (v) => set({ bgmVolume: v }),
-      setSfxVolume: (v) => set({ sfxVolume: v }),
+      setBgmVolume: (v) => set({ bgmVolume: clamp(v) }),
+      setSfxVolume: (v) => set({ sfxVolume: clamp(v) }),
       toggleHaptic: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
       setPro: (value) => set({ isPro: value }),
       toggleColorBlindMode: () => set((s) => ({ colorBlindMode: !s.colorBlindMode })),
@@ -41,9 +46,9 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'settings-storage',
       storage: createJSONStorage(() => mmkvZustandStorage),
       // 2026-07-09: bumped from 1 to 2. v1 had `soundEnabled: boolean`;
-      // v2 has `bgmVolume` and `sfxVolume` numeric fields. The migrate
-      // function converts v1 → v2 so existing users keep their audio
-      // preference instead of silently snapping to the default.
+      // v2 had `bgmVolume` and `sfxVolume` as 3-position values (0 | 0.75 | 1).
+      // 2026-07-09: NOT bumped again for the slider change — old values
+      // (0, 0.75, 1) are still valid numbers in the continuous [0, 1] range.
       version: 2,
       migrate: (persistedState, version) => {
         if (version < 2) {
@@ -61,3 +66,8 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 );
+
+function clamp(v: number): number {
+  if (Number.isNaN(v)) return 0;
+  return Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, v));
+}

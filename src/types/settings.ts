@@ -1,15 +1,16 @@
 export interface AppSettings {
   hardModeEnabled: boolean;
   /**
-   * Background music volume. 0 = Off, 0.75 = Default, 1 = Max.
-   * Replaces the old `soundEnabled: boolean` toggle (added 2026-07-09).
+   * Background music volume. Continuous value in [0, 1]. 0 = silent, 1 = max.
+   * Replaces the old `soundEnabled: boolean` toggle and the 3-position
+   * `bgmVolume: 0 | 0.75 | 1` slider. Persisted values from either prior
+   * schema are still valid (0, 0.75, 1 are all valid numbers).
    */
-  bgmVolume: 0 | 0.75 | 1;
+  bgmVolume: number;
   /**
-   * Sound effects volume. 0 = Off, 0.75 = Default, 1 = Max.
-   * Replaces the old `soundEnabled: boolean` toggle (added 2026-07-09).
+   * Sound effects volume. Continuous value in [0, 1]. Same semantics as bgmVolume.
    */
-  sfxVolume: 0 | 0.75 | 1;
+  sfxVolume: number;
   hapticEnabled: boolean;
   isPro: boolean;
   /** Color blind mode — shows patterns on tiles in addition to colors */

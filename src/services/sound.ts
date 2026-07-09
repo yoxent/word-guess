@@ -5,8 +5,8 @@ import {
 } from 'expo-audio';
 import { useSettingsStore } from '../stores/settingsStore';
 
-/** Allowed volume values for BGM and SFX. */
-export type VolumeLevel = 0 | 0.75 | 1;
+/** Volume in [0, 1]. */
+export type VolumeLevel = number;
 
 // Module-level state
 let _sfxPlayers: Record<string, AudioPlayer> = {};

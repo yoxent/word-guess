@@ -1,11 +1,18 @@
-import React, { useMemo } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  Switch,
+  TouchableOpacity,
+  StyleSheet,
+  PanResponder,
+  LayoutChangeEvent,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
-import { VOLUME_OPTIONS } from '../../config/ui';
-import { useSettingsStore, type VolumeLevel } from '../../stores/settingsStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
 
 interface SettingsRowProps {
@@ -32,8 +39,8 @@ export function SettingsRow({
       return <ToggleRow config={config} />;
     case 'themeSelector':
       return <ThemeSelectorRow config={config} />;
-    case 'volumeSelector':
-      return <VolumeSelectorRow config={config} />;
+    case 'volumeSlider':
+      return <VolumeSliderRow config={config} />;
     case 'placeholder':
       return <PlaceholderRow config={config} />;
     case 'info':
@@ -209,16 +216,20 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
   );
 }
 
+// ── Volume Slider (continuous, 0..1) ──
+
 /**
- * 3-position volume slider for BGM and SFX. Each option corresponds to a
- * discrete numeric value (0 / 0.75 / 1). Changing the value calls the
- * appropriate sound service function (setBgmVolume / setSfxVolume) so the
- * audio players update immediately.
+ * Continuous horizontal volume slider built with PanResponder (no native
+ * dep). User can tap anywhere on the track to jump, or drag the thumb.
+ *
+ * Value is rounded to 2 decimal places to avoid float noise in the
+ * persisted store (a continuous drag could otherwise write dozens of
+ * distinct floats per second).
  */
-function VolumeSelectorRow({
+function VolumeSliderRow({
   config,
 }: {
-  config: SettingsRowConfig & { type: 'volumeSelector' };
+  config: SettingsRowConfig & { type: 'volumeSlider' };
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
@@ -226,7 +237,7 @@ function VolumeSelectorRow({
   const setBgm = useSettingsStore((s) => s.setBgmVolume);
   const setSfx = useSettingsStore((s) => s.setSfxVolume);
 
-  const handleSelect = (v: VolumeLevel) => {
+  const handleChange = (v: number) => {
     if (config.storeKey === 'bgmVolume') {
       setBgm(v);
       setBgmVolume(v);
@@ -236,39 +247,93 @@ function VolumeSelectorRow({
     }
   };
 
+  const percent = Math.round(value * 100);
+
   return (
     <View style={styles.volumeRow}>
       <View style={styles.volumeHeader}>
         <Text style={styles.label}>{config.label}</Text>
-        {config.description && (
-          <Text style={styles.volumeDescription}>{config.description}</Text>
-        )}
+        <Text style={styles.volumePercent}>{percent}%</Text>
       </View>
-      <View style={styles.segmentedControlFullWidth}>
-        {VOLUME_OPTIONS.map((opt) => (
-          <TouchableOpacity
-            key={opt.value}
-            style={[
-              styles.segment,
-              styles.segmentFlex,
-              value === opt.value && styles.segmentActive,
-            ]}
-            onPress={() => handleSelect(opt.value)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: value === opt.value }}
-            accessibilityLabel={`${config.label} ${opt.label}`}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                value === opt.value && styles.segmentTextActive,
-              ]}
-            >
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {config.description && (
+        <Text style={styles.volumeDescription}>{config.description}</Text>
+      )}
+      <View style={styles.sliderSpacer} />
+      <VolumeSlider
+        value={value}
+        onChange={handleChange}
+        accessibilityLabel={config.label}
+      />
+    </View>
+  );
+}
+
+const THUMB_SIZE = 24;
+const TRACK_HEIGHT = 6;
+const TOUCH_HEIGHT = 40;
+
+function VolumeSlider({
+  value,
+  onChange,
+  accessibilityLabel,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  accessibilityLabel: string;
+}) {
+  const theme = useTheme();
+  const styles = useStyles(theme);
+  const [width, setWidth] = useState(0);
+  // Keep a ref so PanResponder callbacks always see the latest width
+  // without re-creating the responder on every layout.
+  const widthRef = useRef(0);
+
+  const updateFromX = (x: number) => {
+    const w = widthRef.current;
+    if (w <= 0) return;
+    const ratio = Math.max(0, Math.min(1, x / w));
+    // Round to 2 decimal places to keep the persisted state clean
+    onChange(Math.round(ratio * 100) / 100);
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        updateFromX(e.nativeEvent.locationX);
+      },
+      onPanResponderMove: (e) => {
+        updateFromX(e.nativeEvent.locationX);
+      },
+    })
+  ).current;
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    widthRef.current = w;
+    setWidth(w);
+  };
+
+  const thumbLeft = value * width - THUMB_SIZE / 2;
+  const fillWidth = value * width;
+
+  return (
+    <View
+      style={styles.sliderTouchArea}
+      onLayout={onLayout}
+      {...panResponder.panHandlers}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
+    >
+      <View style={styles.sliderTrack}>
+        <View style={[styles.sliderFill, { width: fillWidth }]} />
       </View>
+      {width > 0 && (
+        <View style={[styles.sliderThumb, { left: thumbLeft }]} />
+      )}
     </View>
   );
 }
@@ -341,13 +406,6 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           borderRadius: 6,
           alignItems: 'center',
         },
-        segmentFlex: { flex: 1 },
-        segmentedControlFullWidth: {
-          flexDirection: 'row',
-          backgroundColor: c.tile.empty,
-          borderRadius: 8,
-          padding: 2,
-        },
         segmentActive: {
           backgroundColor: c.surface.card,
           borderWidth: 0.5,
@@ -364,18 +422,62 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           fontWeight: '600',
           opacity: 1,
         },
-        // Volume row gets a stacked layout (label on top, slider below) since
-        // the segmented control is wider than the label.
+        // Volume row: stacked layout (header, optional description, slider)
         volumeRow: {
           paddingVertical: 8,
         },
         volumeHeader: {
-          marginBottom: 8,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+        },
+        volumePercent: {
+          ...typography.settingsRow,
+          color: c.text.secondary,
+          fontVariant: ['tabular-nums'],
+          marginLeft: 12,
         },
         volumeDescription: {
           ...typography.statLabel,
           color: c.text.secondary,
           marginTop: 2,
+        },
+        sliderSpacer: {
+          height: 12,
+        },
+        // Touch area is taller than the visual track so the slider is
+        // easy to grab. The visual track is absolutely positioned inside.
+        sliderTouchArea: {
+          height: TOUCH_HEIGHT,
+          justifyContent: 'center',
+        },
+        sliderTrack: {
+          height: TRACK_HEIGHT,
+          backgroundColor: c.tile.empty,
+          borderRadius: TRACK_HEIGHT / 2,
+          overflow: 'hidden',
+        },
+        sliderFill: {
+          height: '100%',
+          backgroundColor: c.status.accent,
+          borderRadius: TRACK_HEIGHT / 2,
+        },
+        sliderThumb: {
+          position: 'absolute',
+          width: THUMB_SIZE,
+          height: THUMB_SIZE,
+          borderRadius: THUMB_SIZE / 2,
+          backgroundColor: c.surface.card,
+          borderWidth: 2,
+          borderColor: c.status.accent,
+          // Center vertically in the TOUCH_HEIGHT container
+          top: (TOUCH_HEIGHT - THUMB_SIZE) / 2,
+          // Subtle shadow for the floating thumb
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.15,
+          shadowRadius: 2,
+          elevation: 3,
         },
       }),
     [theme],
