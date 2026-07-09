@@ -40,3 +40,11 @@ export const CONFETTI_DURATION = 1500;
 
 /** Confetti stagger delay between particles in ms */
 export const CONFETTI_STAGGER_DELAY = 15;
+
+// ── Home Screen Stagger Entrance (Phase 6, D-175–D-177) ──
+
+/** Home screen stagger entrance: delay between element groups in ms */
+export const HOME_STAGGER_DELAY = 80;
+
+/** Home screen stagger entrance: fade+slide duration per element in ms */
+export const HOME_STAGGER_DURATION = 300;

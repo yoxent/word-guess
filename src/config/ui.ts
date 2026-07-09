@@ -23,7 +23,8 @@ export type SettingsRowConfig =
   | { type: 'info'; id: string; label: string; value: string }
   | { type: 'restore'; id: string; label: string; description?: string }
   | { type: 'purchase'; id: string; label: string; description?: string; productId: string }
-  | { type: 'signInButton'; id: string };  // NEW — Phase 5
+  | { type: 'signInButton'; id: string }  // NEW — Phase 5
+  | { type: 'themeSelector'; id: string; label: string };  // NEW — Phase 6 (06-01)
 
 // ── Config Arrays ──
 
@@ -59,10 +60,25 @@ export const settingsConfig: SettingsSectionConfig[] = [
       { type: 'restore', id: 'restorePurchases', label: 'Restore Purchases' },
     ],
   },
+  {
+    id: 'accessibility',
+    title: 'Accessibility',
+    rows: [
+      { type: 'toggle', id: 'colorBlind', label: 'Color Blind Mode', description: 'Shows patterns on tiles', storeKey: 'colorBlindMode' },
+      { type: 'toggle', id: 'reduceMotion', label: 'Reduce Motion', description: 'Skip all animations', storeKey: 'reduceMotion' },
+    ],
+  },
+  {
+    id: 'appearance',
+    title: 'Appearance',
+    rows: [
+      { type: 'themeSelector', id: 'theme', label: 'Theme' },
+    ],
+  },
 ];
 
 // Extension notes for future phases:
 // Phase 4 (04-01): Added maxExtraGuessesFree/maxExtraGuessesPro split
 // Phase 4 (04-02): Added restore, purchase row types and Account section rows
 // Phase 5: Swap placeholder → signInButton row in account section
-// Phase 6: Append accessibility toggle rows to settingsConfig
+// Phase 6 (06-01): Added Accessibility section (colorBlind toggle, reduceMotion toggle) + Appearance section (themeSelector)
