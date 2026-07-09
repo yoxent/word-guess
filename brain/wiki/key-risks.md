@@ -103,6 +103,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 
 ## Moderate risks (UI review findings, July 2026)
 
+### P29: useFocusEffect called outside NavigationContainer — render crash on RN 0.86 (FIXED 2026-07-09)
+- Cause: Centralized `useFocusEffect` (for BackHandler, commit 44f20f8 / 06-04) was called in the outer `Navigation()` function alongside the `<NavigationContainer>` JSX. The hook requires navigation context from a *parent* `NavigationContainer`, not a sibling.
+- Symptom: `Couldn't find a navigation object. Is your component inside NavigationContainer?` thrown on every render. App screen is blank with red-box error.
+- Fix: Extract hook logic into a child component (`BackHandlerController`) rendered *inside* `<NavigationContainer>`. Hook now has valid context.
+- Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
+- Phase: 6 (Post-launch)
+
 ### P28: expo-av JSI ABI mismatch on RN 0.86 (FIXED 2026-07-09)
 - Cause: `expo-av@16.0.8` is the legacy SDK ~50/51 package. Its `libexpo-av.so` was built against an old RN JSI ABI. On RN 0.86.0, `facebook::jsi::Value::asObject(Runtime&)` symbol has changed → `dlopen failed: cannot locate symbol` at `AVManager.<clinit>` → `FATAL EXCEPTION` on `pool-5-thread-1` at app launch.
 - Symptom: App crashes immediately on startup with `UnsatisfiedLinkError` referencing `libexpo-av.so`. Misleading "Pinning is deprecated since Android Q" warning precedes it (unrelated noise).

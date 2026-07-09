@@ -60,6 +60,31 @@ type RootStackParamList = {
 - `expo-status-bar` configured with `style="dark"`
 - Gas pedal: import stores in App.tsx via barrel, configure persistence on mount
 
+## useFocusEffect / useNavigation must be inside NavigationContainer (FIXED 2026-07-09)
+React Navigation hooks (`useFocusEffect`, `useNavigation`, `useRoute`) require a navigation context, which is only available to **descendants** of `<NavigationContainer>`. Calling them in the same component that *creates* the `NavigationContainer` (i.e. as a sibling of the `<NavigationContainer>` JSX) crashes with `Couldn't find a navigation object. Is your component inside NavigationContainer?`
+
+**Pattern that works:** split into outer + inner components.
+- Outer (`Navigation()`): creates `<NavigationContainer>`, no navigation hooks
+- Inner (e.g. `BackHandlerController()`): calls navigation hooks, renders `null` or children. Rendered as a child of `<NavigationContainer>`, sibling of `<Stack.Navigator>`.
+
+```tsx
+function BackHandlerController() {
+  useFocusEffect(useCallback(() => { ... }, []));
+  return null;
+}
+
+export function Navigation() {
+  return (
+    <NavigationContainer>
+      <BackHandlerController />  {/* INSIDE container — context valid */}
+      <Stack.Navigator>...</Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+```
+
+This applies to ANY centralized logic that needs focus tracking (BackHandler, focus-based analytics, keyboard shortcut wiring, etc.).
+
 ## Key decisions
 | Decision | Rationale |
 |----------|-----------|
