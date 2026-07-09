@@ -1,7 +1,7 @@
 # Phase Structure
-updated: 2026-07-08 (Phase 5 verified — 28/28 must-haves passed)
+updated: 2026-07-08 (Phase 6 context gathered — 40 decisions, accessibility, themes, sound, how-to-play)
 tags: [roadmap, phases, planning]
-related: [project-overview, key-risks, architecture, game-modes, planning-patterns]
+related: [project-overview, key-risks, architecture, game-modes, planning-patterns, accessibility, design-tokens]
 
 ## 6 phases — sequential, MVP mode (vertical slices)
 
@@ -101,6 +101,9 @@ Phase 1 (Foundation)
 - **Goal:** Accessibility, Play Store submission, performance, production build
 - **Reqs:** LAUNCH-01 → LAUNCH-09 (9 reqs)
 - **Dependency:** All previous phases
+- **Status:** Context gathered (2026-07-08) — 40 decisions locked (D-155–D-194)
+- **Scope additions from discuss-phase:** 3 themes (light/dark/system), startup stagger animation, sound files (expo-av), How to Play modal, dead code cleanup, privacy policy (GitHub Pages)
+- **Key decisions:** Texture overlays (settings toggle), reduce motion toggle, centralized BackHandler, sequential stagger animation, useColors() hook, assets/sounds/ for .wav files
 
 ## Dev workflow
 1. UI prototyping: `npx expo start` (Expo Go for non-native features)

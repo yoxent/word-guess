@@ -1,7 +1,7 @@
 # ui-config-registry
-updated: 2026-07-06 (purchase row type added for Phase 4)
-tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110]
-related: [architecture, phase-structure, storage-strategy, monetization]
+updated: 2026-07-08 (Phase 6 additions — colorBlindMode, reduceMotion, theme selector row types)
+tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110, accessibility]
+related: [architecture, phase-structure, storage-strategy, monetization, accessibility]
 
 ## What
 Data-driven UI architecture: screens render from TypeScript config arrays instead of hardcoded JSX. Config is the single source of truth for what appears, in what order, and how it behaves.
@@ -76,8 +76,7 @@ No hardcoded layout logic — screens are pure renderers.
 |-------|-----------|
 | Phase 4 | Added `restore` + `purchase` row types to SettingsRowConfig union; Account section extended with pro status info, purchase row, restore row (D-110, D-111). All implemented. |
 | Phase 5 | Swap placeholder → signInButton row in settingsConfig |
-| Phase 6 | Append accessibility toggle rows to settingsConfig |
-| Future | Extend pattern to home screen layout, game mode menus, nav |
+| Phase 6 | Added `colorBlindMode` toggle, `reduceMotion` toggle, `themeSelector` segmented control. New 
 
 ## UI components (Phase 3 additions)
 

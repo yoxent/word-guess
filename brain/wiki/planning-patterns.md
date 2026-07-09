@@ -1,5 +1,5 @@
 # planning-patterns
-updated: 2026-07-06
+updated: 2026-07-08 (Phase 6 plan structure added)
 tags: [planning, gsd, plans, plans, checker, nyquist]
 related: [phase-structure, key-risks, dictionary-preprocessing, daily-seed]
 
@@ -108,6 +108,17 @@ When computing the total duration of a staggered animation sequence:
 totalTime = (lastTileIndex * staggerDelay) + flipDuration + buffer
 if (any correct tile) totalTime += bounceTotal  // extra 200ms
 ```
+
+## Phase 6 plan structure (tentative — pending plan creation)
+| Plan | Wave | Objective | Depends On |
+|------|------|-----------|------------|
+| 06-01 | 1 | Foundation: theme system (colors.ts restructure, useColors hook, Navigation theme, settingsStore.themeMode), deps (expo-av), sound.ts wiring | CONTEXT.md decisions D-155–D-194 |
+| 06-02 | 1 | Accessibility: TalkBack props (Tile, Keyboard, buttons), color blindness texture overlays, reduce motion toggle, PixelRatio font scaling, centralized BackHandler | 06-01 |
+| 06-03 | 2 | UI polish: home screen stagger animation, How to Play modal, settings rows (color blindness, reduce motion, theme selector), dead code cleanup (ResultScreen, confetti, contrast) | 06-01 |
+| 06-04 | 2 | Compliance + build: GitHub Pages privacy policy, console.time perf markers, production AAB build config, offline-first verification | 06-02, 06-03 |
+
+- 4 plans across 2 waves. Wave 2 plans (06-03, 06-04) are fully parallel — no file overlap.
+- 40 decisions (D-155 through D-194), plus UI-SPEC contract expected.
 
 ### Phase 4 findings
 

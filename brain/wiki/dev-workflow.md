@@ -59,8 +59,34 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 
 The `android/` dir is regenerated on prebuild — the Kotlin pin would be lost without this hook.
 
+## Performance profiling (Phase 6)
+- console.time/timeEnd markers at: dictionary load (App mount), stats read (StatsScreen mount), stats write (game completion)
+- All markers guarded behind `__DEV__` — stripped from release builds
+- Visual FPS check on mid-range device (Moto G Power class) for tile animations
+- Flipper only if visual check reveals jank — not needed for baseline threshold verification
+- Thresholds: tile animations 60 FPS, dictionary load < 500ms, stats read/write < 100ms
+
+## Production build checklist (Phase 6)
+Before EAS production build:
+- [ ] Real AdMob app ID in app.json (replace `ca-app-pub-3940256099942544~3347511713`)
+- [ ] Real Firebase Remote Config keys set
+- [ ] Privacy policy hosted on GitHub Pages (covers AdMob data collection)
+- [ ] Branded assets: icon.png, splash.png, adaptive-icon.png (replace 1×1 placeholders)
+- [ ] google-services.json with real Firebase project config at project root
+- [ ] App version bumped in app.json
+- [ ] EAS Build: `eas build --platform android --profile production`
+
+### Testing track order
+1. Internal testing (EAS internal distribution)
+2. Closed testing (Play Console — limited testers)
+3. Production release (Play Store)
+
+## Privacy policy
+- Hosted on GitHub Pages (docs/privacy.md or separate repo)
+- Content must cover: AdMob data collection, Google Sign-In data, standard Play Store privacy requirements
+
 ## Asset icons
-Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 (Pre-Launch & Polish).
+Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 production build.
 
 ## Android Studio standalone run (alternative)
 Workaround to run everything from AS without a separate terminal:

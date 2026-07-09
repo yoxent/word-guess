@@ -142,6 +142,18 @@ Run `npx expo install --check` to verify all native module versions align with i
 |------|---------|
 | `src/constants/typography.ts` | 5-size type scale (Stat Value 32px, Card Title 18px, Settings Row 16px, Body 14px, Stat Label 12px). Follows colors.ts/layout.ts pattern. See [design-tokens](design-tokens.md). |
 
+## Phase 6 additions (Pre-Launch & Polish)
+| Layer | Choice | Version | Notes |
+|-------|--------|---------|-------|
+| Audio | expo-av | SDK 57 | Sound effects: keypress/reveal/win/loss. .wav files at assets/sounds/ |
+
+**Phase 6 source files:**
+| File | Purpose |
+|------|---------|
+| `assets/sounds/` | Sound effect files: keypress.wav, reveal.wav, win.wav, loss.wav (user-provided, v1) |
+| `src/hooks/useColors.ts` | Theme-aware color hook — returns lightColors/darkColors based on settingsStore.themeMode |
+| `src/components/ui/HowToPlayModal.tsx` | How to Play modal overlay (not a nav route) |
+
 ## Bonus dependencies (evaluated, deferred)
 | Library | Use | Verdict |
 |---------|-----|--------|

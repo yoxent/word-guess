@@ -1,7 +1,7 @@
 # architecture
-updated: 2026-07-06 (Phase 4 additions — adStore, remoteConfig, interstitial/rewarded ad flow; Phase 5 planned — cloud sync, auth, leaderboards)
+updated: 2026-07-08 (Phase 6 additions — accessibility, theme system, BackHandler, How to Play, sound, stagger animation)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility]
 
 ## Layer stack
 ```
@@ -55,6 +55,8 @@ src/
 
 **Phase 5 additions:** `authService.ts` (GoogleSignIn + Firebase Auth wrapper), `firestoreService.ts` (Firestore CRUD for playerStats + leaderboards), `syncQueue.ts` (AsyncStorage-backed offline write-ahead log with idempotent events and exponential backoff), `leaderboardService.ts` (leaderboard score submission with queue fallback). `authStore.ts` extended with googleSignIn/googleSignOut/googleSignInSilently. `src/config/ui.ts` SettingsRowConfig gains `signInButton` type. See [cloud-sync](cloud-sync.md) and [google-signin](google-signin.md).
 
+**Phase 6 additions:** BackHandler (centralized in Navigation.tsx), theme system (useColors() hook, light/dark palettes), HowToPlayModal, sound.ts expo-av wiring, accessibility (accessible props on Tile/Keyboard), home screen stagger animation (replaces 500ms setTimeout), performance profiling console.time markers, settings toggles for colorBlindMode + reduceMotion + themeMode. See [accessibility](accessibility.md) and [design-tokens](design-tokens.md).
+
 **Conventions:**
 - Type-based layout (not feature-based)
 - One file per component
@@ -75,17 +77,21 @@ src/
 11. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
 12. **Dynamic tile sizing** — `tileSize` not a fixed constant. Computed in GameBoard from `screenWidth`, `wordLength`, `tileGap`, and container padding. Passed as prop through `GameBoard → GuessRow → Tile`. Font scales proportionally (`tileSize × 0.48`). Caps at 56px max, floors at 32px min. Fits all word lengths 5-10 on any screen width.
 13. **Safe area insets** — Home and Game screens use `useSafeAreaInsets()` from `react-native-safe-area-context`. Top offset for status bar, bottom for gesture bar. Container applies `paddingHorizontal: 20` centrally (GameScreen) or `padding: 24` (HomeScreen). Headers use negative margins to span full-width behind the padding.
+14. **Centralized BackHandler** — Single BackHandler.addEventListener in Navigation.tsx, not per-screen listeners. Blocks during tile animation (skip-to-final-state), ad display, and IAP flow (D-165–D-167).
+15. **Theme context via useColors() hook** — colors.ts restructured into lightColors/darkColors. useColors() returns active palette based on settingsStore.themeMode ('light'|'dark'|'system'). System mode uses useColorScheme(). React Navigation receives DarkTheme/DefaultTheme. expo-status-bar switches style. ~15-20 files migrated from direct colors import to hook.
+16. **Modal overlay pattern** — How to Play, LengthPickerModal share same pattern: backdrop + centered card + dismiss button. HowToPlayModal triggered from ? icon in Home icon bar.
+17. **Performance markers** — console.time/timeEnd guarded by __DEV__, placed at dictionary load, stats read, stats write. Flipper only if visual check reveals jank.
 
 ## Screens
 | Screen | Route | Composed of |
 |--------|-------|-------------|
-| Home | / | Mode buttons (Daily/Endless/Random), Hard Mode toggle, LengthPickerModal, nav to Stats/Leaderboard/Settings via top-right icon bar (medal, leaderboard, settings) |
+| Home | / | Mode buttons (Daily/Endless/Random), Hard Mode toggle, LengthPickerModal, HowToPlayModal, nav via top-right icon bar (? help, medal stats, leaderboard, settings). Sequential stagger entrance animation on mount |
 | Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
 | Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
 | Stats | /stats | StatsCard, GuessDistribution |
-| Settings | /settings | ToggleRow, AccountSection, RestoreButton |
+| Settings | /settings | ToggleRow, AccountSection, RestoreButton, theme selector, colorBlindMode toggle, reduceMotion toggle |
 | Leaderboard | /leaderboard | LeaderboardRow[], AuthPrompt |
-| Result | (unused) | Replaced by ResultModal overlay — screen file exists but never navigated to |
+| Result | (removed Phase 6) | Deleted — replaced by ResultModal overlay in Phase 2. Route removed from Navigation.tsx |
 
 ## Game components (Phase 2)
 | Component | Role | Communication |
@@ -103,7 +109,7 @@ src/
 |---------|------|----------------|
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
-| Sound | services/sound.ts | No-op stub with expected API (playKeyPress, playReveal, playWin, playLoss). Sound files added later by developer |
+| Sound | services/sound.ts | expo-av wired in Phase 6 — loads keypress.wav, reveal.wav, win.wav, loss.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss) |
 | RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
 
 ## Two-tier dictionary (Phase 2 decision)

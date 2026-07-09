@@ -1,7 +1,7 @@
 # design-tokens
-updated: 2026-07-06
-tags: [design, tokens, spacing, typography, colors, UI]
-related: [architecture, ui-config-registry, tech-stack, phase-structure]
+updated: 2026-07-08 (Phase 6 additions — dark palette, PixelRatio scaling, useColors() hook)
+tags: [design, tokens, spacing, typography, colors, UI, accessibility, themes]
+related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility]
 
 ## Purpose
 System-wide visual design tokens defined by Phase 3 UI-SPEC. Used across stats, settings, and all future UI phases. All values reference existing `colors.ts` and `layout.ts` constants where applicable.
@@ -30,16 +30,25 @@ Exceptions: none. Card `borderRadius: 12` (not from tileBorderRadius 6 — inten
 - Placeholder text: Body (14px) + `textSecondary` color
 - Reading type scale: 4 sizes (12, 14, 16, 18); 32px is display-only for numeric values
 - Implementation: extracted to `src/constants/typography.ts` (D-84) — follows colors.ts/layout.ts pattern
+- Phase 6: all fontSize values multiplied by `PixelRatio.getFontScale()` for accessibility scaling. Tile sizes NOT scaled (already dynamic). Layout NOT scaled.
 
-## Color usage conventions
+## Color usage conventions (light theme)
 | Role | Color Variable | Hex | Usage |
 |------|---------------|-----|-------|
-| Dominant (60%) | `colors.background` | #f5f5f0 | Page background behind cards |
-| Secondary (30%) | `colors.surface` | #ffffff | Card backgrounds |
-| Accent (10%) | `colors.accent` | #4a9eff | Toggle track (active), share CTA, focus indicators ONLY |
-| Destructive | `colors.danger` | #e74c3c | Reserved for Phase 4+ — not used in Phase 3 |
+| Dominant (60%) | `background` | #f5f5f0 | Page background behind cards |
+| Secondary (30%) | `surface` | #ffffff | Card backgrounds |
+| Accent (10%) | `accent` | #4a9eff | Toggle track (active), share CTA, focus indicators ONLY |
+| Destructive | `danger` | #e74c3c | Reserved for Phase 4+ — not used in Phase 3 |
 
 Accent NEVER used for: cards, backgrounds, decorative elements.
+
+## Dark theme (Phase 6)
+`src/constants/colors.ts` restructured into `lightColors` + `darkColors` exports. `useColors()` hook returns active palette based on settingsStore.themeMode. Dark palette requirements:
+- Background: dark (~#121212), surface: slightly lighter (~#2a2a3e)
+- TextPrimary: near-white (~#e8e8e8), TextSecondary: meets 4.5:1 on dark bg
+- Tile colors (correct/present/absent): adjusted for dark background visibility
+- Accent: may need slight brightening for dark mode
+- Follow Material Design 3 dark theme surface/on-surface guidelines
 
 ## Chart colors (guess distribution)
 | Element | Color | Hex |
@@ -63,3 +72,5 @@ Accent NEVER used for: cards, backgrounds, decorative elements.
 | `accent` (#4a9eff) on `surface` (#fff) | 3.31:1 | N/A | N/A | Non-text element |
 
 `textSecondary` (#787c7e) fails WCAG AA for normal text (<18px). Affects stat labels (12px) and secondary text on white backgrounds. Fix: darken to ~#6b6b6b (~4.7:1) in future palette revision, or accept for v1.
+
+**Phase 6 fix (P16):** present tiles/keys (#c9b458 background) now use dark text (#1a1a2e) instead of white (#ffffff) for contrast compliance.

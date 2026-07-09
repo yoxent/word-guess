@@ -1,7 +1,7 @@
 # animation-system
-updated: 2026-07-05 (input queue bug)
-tags: [animation, reanimated, tile-flip, confetti, performance]
-related: [architecture, game-modes, tech-stack]
+updated: 2026-07-08 (Phase 6 additions — home screen stagger, reduce motion, confetti fix)
+tags: [animation, reanimated, tile-flip, confetti, stagger, reduce-motion]
+related: [architecture, game-modes, tech-stack, accessibility]
 
 ## Principles (D-28/D-29)
 - All animations on UI thread via Reanimated 4.x worklets — never JS thread
@@ -25,6 +25,8 @@ related: [architecture, game-modes, tech-stack]
 | CONFETTI_PARTICLE_COUNT | 40 | Number of confetti particles |
 | CONFETTI_DURATION | 1500ms | Confetti animation duration |
 | CONFETTI_STAGGER_DELAY | 15ms | Delay between particle launches |
+| HOME_STAGGER_DELAY | 80ms | Stagger between home screen element groups (Phase 6) |
+| HOME_STAGGER_DURATION | 300ms | Fade+slide duration per element group |
 
 ## Tile flip sequence
 ```
@@ -84,6 +86,18 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 - Fix: `setTimeout(() => get().flushPendingInputs(), 0)` after each non-ENTER input — recursively drains queue on next tick.
 - ENTER: processed once, then stops (ENTER triggers new submitGuess → new animation → `flushPendingInputs()` called again after animation completes).
 - Now fully drains rapid typing during animation.
+
+## Home screen stagger entrance (Phase 6, D-175–D-177)
+- Replaces hardcoded 500ms App.tsx setTimeout
+- Sequential stagger: title (0ms) → mode buttons (80ms stagger per button) → icon bar (after last button)
+- Each element: fade-in (opacity 0→1) + slide-up (translateY 10→0), 300ms, via RN Animated API
+- Loading screen shows momentarily during init, then Home animates in — no artificial delay
+- When reduceMotion ON: all elements appear instantly, no stagger
+
+## Reduce motion (Phase 6, D-163–D-164)
+- Settings toggle `reduceMotion`, OFF by default
+- When ON: tile flip (Reanimated worklets skip), confetti (not rendered), stat entrance (instant), home stagger (instant)
+- Game shows instant results — no animation delay on any screen
 
 ## typegpu-confetti (evaluated, deferred)
 - v0.3.0, WebGPU on Android experimental
