@@ -110,6 +110,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
+### P34: BGM `player.play()` called on every volume change — multi-playback + JS thread block (FIXED 2026-07-09)
+- Cause: `setBgmVolume(v)` unconditionally called `_bgmPlayer.play()` when `v > 0`. The volume slider fires `setBgmVolume` 10-30 times per second during a drag, so `play()` was called on every drag tick. On a looping player, this either restarted playback (audible glitches) or stacked audio sessions (static noise). The same native call also blocked the JS thread on each invocation, which caused the PanResponder to queue up events and produced the slider "rubberbanding" effect (visual position lagging behind the finger).
+- Symptom: Erratic BGM playback (restarts mid-loop), audible static, and the slider snapping back to lower values when dragged higher.
+- Fix: `setBgmVolume` now only calls `play()` on the 0→>0 transition (start playback) and `pause()` on the >0→0 transition (stop playback). Mid-range volume changes just update `player.volume` without touching playback state. Both bugs (audio + slider) are fixed by this single change.
+- Lesson: Side-effect calls (play/pause/seek) should be tied to **transitions**, not every state update. The pattern: track previous state, only invoke the side effect when the state has crossed a meaningful boundary. Calling side effects on every state update is a common anti-pattern that causes both performance issues and audio glitches.
+- Phase: 6 (Post-launch)
+
 ### P33: Continuous volume slider — custom PanResponder implementation (2026-07-09)
 - Cause: The user wanted a real continuous slider for volume control, not a 3-position segmented control. A community slider package (`@react-native-community/slider`) would have added a native module, but the user has been burned by native-module JSI issues before (P28), and a custom slider is only ~50 lines of code with PanResponder.
 - Fix: `VolumeSlider` component built on `PanResponder` in `SettingsRow.tsx`:

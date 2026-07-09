@@ -70,13 +70,26 @@ export async function init(): Promise<void> {
  * player can be resumed instantly when the user turns BGM back on).
  */
 export function setBgmVolume(v: VolumeLevel): void {
+  if (Number.isNaN(v) || !Number.isFinite(v)) return;
+  const wasAudible = _currentBgmVolume > 0;
   _currentBgmVolume = v;
   if (!_bgmPlayer) return;
   try {
     _bgmPlayer.volume = v;
     if (v > 0) {
-      // Make sure it's playing (idempotent — no-op if already playing)
-      _bgmPlayer.play();
+      if (!wasAudible) {
+        // Transitioning from silent (0, paused by user, or app background)
+        // to audible. Start playback. We do NOT call play() on every
+        // volume change — that would either restart the loop (causing
+        // audible glitches) or stack audio sessions (causing the static
+        // noise bug). Only the 0→>0 transition needs play().
+        _bgmPlayer.play();
+      }
+    } else if (wasAudible) {
+      // Transitioning to 0: actually pause the player to free the audio
+      // output + CPU. Setting volume=0 alone plays silence, which keeps
+      // the player running in the background.
+      _bgmPlayer.pause();
     }
   } catch (e) {
     console.warn('[sound] Failed to set BGM volume:', e);
@@ -89,6 +102,7 @@ export function setBgmVolume(v: VolumeLevel): void {
  * this also disables any in-flight playback).
  */
 export function setSfxVolume(v: VolumeLevel): void {
+  if (Number.isNaN(v) || !Number.isFinite(v)) return;
   _currentSfxVolume = v;
   for (const player of Object.values(_sfxPlayers)) {
     try {
