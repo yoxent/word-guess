@@ -110,6 +110,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
+### P30: Text contrast — module-level styles without color (FIXED 2026-07-09)
+- Cause: `SettingsRow.ToggleRow` was the only row type using a module-level `styles` constant (the others all use `useStyles(colors)`). The module-level `styles.label` had no `color` property, so the label inherited the OS default text color (black on Android).
+- Symptom: Toggle row labels ("Sound Effects", "Haptic Feedback", "Color Blind Mode", "Reduce Motion") were black on the dark `surface` card (`#2a2a3e`) in dark theme — essentially invisible.
+- Fix: `ToggleRow` now uses `useStyles(colors)` like the other 6 row types. Removed the module-level `styles` alias entirely. Refactor surfaced 3 additional contrast issues (segmented control, completed length, emojiText) which were fixed in the same commit.
+- Lesson: When a component supports multiple row variants via theme-aware `useStyles()`, **every** variant must use it. A single variant using a separate module-level stylesheet is a bug magnet. Audit rule: every `<Text>` in a component that supports dark theme must have an explicit `color` from the theme hook (or `textInverse` on a known background). React Native does not auto-pick a readable color for unknown themes.
+- Phase: 6 (Post-launch)
+
 ### P28: expo-av JSI ABI mismatch on RN 0.86 (FIXED 2026-07-09)
 - Cause: `expo-av@16.0.8` is the legacy SDK ~50/51 package. Its `libexpo-av.so` was built against an old RN JSI ABI. On RN 0.86.0, `facebook::jsi::Value::asObject(Runtime&)` symbol has changed → `dlopen failed: cannot locate symbol` at `AVManager.<clinit>` → `FATAL EXCEPTION` on `pool-5-thread-1` at app launch.
 - Symptom: App crashes immediately on startup with `UnsatisfiedLinkError` referencing `libexpo-av.so`. Misleading "Pinning is deprecated since Android Q" warning precedes it (unrelated noise).

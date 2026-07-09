@@ -70,7 +70,11 @@ Accent NEVER used for: cards, backgrounds, decorative elements.
 | `textPrimary` (#1a1a2e) on `surface` (#fff) | 15.5:1 | ✅ | ✅ | Good |
 | `textSecondary` (#787c7e) on `surface` (#fff) | 4.09:1 | ❌ | ✅ | Inherited debt from Phase 1 colors.ts |
 | `accent` (#4a9eff) on `surface` (#fff) | 3.31:1 | N/A | N/A | Non-text element |
+| `textSecondary` (#787c7e) on `tileEmpty` (#d3d6da) — segmented control inactive | 1.4:1 | ❌ | ❌ | **FIXED 2026-07-09** — switched to textPrimary + opacity 0.65 in ThemeSelectorRow |
+| `tileAbsent` on `rgba(120,124,126,0.3)` overlay — completed length button | <1.5:1 | ❌ | ❌ | **FIXED 2026-07-09** — textPrimary + opacity 0.5 in LengthPickerModal |
 
-`textSecondary` (#787c7e) fails WCAG AA for normal text (<18px). Affects stat labels (12px) and secondary text on white backgrounds. Fix: darken to ~#6b6b6b (~4.7:1) in future palette revision, or accept for v1.
+`textSecondary` (#787c7e) fails WCAG AA for normal text (<18px) on white surfaces and on `tileEmpty` (#d3d6da) track. Affects stat labels (12px), table cells, and was the source of the segmented-control readability issue. Pattern adopted after 2026-07-09 audit: anywhere a label sits on `tileEmpty` (segmented controls, toggle tracks), use `textPrimary` + opacity 0.5–0.65 instead of `textSecondary`.
 
 **Phase 6 fix (P16):** present tiles/keys (#c9b458 background) now use dark text (#1a1a2e) instead of white (#ffffff) for contrast compliance.
+
+**Phase 6 fix (P30):** `SettingsRow.ToggleRow` migrated to `useStyles(colors)` so toggle labels get explicit theme-aware color (was the user-reported "Sound Effects blends into dark theme" bug — module-level `styles.label` had no color, so text inherited the OS default).
