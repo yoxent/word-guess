@@ -168,50 +168,36 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       [theme.colors.tile.empty, theme.colors.tile.empty, feedbackColors[feedback]],
     );
 
-    // 2026-07-09: removed rotateX transform. The previous rotateX 0→-90→0
-    // animation made the tile edge-on at the midpoint. If the worklet
-    // didn't complete (busy JS thread, interruption), the tile would stay
-    // at -90° (invisible from the front) and the text would appear
-    // 'missing' to the user. The text would reappear on remount (back
-    // home + revisit) because the fresh component instance ran the
-    // animation from scratch. Using opacity + scale now keeps the tile
-    // upright at all times, with a brief fade-pulse at the midpoint
-    // for visual feedback. Text is always visible.
-    const opacity = interpolate(
+    // 2026-07-10: restored the rotateX flip animation 0 -> -90 -> 0.
+    // (The text-opacity animation hides the letter at the midpoint so
+    // it doesn't appear smushed.) The text would previously get stuck
+    // at -90deg (invisible) when React reused a Tile instance, but
+    // the newly added key-based remount in GuessRow forces a fresh
+    // component instance when an active row becomes a completed row,
+    // so the animation runs cleanly. The safety-net setTimeout below
+    // guarantees the final state even if the worklet is interrupted.
+    const rotateX = interpolate(
       flipProgress.value,
       [0, 0.5, 1],
-      [1, 0.5, 1],
-    );
-
-    const scaleVal = interpolate(
-      flipProgress.value,
-      [0, 0.5, 1],
-      [1, 1.08, 1],
+      [0, -90, 0],
     );
 
     return {
       backgroundColor: bgColor,
-      opacity,
       transform: [
-        { scale: scaleVal },
+        { rotateX: `${rotateX}deg` },
+        { scale: scale.value },
       ],
     };
   });
 
+  // 2026-07-10: re-applied to the <Animated.Text> below. Fires in lockstep
+  // with animatedTileStyle, hiding the letter at the flip midpoint so it
+  // doesn't look smushed as the tile rotates edge-on. At the end of the
+  // animation (flipProgress = 1), text opacity = 1 (visible).
   const animatedTextStyle = useAnimatedStyle(() => ({
-    // Before flip (0): visible; mid-flip (0.5): hidden; after flip (1): visible
     opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
   }));
-  // NOTE 2026-07-09: animatedTextStyle is intentionally defined but NOT
-  // applied to the <Animated.Text> below. The text opacity animation was
-  // causing 'missing text' on completed rows: if the tile flip animation
-  // didn't fully complete (e.g., the worklet got stuck or the JS thread
-  // was busy), flipProgress.value could be left at 0.5, which would
-  // interpolate text opacity to 0 (invisible). The text would reappear
-  // on remount (e.g., navigating back to Home and re-entering the game)
-  // because the fresh animation ran to completion. Removing the text
-  // opacity animation keeps the letters always visible; the background
-  // color and rotation still animate for the Wordle-style flip effect.
 
   // Compute dynamic text color with proper WCAG contrast in BOTH themes.
   //
@@ -263,8 +249,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
           style={[
             styles.letter,
             { fontSize: tileFontSize, color: letterColor },
-            // Note: animatedTextStyle (text opacity flicker during flip)
-            // intentionally NOT applied — see comment above for rationale.
+            animatedTextStyle,
           ]}
         >
           {letter.toUpperCase()}

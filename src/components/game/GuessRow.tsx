@@ -68,7 +68,18 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordL
         const isRevealing = !isActive && !!feedback;
         return (
           <Tile
-            key={i}
+            // 2026-07-10: include tileFeedback in the key so the Tile
+            // REMOUNTS when an active row (tileFeedback='empty') becomes
+            // a completed row (tileFeedback='correct'/'present'/'absent').
+            // Previously, the key was just `i`, so React reused the same
+            // Tile instance from the typing phase — that instance held
+            // stale `flipProgress` shared-value state from the active row
+            // phase, which corrupted the reveal animation and made the
+            // letter appear 'missing' until the screen was remounted
+            // (back-to-home + revisit). Remounting guarantees a fresh
+            // component instance, fresh shared values, and a clean
+            // animation that always reaches its final state.
+            key={`${i}-${tileFeedback}`}
             letter={letter}
             feedback={tileFeedback}
             index={i}

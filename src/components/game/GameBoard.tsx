@@ -65,6 +65,23 @@ export function GameBoard() {
     };
   }, [error, clearError]);
 
+  // 2026-07-10: compute tileSize BEFORE the early return. The previous
+  // code put useMemo AFTER `if (!session) { return ...; }`, which violated
+  // the Rules of Hooks (useMemo was called conditionally). On re-renders
+  // that transition from session-null to session-set (e.g., after a guess
+  // is submitted), the hook order would differ, destabilizing React's
+  // internal tracking and contributing to the missing-text rendering bug.
+  const wordLength = session?.letterCount ?? 5;
+
+  const tileSize = useMemo(() => {
+    const screenWidth = Dimensions.get('window').width;
+    const availableWidth = screenWidth - 40 - (wordLength - 1) * layout.tileGap;
+    const computed = Math.floor(availableWidth / wordLength);
+    const MAX_TILE = 56;
+    const MIN_TILE = 32;
+    return Math.max(MIN_TILE, Math.min(MAX_TILE, computed));
+  }, [wordLength]);
+
   if (!session) {
     return (
       <View style={styles.emptyContainer}>
@@ -74,20 +91,9 @@ export function GameBoard() {
   }
 
   const maxAttempts = session.maxAttempts;
-  const wordLength = session.letterCount;
   const completedGuesses = session.guesses.length;
   const remainingAttempts = maxAttempts - completedGuesses;
   const attemptsLabel = `Attempts: ${completedGuesses}/${maxAttempts}`;
-
-  // Compute dynamic tile size so grid fits the screen width
-  const tileSize = useMemo(() => {
-    const screenWidth = Dimensions.get('window').width;
-    const availableWidth = screenWidth - 40 - (wordLength - 1) * layout.tileGap;
-    const computed = Math.floor(availableWidth / wordLength);
-    const MAX_TILE = 56;
-    const MIN_TILE = 32;
-    return Math.max(MIN_TILE, Math.min(MAX_TILE, computed));
-  }, [wordLength]);
 
   // Build rows array
   const rows: { guess: string; feedback: GuessFeedback[] | undefined; isActive: boolean }[] = [];
