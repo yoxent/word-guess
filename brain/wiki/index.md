@@ -30,4 +30,5 @@ related: []
 | toggle-side-effects | Pattern: Zustand toggles need explicit side-effect wiring (sound, haptics). Bug fix 2026-07-09 | pattern, settings, zustand, side-effect, audio |
 | frontend-overhaul | 7-phase bright playful redesign — COMPLETE. Palette, Nunito, mode cards, gradient bg, spring press, keyboard haptic, modal scale, ProgressRing, dark WCAG audit | ui, redesign, visual, palette, font, animation, complete |
 | agent-skills-setup | Matt Pocock skills installed, per-repo config in docs/agents/, AGENTS.md block | skills, setup, agent-config |
-| mixed-driver-animation-crash | Animated.parallel with mixed useNativeDriver crashes on remount — fix: independent .start() calls | animation, bug, gotcha, anti-pattern |
+| mixed-driver-animation-crash | Animated.parallel with mixed useNativeDriver crashes on remount — fix: overlay opacity (preferred) or independent .start() calls | animation, bug, gotcha, anti-pattern |
+| hooks-order-discipline | ALL hooks must be called before any conditional returns — prevents "Rendered more hooks" crash | react, hooks, gotcha, rules-of-hooks |

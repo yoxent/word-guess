@@ -1,7 +1,7 @@
 # monetization
-updated: 2026-07-06 (Phase 4 executed — implementation details added)
-tags: [ads, iap, monetization, phase-4, remote-config]
-related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns]
+updated: 2026-07-10
+tags: [ads, iap, monetization, phase-4, remote-config, ad-hints]
+related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns, hooks-order-discipline]
 
 ## Business model
 Free-to-play with interstitial ads, rewarded video, Pro IAP $1.99. Pro removes interstitials only — rewarded ads remain available to Pro users (gameplay mechanic, not annoyance gate).
@@ -76,16 +76,60 @@ Shows at **transition from ResultModal to next screen** (Back to Menu / Play Nex
 - Counter resets after each interstitial is shown
 - Session-local counter (not persisted across app restarts)
 
-## Rewarded ads
+## Rewarded ads — ad hints during gameplay
+
+**Strategy:** Watch ad → get gameplay advantage during active game. Two hint types:
+
+### Hint 1: +1 Row
 | Aspect | Detail |
 |--------|--------|
-| Entry point | Button at bottom of ResultModal, **loss state only** (D-89, D-90) |
-| Flow | Tap button → watch rewarded ad → modal closes → game resumes with +1 attempt slot (D-91) |
-| Max free tier | 2 extra guesses per game (`maxExtraGuessesFree` in config.ts) |
-| Max Pro tier | 3 extra guesses per game (`maxExtraGuessesPro` in config.ts) |
-| Code | `session.maxAttempts++`, `session.extraGuessesUsed++` in gameStore |
+| Button | "Watch Ad · +1 Row" (sky blue, primary color) |
+| Location | Between GameBoard and Keyboard |
+| Visibility | `session.status === 'playing' && extraGuessesUsed < maxExtra` |
+| Effect | `maxAttempts++`, `extraGuessesUsed++` — adds new empty row |
+| Max uses | 2 (free) / 3 (pro) per game |
+| Code | `gameStore.addExtraGuess()` — works during 'playing' status |
 
-Pro users can still watch rewarded ads (D-93). The Pro purchase removes interstitials only — rewarded ads are a gameplay mechanic, not an annoyance. This is a common pattern (e.g. Wordscapes) — voluntary ad viewing for game advantage is different UX from forced interstitials.
+### Hint 2: Letter Hint
+| Aspect | Detail |
+|--------|--------|
+| Button | "Letter Hint" (orange, secondary color, lightbulb icon) |
+| Location | Next to +1 Row button |
+| Visibility | `session.status === 'playing' && !session.letterHintUsed` |
+| Effect | Highlights random unguessed letter on keyboard (blinking animation) |
+| Max uses | 1 per game |
+| Code | `gameStore.useLetterHint()` — sets `hintLetter` state + `letterHintUsed: true` |
+
+### Letter hint mechanics
+- Picks random letter from word that hasn't been guessed correctly yet
+- If all letters guessed, picks any letter from word
+- Keyboard key blinks via opacity animation (1→0.3→1, 500ms loop)
+- Hint stops blinking once key gets color feedback (correct/present/absent)
+
+### GameSession fields
+| Field | Type | Purpose |
+|-------|------|--------|
+| `extraGuessesUsed` | number | Count of +1 Row hints used |
+| `letterHintUsed` | boolean | Whether letter hint has been used |
+| `maxAttempts` | number | Base + extra rows |
+
+### gameStore actions
+| Action | Triggers |
+|--------|----------|
+| `addExtraGuess()` | +1 Row ad reward — allows during 'playing' or 'lost' |
+| `useLetterHint()` | Letter hint ad reward — only during 'playing', once per game |
+
+### State management
+- `hintLetter: string | null` in gameStore — tracks which letter is blinking
+- Reset to `null` on `resetGame()` and `restoreSession()`
+
+### Button styling
+- Both buttons in horizontal row: `[+1 Row] [💡 Letter Hint]`
+- Disabled/dimmed when ad not loaded (`!rewardedLoaded`)
+- `+1 Row` shows remaining count: "(+2 left)" → "(+1 left)"
+- `Letter Hint` hidden after use (not just disabled)
+
+Pro users can still watch rewarded ads (D-93). The Pro purchase removes interstitials only — rewarded ads are a gameplay mechanic, not an annoyance.
 
 ## Pro IAP
 | Aspect | Detail |
