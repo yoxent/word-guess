@@ -1,5 +1,5 @@
 # animation-system
-updated: 2026-07-10 (textOpacity shared value, safety-net, key-based remount, GameBoard hooks fix, isFirstRender removed)
+updated: 2026-07-10 (Phase 4-7: TILE_BOUNCE_MAX 1.2, keyboard spring press, modal scale+fade, ResultModal bounce, Button haptic)
 tags: [animation, reanimated, tile-flip, confetti, stagger, reduce-motion]
 related: [architecture, game-modes, tech-stack, accessibility]
 
@@ -18,7 +18,7 @@ related: [architecture, game-modes, tech-stack, accessibility]
 | TILE_BOUNCE_SCALE_UP | 100ms | Correct tile scale-up duration (1.0→1.15) |
 | TILE_BOUNCE_SCALE_DOWN | 100ms | Correct tile scale-down duration (1.15→1.0) |
 | TILE_BOUNCE_TOTAL | 200ms | Combined correct bounce duration |
-| TILE_BOUNCE_MAX | 1.15 | Scale bounce peak value |
+| TILE_BOUNCE_MAX | 1.2 | Scale bounce peak value (was 1.15, bumped Phase 4) |
 | TILE_BOUNCE_NORMAL | 1.0 | Resting scale value |
 | ANIMATION_COMPLETION_BUFFER | 50ms | Safety buffer after animation ends |
 | TILE_CORRECT_BOUNCE_EXTRA | 200ms | Extra time when guess has correct tiles |
@@ -103,17 +103,41 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 - ENTER: processed once, then stops (ENTER triggers new submitGuess → new animation → `flushPendingInputs()` called again after animation completes).
 - Now fully drains rapid typing during animation.
 
-## Home screen stagger entrance (Phase 6, D-175–D-177)
-- Replaces hardcoded 500ms App.tsx setTimeout
-- Sequential stagger: title (0ms) → mode buttons (80ms stagger per button) → icon bar (after last button)
-- Each element: fade-in (opacity 0→1) + slide-up (translateY 10→0), 300ms, via RN Animated API
-- Loading screen shows momentarily during init, then Home animates in — no artificial delay
-- When reduceMotion ON: all elements appear instantly, no stagger
+## Home screen stagger entrance (Phase 3)
+- Sequential stagger: title (0ms) → subtitle+icons (50ms) → cards (80ms stagger each) → preview (40ms) → hard mode (40ms)
+- Each element: fade-in + slide-up (translateY 12→0), 300ms, via RN Animated API
+- When reduceMotion ON: all elements appear instantly
 
-## Reduce motion (Phase 6, D-163–D-164)
+## Reduce motion
 - Settings toggle `reduceMotion`, OFF by default
-- When ON: tile flip (Reanimated worklets skip), confetti (not rendered), stat entrance (instant), home stagger (instant)
-- Game shows instant results — no animation delay on any screen
+- When ON: tile flip, confetti, stat entrance, home stagger, modal animations all skip
+
+## Phase 4 — Keyboard spring press
+- `KeyboardKey` subcomponent: per-key `Animated.Value` spring (scale 0.92)
+- `friction: 5, tension: 50` — snappy but not jarring
+- BACKSPACE uses MaterialIcons `backspace` icon
+
+## Phase 4 — Game screen error toast
+- Spring slide-in: translateY -16→0 + opacity 0→1, `friction: 6, tension: 60`
+- Coral bg, borderRadius 12, MaterialIcons warning icon
+
+## Phase 7 — Modal open/close animations
+- HowToPlayModal: card scale 0.9→1.0 spring + fade 0→1, resets on each open
+- LengthPickerModal: same pattern
+- ResultModal: card scale 0.8→1.0 spring + fade 0→1 (more dramatic for celebration)
+- All use `friction: 5, tension: 50`, `useNativeDriver: true`
+- Triggered by `useEffect` on `visible` prop
+
+## Phase 7 — Button haptic
+- `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)` on onPressIn
+- Gated by `useSettingsStore.hapticEnabled`
+- Keyboard already has same pattern (Phase 4)
+
+## Mixed driver crash (Phase 4 fix)
+- Bug: `Animated.parallel` with `useNativeDriver: true` (scale) + `useNativeDriver: false` (bgShift) crashes on subsequent presses
+- Root cause: React Native locks animated nodes to a driver on first use; parallel start locks both to mixed drivers
+- Fix: run native/JS animations as independent `.start()` calls, call `stopAnimation()` on both values first
+- See [mixed-driver-animation-crash](mixed-driver-animation-crash.md)
 
 ## typegpu-confetti (evaluated, deferred)
 - v0.3.0, WebGPU on Android experimental

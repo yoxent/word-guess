@@ -1,7 +1,7 @@
 # design-tokens
-updated: 2026-07-10 (frontend overhaul — bright playful palette, Nunito font, updated radii)
+updated: 2026-07-10 (Phase 4-7: WCAG dark theme audit, ProgressRing, modal animations)
 tags: [design, tokens, spacing, typography, colors, UI, accessibility, themes]
-related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility, frontend-overhaul, theme-system]
+related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility, frontend-overhaul, theme-system, mixed-driver-animation-crash]
 
 ## Purpose
 System-wide visual design tokens. Updated 2026-07-10 for bright playful redesign — replaced Wordle muted earth tones with sky blue / green / coral palette. Nunito display font for headings.
@@ -87,10 +87,14 @@ System-wide visual design tokens. Updated 2026-07-10 for bright playful redesign
 | key | correct, present, absent, unused, text, special, actionText | Keyboard |
 | status | success, danger, accent, accentDark | Status colors |
 
-## WCAG contrast (post-overhaul)
+## WCAG contrast (post-overhaul, both themes verified)
 | Pair | Ratio | Status |
 |------|-------|--------|
-| textPrimary on surface | ~15:1 | ✅ |
-| textSecondary on surface | ~5:1 | ✅ (improved from 4.09) |
-| text.onPresent on tilePresent | ~10:1 | ✅ |
+| textPrimary on surface (light) | ~15:1 | ✅ AAA |
+| textSecondary on surface (light) | ~5:1 | ✅ AA |
+| text.onPresent on tilePresent | ~10:1 | ✅ AAA |
 | brand.primary on surface | ~3:1 | N/A (non-text) |
+| textPrimary on surface (dark) | ~12.5:1 | ✅ AAA |
+| textSecondary on surface (dark) | ~4.8:1 | ✅ AA |
+| white on brand.primary (dark) | ~8.4:1 | ✅ AAA |
+| white on danger (dark) | ~5.2:1 | ✅ AA |

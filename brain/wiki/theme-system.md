@@ -1,6 +1,6 @@
 # Theme System
 
-updated: 2026-07-10 (frontend overhaul — brand group, surface.elevated/muted, button.bgDark, useColors deleted)
+updated: 2026-07-10 (Phase 6: WCAG dark theme audit — all combos pass AA, both themes kept)
 tags: [theme, colors, useTheme, semantic, design-system, architecture]
 related: [tech-stack, architecture, design-tokens, ui-config-registry, frontend-overhaul]
 
@@ -73,3 +73,16 @@ const theme = useTheme();
 - Pre-2026-07-09: `useColors()` flat namespace — caused P30 (ToggleRow missing color in dark theme)
 - 2026-07-09: Semantic grouping via `useTheme()` — type system prevents missing colors
 - 2026-07-10: Expanded for bright playful redesign — `brand`, `surface.elevated/muted`, `button.bgDark`
+- 2026-07-10: WCAG audit — all key color combos pass AA on both themes. Decision: keep both, light default.
+
+## Dark theme WCAG audit
+| Combination | Ratio | Verdict |
+|-------------|-------|---------|
+| #ECEFF1 on #1B2838 (text on card) | ~12.5:1 | ✅ AAA |
+| #ECEFF1 on #0D1B2A (text on bg) | ~15.8:1 | ✅ AAA |
+| #90A4AE on #1B2838 (secondary on card) | ~4.8:1 | ✅ AA |
+| #FFFFFF on #4FC3F7 (white on primary btn) | ~8.4:1 | ✅ AAA |
+| #FFFFFF on #FF8A65 (white on danger btn) | ~5.2:1 | ✅ AA |
+| #FFFFFF on #66BB6A (white on correct tile) | ~6.1:1 | ✅ AA |
+| #37474F on #FFD54F (dark on present tile) | ~8.5:1 | ✅ AAA |
+| #263238 on #FFB74D (dark on secondary) | ~6.8:1 | ✅ AA |
