@@ -176,8 +176,27 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
   // opacity animation keeps the letters always visible; the background
   // color and rotation still animate for the Wordle-style flip effect.
 
-  // Compute dynamic text color — present tiles use dark text for contrast (D-180)
-  const letterColor = feedback === 'present' ? theme.colors.text.onPresent : theme.colors.text.inverse;
+  // Compute dynamic text color with proper WCAG contrast in BOTH themes.
+  //
+  // - 'present' (yellow): yellow is similar in both themes -> always use
+  //   text.onPresent (hardcoded dark #1a1a2e) which contrasts well.
+  // - 'correct' (green): green is similar in both themes -> text.inverse
+  //   (white in light, dark in dark) gives good contrast (~7.5:1 in dark).
+  // - 'absent' (gray): gray differs between themes (#787c7e light, #636669
+  //   dark). text.inverse (dark in dark theme) would have only ~3.3:1
+  //   contrast against the dark gray bg — below WCAG AA, looks 'missing'.
+  //   text.primary is theme-aware: dark in light, light in dark, so it
+  //   always has >=4.5:1 contrast against the gray bg.
+  //
+  // This was the root cause of the 'text missing on recent guess row'
+  // bug: when the recent guess was all-absent (wrong guess), the dark
+  // text on dark gray blended together and looked invisible.
+  const letterColor =
+    feedback === 'present'
+      ? theme.colors.text.onPresent
+      : feedback === 'absent'
+        ? theme.colors.text.primary
+        : theme.colors.text.inverse;
 
   // Dynamic tile dimensions derived from tileSize
   const tileStyle: ViewStyle = {
