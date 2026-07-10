@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-09
+updated: 2026-07-10
 tags: [index, mvp, phase-6-executed]
 related: []
 
@@ -28,4 +28,5 @@ related: []
 | accessibility | Phase 6 — TalkBack, color blindness textures, reduce motion, PixelRatio font scaling | accessibility, talkback, color-blindness, reduce-motion, pixelratio |
 | theme-system | Semantic useTheme() hook, light/dark palettes, button/toggle/icon color slots | theme, colors, semantic, design-system |
 | toggle-side-effects | Pattern: Zustand toggles need explicit side-effect wiring (sound, haptics). Bug fix 2026-07-09 | pattern, settings, zustand, side-effect, audio |
+| frontend-overhaul | 7-phase bright playful redesign — palette, Nunito font, mode cards, spring press, pill buttons | ui, redesign, visual, palette, font, animation |
 | agent-skills-setup | Matt Pocock skills installed, per-repo config in docs/agents/, AGENTS.md block | skills, setup, agent-config |

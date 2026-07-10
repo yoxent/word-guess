@@ -1,5 +1,5 @@
 # Tech Stack
-updated: 2026-07-08 (build fix — Kotlin metadata mismatch, google-services ignore)
+updated: 2026-07-10 (font packages — expo-font, @expo-google-fonts/nunito)
 tags: [stack, dependencies, versions, compat]
 related: [architecture, storage-strategy, project-overview, android-build-setup, dev-workflow]
 
@@ -26,6 +26,8 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 | Audio | expo-audio | ~57.0.0 | Replaced expo-av 2026-07-09 — see FIXED issue above. expo-audio uses modern Expo modules JSI binding (compat with RN 0.86). |
 | Haptics | expo-haptics | SDK 57 | |
 | Clipboard | expo-clipboard | SDK 57 | Copy share text to clipboard (Phase 3, STAT-04) |
+| Fonts | expo-font | SDK 57 | Font loading for custom fonts |
+| Display font | @expo-google-fonts/nunito | latest | Nunito 700 + 800 — headings, titles, buttons (frontend overhaul) |
 
 ## State & Storage
 | Layer | Choice | Version | Use |

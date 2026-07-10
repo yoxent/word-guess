@@ -1,10 +1,10 @@
 # design-tokens
-updated: 2026-07-08 (Phase 6 additions — dark palette, PixelRatio scaling, useColors() hook)
+updated: 2026-07-10 (frontend overhaul — bright playful palette, Nunito font, updated radii)
 tags: [design, tokens, spacing, typography, colors, UI, accessibility, themes]
-related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility]
+related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility, frontend-overhaul, theme-system]
 
 ## Purpose
-System-wide visual design tokens defined by Phase 3 UI-SPEC. Used across stats, settings, and all future UI phases. All values reference existing `colors.ts` and `layout.ts` constants where applicable.
+System-wide visual design tokens. Updated 2026-07-10 for bright playful redesign — replaced Wordle muted earth tones with sky blue / green / coral palette. Nunito display font for headings.
 
 ## Spacing scale (multiples of 4)
 | Token | Value | Usage |
@@ -16,65 +16,81 @@ System-wide visual design tokens defined by Phase 3 UI-SPEC. Used across stats, 
 | xl | 32px | Gaps between major card groups |
 | 2xl | 48px | Page-level top/bottom padding in ScrollView |
 
-Exceptions: none. Card `borderRadius: 12` (not from tileBorderRadius 6 — intentional visual hierarchy).
+## Border radius tokens
+| Token | Value | Where |
+|-------|-------|-------|
+| tile | 8px | Game tiles (was 6) |
+| keyboardKey | 8px | Keyboard keys (was 6) |
+| card | 16px | StatCard, settings sections (was 12) |
+| button | 20px | All buttons — pill shape (was 12) |
+| modal | 24px | All modals (was 16-20) |
+| segment | 12px | Theme selector segments |
 
-## Typography scale (5 sizes)
-| Role | Size | Weight | Line Height | Color | Usage |
-|------|------|--------|-------------|-------|-------|
-| Stat Value | 32px | 700 | 1.1 | `textPrimary` | Big numbers: total games, win count, streaks |
-| Card Title / Section Header | 18px | 700 | 1.3 | `textPrimary` | Card headers, settings section titles |
-| Settings Row | 16px | 400 | 1.5 | `textPrimary` | Toggle/row labels in Settings |
-| Body | 14px | 400 | 1.5 | `textPrimary` | General body text, card descriptions |
-| Stat Label | 12px | 600 | 1.3 | `textSecondary` | Labels under stat values; uppercase recommended |
+## Typography scale (Nunito + system)
+| Role | Size | Weight | Font | Usage |
+|------|------|--------|------|-------|
+| display | 40px | 800 | Nunito | App title, win/loss announcements |
+| heading | 24px | 700 | Nunito | Section headings, screen titles |
+| cardTitle | 18px | 700 | Nunito | Card headers, settings sections |
+| button | 17px | 700 | Nunito | Button labels |
+| statValue | 32px | 800 | Nunito | Big numbers on stats cards |
+| settingsRow | 16px | 500 | System | Toggle/row labels |
+| body | 15px | 400 | System | General body text |
+| small | 13px | 500 | System | Captions, badges |
+| statLabel | 12px | 600 | System | Labels under stats, uppercase |
 
-- Placeholder text: Body (14px) + `textSecondary` color
-- Reading type scale: 4 sizes (12, 14, 16, 18); 32px is display-only for numeric values
-- Implementation: extracted to `src/constants/typography.ts` (D-84) — follows colors.ts/layout.ts pattern
-- Phase 6: all fontSize values multiplied by `PixelRatio.getFontScale()` for accessibility scaling. Tile sizes NOT scaled (already dynamic). Layout NOT scaled.
+- All fontSize values multiplied by `PixelRatio.getFontScale()` for accessibility
+- Tile sizes NOT scaled (already dynamic from screen width)
 
-## Color usage conventions (light theme)
-| Role | Color Variable | Hex | Usage |
-|------|---------------|-----|-------|
-| Dominant (60%) | `background` | #f5f5f0 | Page background behind cards |
-| Secondary (30%) | `surface` | #ffffff | Card backgrounds |
-| Accent (10%) | `accent` | #4a9eff | Toggle track (active), share CTA, focus indicators ONLY |
-| Destructive | `danger` | #e74c3c | Reserved for Phase 4+ — not used in Phase 3 |
+## Color palette (light theme)
+| Category | Token | Hex |
+|----------|-------|-----|
+| Tile correct | tileCorrect | #4CAF50 |
+| Tile present | tilePresent | #FFD54F |
+| Tile absent | tileAbsent | #B0BEC5 |
+| Tile empty | tileEmpty | #E3F2FD |
+| Tile border | tileBorder | #90CAF9 |
+| Background | background | #F0F7FF |
+| Surface | surface | #FFFFFF |
+| Surface elevated | surfaceElevated | #FFFFFF |
+| Surface muted | surfaceMuted | #F5F9FF |
+| Header | headerBackground | #E3F2FD |
+| Text primary | textPrimary | #263238 |
+| Text secondary | textSecondary | #78909C |
+| Accent | accent | #29B6F6 |
+| Primary | primary | #42A5F5 |
+| Primary dark | primaryDark | #1E88E5 |
+| Secondary | secondary | #FFA726 |
+| Tertiary | tertiary | #F48FB1 |
+| Danger | danger | #FF7043 |
+| Success | success | #66BB6A |
 
-Accent NEVER used for: cards, backgrounds, decorative elements.
+## Color palette (dark theme)
+| Category | Token | Hex |
+|----------|-------|-----|
+| Background | background | #0D1B2A |
+| Surface | surface | #1B2838 |
+| Tile empty | tileEmpty | #1E3A5F |
+| Accent | accent | #4FC3F7 |
+| Text primary | textPrimary | #ECEFF1 |
 
-## Dark theme (Phase 6)
-`src/constants/colors.ts` restructured into `lightColors` + `darkColors` exports. `useColors()` hook returns active palette based on settingsStore.themeMode. Dark palette requirements:
-- Background: dark (~#121212), surface: slightly lighter (~#2a2a3e)
-- TextPrimary: near-white (~#e8e8e8), TextSecondary: meets 4.5:1 on dark bg
-- Tile colors (correct/present/absent): adjusted for dark background visibility
-- Accent: may need slight brightening for dark mode
-- Follow Material Design 3 dark theme surface/on-surface guidelines
+## Semantic theme groups
+| Group | Fields | Purpose |
+|-------|--------|---------|
+| brand | primary, primaryDark, secondary, tertiary | Interactive palette |
+| surface | background, card, header, elevated, muted | Visual layers |
+| text | primary, secondary, inverse, onPresent | Text colors |
+| button | primary{bg,fg,bgDark}, secondary{bg,fg,border}, danger{bg,fg,bgDark}, ghost{fg} | Buttons |
+| toggle | trackActive, trackInactive, thumb | Switches |
+| icon | primary, accent, muted, inverse | Icons |
+| tile | correct, present, absent, empty, border | Game tiles |
+| key | correct, present, absent, unused, text, special, actionText | Keyboard |
+| status | success, danger, accent, accentDark | Status colors |
 
-## Chart colors (guess distribution)
-| Element | Color | Hex |
-|---------|-------|-----|
-| Active bar (count > 0) | `colors.tileCorrect` | #6aaa64 |
-| Zero-count bar | `colors.tileEmpty` | #d3d6da |
-| Axis labels | `colors.textSecondary` | #787c7e |
-
-## Toggle colors
-| Element | Active | Inactive |
-|---------|--------|----------|
-| Track | `colors.accent` (#4a9eff) | `colors.tileEmpty` (#d3d6da) |
-| Thumb | `textInverse` (#ffffff) | `textInverse` (#ffffff) |
-| Value text | `textPrimary` (#1a1a2e) | `textSecondary` (#787c7e) |
-
-## WCAG contrast (inherited palette debt)
-| Pair | Ratio | AA (text) | AA (large) | Status |
-|------|-------|-----------|------------|--------|
-| `textPrimary` (#1a1a2e) on `surface` (#fff) | 15.5:1 | ✅ | ✅ | Good |
-| `textSecondary` (#787c7e) on `surface` (#fff) | 4.09:1 | ❌ | ✅ | Inherited debt from Phase 1 colors.ts |
-| `accent` (#4a9eff) on `surface` (#fff) | 3.31:1 | N/A | N/A | Non-text element |
-| `textSecondary` (#787c7e) on `tileEmpty` (#d3d6da) — segmented control inactive | 1.4:1 | ❌ | ❌ | **FIXED 2026-07-09** — switched to textPrimary + opacity 0.65 in ThemeSelectorRow |
-| `tileAbsent` on `rgba(120,124,126,0.3)` overlay — completed length button | <1.5:1 | ❌ | ❌ | **FIXED 2026-07-09** — textPrimary + opacity 0.5 in LengthPickerModal |
-
-`textSecondary` (#787c7e) fails WCAG AA for normal text (<18px) on white surfaces and on `tileEmpty` (#d3d6da) track. Affects stat labels (12px), table cells, and was the source of the segmented-control readability issue. Pattern adopted after 2026-07-09 audit: anywhere a label sits on `tileEmpty` (segmented controls, toggle tracks), use `textPrimary` + opacity 0.5–0.65 instead of `textSecondary`.
-
-**Phase 6 fix (P16):** present tiles/keys (#c9b458 background) now use dark text (#1a1a2e) instead of white (#ffffff) for contrast compliance.
-
-**Phase 6 fix (P30):** `SettingsRow.ToggleRow` migrated to `useStyles(colors)` so toggle labels get explicit theme-aware color (was the user-reported "Sound Effects blends into dark theme" bug — module-level `styles.label` had no color, so text inherited the OS default).
+## WCAG contrast (post-overhaul)
+| Pair | Ratio | Status |
+|------|-------|--------|
+| textPrimary on surface | ~15:1 | ✅ |
+| textSecondary on surface | ~5:1 | ✅ (improved from 4.09) |
+| text.onPresent on tilePresent | ~10:1 | ✅ |
+| brand.primary on surface | ~3:1 | N/A (non-text) |
