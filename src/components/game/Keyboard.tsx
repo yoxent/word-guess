@@ -110,7 +110,12 @@ function KeyboardComponent() {
 
   const getKeyBackground = (key: string): string => {
     if (isActionKey(key)) {
-      return theme.colors.key.special;
+      // 2026-07-09: action keys (ENTER/BACKSPACE) now use the same background
+      // as unused letter keys. Previously they used colors.key.special which
+      // (combined with the dark text.inverse in dark theme) produced an
+      // unreadable dark-on-dark combo. Same color as letters, but the text
+      // label distinguishes them (ENTER/BACKSPACE + slightly wider).
+      return theme.colors.key.unused;
     }
     const feedback = session?.keyColors?.[key];
     const status: TileFeedback | 'unused' = feedback ?? 'unused';
@@ -142,7 +147,11 @@ function KeyboardComponent() {
 
   const getKeyTextColor = (key: string): string => {
     if (isActionKey(key)) {
-      return theme.colors.key.actionText;
+      // 2026-07-09: action keys now use the same text color as unused letter
+      // keys (colors.key.text = text.primary, theme-aware). Previously they
+      // used colors.key.actionText (= text.inverse, which is dark in dark
+      // theme → unreadable on the dark-gray key.special background).
+      return theme.colors.key.text;
     }
     const feedback = session?.keyColors?.[key];
     // Unused keys get dark text; used keys get inverse white text

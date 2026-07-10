@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
 import type { GameMode } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -117,15 +117,11 @@ export function LengthPickerModal({
           color: theme.colors.status.success,
           fontWeight: '700',
         },
-        cancelButton: {
-          paddingVertical: 10,
-          paddingHorizontal: 20,
-        },
-        cancelText: {
-          fontSize: 16,
-          color: theme.colors.text.secondary,
-          fontWeight: '600',
-        },
+        // NOTE 2026-07-09: removed the cancelButton and cancelText styles.
+        // The Cancel button was replaced with tap-outside-to-dismiss:
+        // tap the overlay (outside the card) closes the modal. The card
+        // itself consumes taps via onStartShouldSetResponder so the
+        // length buttons stay interactive.
       }),
     [theme],
   );
@@ -134,8 +130,16 @@ export function LengthPickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
+      {/* 2026-07-09: removed the Cancel button. The overlay is now a
+          Pressable — tapping outside the card dismisses the modal. The
+          card itself captures touches via onStartShouldSetResponder
+          so tapping the card background (or the length buttons inside)
+          does NOT dismiss. */}
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <View
+          style={styles.card}
+          onStartShouldSetResponder={() => true}
+        >
           <Text style={styles.title}>{getTitle(mode)}</Text>
 
           {isDaily && (
@@ -187,12 +191,8 @@ export function LengthPickerModal({
               );
             })}
           </View>
-
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 }

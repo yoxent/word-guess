@@ -165,6 +165,16 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     // Before flip (0): visible; mid-flip (0.5): hidden; after flip (1): visible
     opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
   }));
+  // NOTE 2026-07-09: animatedTextStyle is intentionally defined but NOT
+  // applied to the <Animated.Text> below. The text opacity animation was
+  // causing 'missing text' on completed rows: if the tile flip animation
+  // didn't fully complete (e.g., the worklet got stuck or the JS thread
+  // was busy), flipProgress.value could be left at 0.5, which would
+  // interpolate text opacity to 0 (invisible). The text would reappear
+  // on remount (e.g., navigating back to Home and re-entering the game)
+  // because the fresh animation ran to completion. Removing the text
+  // opacity animation keeps the letters always visible; the background
+  // color and rotation still animate for the Wordle-style flip effect.
 
   // Compute dynamic text color — present tiles use dark text for contrast (D-180)
   const letterColor = feedback === 'present' ? theme.colors.text.onPresent : theme.colors.text.inverse;
@@ -197,7 +207,8 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
           style={[
             styles.letter,
             { fontSize: tileFontSize, color: letterColor },
-            animatedTextStyle,
+            // Note: animatedTextStyle (text opacity flicker during flip)
+            // intentionally NOT applied — see comment above for rationale.
           ]}
         >
           {letter.toUpperCase()}

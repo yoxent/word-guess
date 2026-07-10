@@ -110,7 +110,20 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Lesson: Navigation hooks must be in descendants of the container. Pattern: split into outer (container) + inner (hooks).
 - Phase: 6 (Post-launch)
 
-### P36: Android 11+ AppOps `attributionTag not declared` warning for expo-audio (REVERTED 2026-07-09)
+### P37: Three UI bugs — keyboard action key colors, missing tile text, modal Cancel pattern (FIXED 2026-07-09)
+
+**Bug 1 — Keyboard action key colors:** Action keys (ENTER/BACKSPACE) used `colors.key.special` (dark gray in dark theme) + `colors.key.actionText` (= `text.inverse`, dark in dark theme) → unreadable dark-on-dark in dark theme. Fixed by using the same `colors.key.unused` background and `colors.key.text` (= `text.primary`, theme-aware) as letter keys. Action keys are now visually consistent with letter keys, just wider and with a different text label.
+
+**Bug 2 — Tile text "missing" after guessing:** The `animatedTextStyle` in `Tile.tsx` interpolated the text opacity from 1 → 0 → 1 during the flip animation. If the worklet got stuck or the JS thread was busy (e.g., the gameStore update happening in the same render cycle), `flipProgress.value` could be left at 0.5, which would render the text at opacity 0 (invisible). The text would reappear on remount because a fresh animation ran to completion. Fixed by removing the text opacity animation entirely — the text is always visible. The background color and rotation still animate for the Wordle-style flip effect. Side effect: the text is no longer hidden during the flip (a small UX trade-off, but worth it for reliability). The `animatedTextStyle` is left defined in the code with a comment explaining why it's unused, so a future maintainer doesn't try to re-add it.
+
+**Bug 3 — LengthPickerModal Cancel button + Continue Game modal standardization:**
+- `LengthPickerModal`: removed the Cancel button. Changed the overlay to a `Pressable` with `onPress={onClose}` so tapping outside the card dismisses. Added `onStartShouldSetResponder={() => true}` to the card so tapping inside the card (including the length buttons) does NOT dismiss.
+- `HomeScreen`'s Continue Game modal: was already using `onTouchEnd` on the overlay (which had a similar effect), but inconsistent with the new pattern. Standardized to `Pressable` + `onStartShouldSetResponder` for consistency with the length picker.
+- The pattern is: tap on overlay → dismiss; tap on card → does NOT dismiss (buttons inside the card still work).
+- No other modals have Cancel buttons to change (`ResultModal` has action buttons Play Next/Back to Menu, `HowToPlayModal` has Got it! — these are actions, not cancels, and aren't in scope for this pattern).
+
+- Lesson: For text content that should always be visible, don't tie its opacity to an animation that could get stuck. The text should be stable; only the background/visual chrome should animate. For modal dismissal, the Pressable + onStartShouldSetResponder pattern is more explicit and standard than onTouchEnd.
+- Phase: 6 (Post-launch)
 - Cause: On Android 11+ (API 30+), every service that uses app-ops (like media playback) must declare an `android:attributionTag` in the manifest. `expo-audio`'s `AudioControlsService` does NOT set this by default. The system logs a warning every time the service is active: `AppOps: attributionTag not declared in manifest of com.vorithstudio.wordguess`. The user noticed these during the login flow (because the BGM was playing while they tapped Sign In).
 - Attempted fix: `scripts/patch-audio-attribution-tag.mjs` added `android:attributionTag="audioPlayback"` to the `<service>` element. **REVERTED** — the AAPT2 binary used by the project's build chain does not recognize the `android:attributionTag` attribute, even with compileSdk = 36. The build fails with: `AAPT: error: attribute android:attributionTag not found.`
 - Why: The attribute is added in API 31+ in AOSP, and `node_modules/react-native/gradle/libs.versions.toml` declares `compileSdk = "36"`. The failure suggests a build-tools / AAPT2 version mismatch — the AAPT2 binary in the toolchain may predate the attribute even though the framework jar at API 36 should know about it.

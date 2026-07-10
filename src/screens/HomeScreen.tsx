@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Switch, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet, Switch, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -409,8 +409,17 @@ export function HomeScreen() {
       />
 
       <Modal visible={continueModal !== null} transparent animationType="fade">
-        <View style={styles.modalOverlay} onTouchEnd={handleCancelContinue}>
-          <View style={styles.modalCard}>
+        {/* 2026-07-09: standardized to the same Pressable tap-outside
+            pattern as LengthPickerModal. Tapping outside the card
+            dismisses (calls handleCancelContinue = same as choosing
+            "New Game"). Tapping inside the card is captured by
+            onStartShouldSetResponder, so the Continue / New Game
+            buttons stay interactive without accidentally dismissing. */}
+        <Pressable style={styles.modalOverlay} onPress={handleCancelContinue}>
+          <View
+            style={styles.modalCard}
+            onStartShouldSetResponder={() => true}
+          >
             <Text style={styles.modalTitle}>Continue Game?</Text>
             <Text style={styles.modalMessage}>
               You have an unfinished {continueModal?.mode} {continueModal?.length}-letter game.
@@ -424,7 +433,7 @@ export function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </View>
   );
