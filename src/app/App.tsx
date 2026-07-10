@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Navigation } from './Navigation';
 import { LoadingScreen } from '../screens/LoadingScreen';
 import { fetchAdUnitIds } from '../services/remoteConfig';
+import { loadFonts } from '../utils/fonts';
 import { configureGoogleSignIn } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -55,19 +56,28 @@ export default function App() {
       console.time('startup-init');
     }
 
-    // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
-    fetchAdUnitIds();
+    // Load Nunito display font — blocks first render for ~100ms but
+    // prevents flash of unstyled text. If loading fails, app continues
+    // with system fonts.
+    const init = async () => {
+      await loadFonts();
 
-    // Initialize sound system (loads BGM + SFX players) — fire-and-forget
-    sound.init();
-    // BGM start is handled by sound.init() (plays if volume > 0)
+      // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
+      fetchAdUnitIds();
 
-    if (__DEV__) {
-      console.timeEnd('startup-init');
-    }
+      // Initialize sound system (loads BGM + SFX players) — fire-and-forget
+      sound.init();
+      // BGM start is handled by sound.init() (plays if volume > 0)
 
-    // D-175: No artificial delay — Home screen stagger entrance handles visual transition
-    setIsReady(true);
+      if (__DEV__) {
+        console.timeEnd('startup-init');
+      }
+
+      // D-175: No artificial delay — Home screen stagger entrance handles visual transition
+      setIsReady(true);
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // D-118: Silent sign-in on startup — non-blocking, fire-and-forget
