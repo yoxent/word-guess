@@ -1,7 +1,10 @@
-import React, { useMemo } from 'react';
-import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { View, Text, Modal, Pressable, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import type { GameMode } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
+import { typography } from '../../constants/typography';
+import { layout } from '../../constants/layout';
 
 const LENGTHS = [5, 6, 7, 8, 9, 10];
 
@@ -18,9 +21,20 @@ function getTitle(mode: GameMode): string {
     case 'daily':
       return 'Daily Challenge';
     case 'endless':
-      return 'Endless — Choose length';
+      return 'Endless — Pick a length';
     default:
       return 'Choose word length';
+  }
+}
+
+function getIcon(mode: GameMode): string {
+  switch (mode) {
+    case 'daily':
+      return 'wb-sunny';
+    case 'endless':
+      return 'all-inclusive';
+    default:
+      return 'casino';
   }
 }
 
@@ -37,27 +51,41 @@ export function LengthPickerModal({
       StyleSheet.create({
         overlay: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(13, 27, 42, 0.6)',
           justifyContent: 'center',
           alignItems: 'center',
         },
         card: {
           backgroundColor: theme.colors.surface.card,
-          borderRadius: 20,
+          borderRadius: layout.modalBorderRadius,
           padding: 24,
           alignItems: 'center',
-          maxWidth: 340,
+          maxWidth: 360,
           width: '85%',
+          // Soft shadow with brand color
+          shadowColor: theme.colors.brand.primary,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
+          shadowRadius: 24,
+          elevation: 8,
+        },
+        iconContainer: {
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: theme.colors.surface.muted,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 12,
         },
         title: {
-          fontSize: 20,
-          fontWeight: '700',
+          ...typography.heading,
           color: theme.colors.text.primary,
           marginBottom: 4,
           textAlign: 'center',
         },
         subtitle: {
-          fontSize: 14,
+          ...typography.body,
           color: theme.colors.text.secondary,
           marginBottom: 8,
         },
@@ -65,81 +93,103 @@ export function LengthPickerModal({
           flexDirection: 'row',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: 12,
+          gap: 10,
           marginTop: 16,
-          marginBottom: 20,
+          marginBottom: 8,
         },
         lengthButton: {
-          width: 130,
-          height: 85,
-          borderRadius: 12,
-          backgroundColor: theme.colors.surface.card,
-          borderWidth: 1,
+          width: 100,
+          height: 80,
+          borderRadius: 16, // more rounded
+          backgroundColor: theme.colors.surface.muted,
+          borderWidth: 2,
           borderColor: theme.colors.tile.border,
           justifyContent: 'center',
           alignItems: 'center',
+          // Soft shadow
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 4,
+          elevation: 1,
         },
         lengthButtonCompleted: {
-          backgroundColor: 'rgba(120,124,126,0.3)',
-          borderColor: theme.colors.tile.absent,
+          backgroundColor: `${theme.colors.status.success}20`, // green at 12% opacity
+          borderColor: `${theme.colors.status.success}60`, // green at 40% opacity
         },
         lengthButtonContent: {
           alignItems: 'center',
           position: 'relative',
         },
         lengthNumber: {
-          fontSize: 28,
-          fontWeight: '700',
+          ...typography.statValue,
           color: theme.colors.text.primary,
+          fontSize: 28,
         },
         lengthNumberCompleted: {
-          // Keep high contrast on the translucent overlay — tileAbsent failed
-          // WCAG AA on rgba(120,124,126,0.3) in light theme.
-          color: theme.colors.text.primary,
-          opacity: 0.5,
+          color: theme.colors.status.success,
+          opacity: 0.6,
         },
         lengthSubtitle: {
-          fontSize: 12,
+          ...typography.small,
           color: theme.colors.text.secondary,
           marginTop: 2,
         },
         lengthSubtitleCompleted: {
-          color: theme.colors.text.primary,
-          opacity: 0.5,
+          color: theme.colors.status.success,
+          opacity: 0.6,
         },
         checkmarkContainer: {
           position: 'absolute',
-          top: -28,
-          right: -28,
+          top: -4,
+          right: -16,
         },
-        checkmark: {
-          fontSize: 20,
-          color: theme.colors.status.success,
-          fontWeight: '700',
-        },
-        // NOTE 2026-07-09: removed the cancelButton and cancelText styles.
-        // The Cancel button was replaced with tap-outside-to-dismiss:
-        // tap the overlay (outside the card) closes the modal. The card
-        // itself consumes taps via onStartShouldSetResponder so the
-        // length buttons stay interactive.
       }),
     [theme],
   );
 
   const isDaily = mode === 'daily';
 
+  // ── Scale+fade open animation (Phase 7D) ──
+  const cardScale = useRef(new Animated.Value(0.9)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      cardScale.setValue(0.9);
+      cardOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(cardScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          friction: 5,
+          tension: 50,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, cardScale, cardOpacity]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      {/* 2026-07-09: removed the Cancel button. The overlay is now a
-          Pressable — tapping outside the card dismisses the modal. The
-          card itself captures touches via onStartShouldSetResponder
-          so tapping the card background (or the length buttons inside)
-          does NOT dismiss. */}
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View
-          style={styles.card}
+        <Animated.View
+          style={[styles.card, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}
           onStartShouldSetResponder={() => true}
         >
+          {/* Mode icon */}
+          <View style={styles.iconContainer}>
+            <MaterialIcons
+              name={getIcon(mode) as any}
+              size={28}
+              color={theme.colors.brand.primary}
+            />
+          </View>
+
           <Text style={styles.title}>{getTitle(mode)}</Text>
 
           {isDaily && (
@@ -179,11 +229,15 @@ export function LengthPickerModal({
                         isCompleted && styles.lengthSubtitleCompleted,
                       ]}
                     >
-                      {length} letters
+                      letters
                     </Text>
                     {isCompleted && (
                       <View style={styles.checkmarkContainer}>
-                        <Text style={styles.checkmark}>✓</Text>
+                        <MaterialIcons
+                          name="check-circle"
+                          size={20}
+                          color={theme.colors.status.success}
+                        />
                       </View>
                     )}
                   </View>
@@ -191,7 +245,7 @@ export function LengthPickerModal({
               );
             })}
           </View>
-        </View>
+        </Animated.View>
       </Pressable>
     </Modal>
   );

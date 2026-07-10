@@ -1,5 +1,6 @@
-import React, { memo, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
@@ -18,6 +19,123 @@ function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
 }
 
+/** Individual key with spring press animation. */
+function KeyboardKey({
+  label,
+  displayText,
+  fontSize,
+  backgroundColor,
+  textColor,
+  wide,
+  disabled,
+  isHinted,
+  onPress,
+}: {
+  label: string;
+  displayText: string;
+  fontSize: number;
+  backgroundColor: string;
+  textColor: string;
+  wide?: boolean;
+  disabled: boolean;
+  isHinted?: boolean;
+  onPress: () => void;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  // Blinking animation for hinted letter
+  useEffect(() => {
+    if (isHinted) {
+      const blink = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, {
+            toValue: 0.3,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blinkAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      blink.start();
+      return () => blink.stop();
+    } else {
+      blinkAnim.setValue(1);
+    }
+  }, [isHinted, blinkAnim]);
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.92,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 50,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 50,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={[{ transform: [{ scale }], flex: wide ? 1.5 : 1 }, isHinted && { opacity: blinkAnim }]}>
+      <TouchableOpacity
+        style={[
+          keyStyles.key,
+          { backgroundColor },
+          wide && keyStyles.wideKey,
+          disabled && keyStyles.keyDisabled,
+        ]}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={disabled}
+        activeOpacity={1}
+        accessible
+        accessibilityRole="keyboardkey"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+      >
+        {label === 'BACKSPACE' ? (
+          <MaterialIcons name="backspace" size={20} color={textColor} />
+        ) : (
+          <Text style={[keyStyles.keyText, { fontSize, color: textColor }]}>
+            {displayText}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const keyStyles = StyleSheet.create({
+  key: {
+    height: layout.keyboardKeyHeight,
+    borderRadius: layout.keyboardKeyBorderRadius,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  wideKey: {
+    // flex: 1.5 applied via Animated.View
+  },
+  keyDisabled: {
+    opacity: 0.4,
+  },
+  keyText: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+});
+
 function KeyboardComponent() {
   const theme = useTheme();
   const styles = useMemo(
@@ -34,23 +152,6 @@ function KeyboardComponent() {
         },
         spacer: {
           flex: 0.5,
-        },
-        key: {
-          flex: 1,
-          height: layout.keyboardKeyHeight,
-          borderRadius: layout.keyboardKeyBorderRadius,
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
-        wideKey: {
-          flex: 1.5,
-        },
-        keyDisabled: {
-          opacity: 0.4,
-        },
-        keyText: {
-          fontWeight: '700',
-          textTransform: 'uppercase',
         },
       }),
     [],
@@ -74,6 +175,7 @@ function KeyboardComponent() {
   const currentGuess = useGameStore((s) => s.currentGuess);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
+  const hintLetter = useGameStore((s) => s.hintLetter);
   const hapticEnabled = useSettingsStore((s) => s.hapticEnabled);
 
   const isPlaying = session?.status === 'playing';
@@ -81,18 +183,14 @@ function KeyboardComponent() {
 
   const handlePress = useCallback(
     (key: string) => {
-      // Light haptic on any key press (D-18) — only if user has haptics enabled
       if (hapticEnabled) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       }
-
-      // Play key press sound (D-181) — gated by sfxVolume in the sound service
       sound.playKeyPress();
 
       if (!isPlaying) return;
 
       if (isRevealing) {
-        // Queue input instead of dropping it (D-66: queue preferred)
         addPendingInput(key);
         return;
       }
@@ -105,63 +203,50 @@ function KeyboardComponent() {
         addLetter(key);
       }
     },
-    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter],
+    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter, hapticEnabled],
   );
 
-  const getKeyBackground = (key: string): string => {
-    if (isActionKey(key)) {
-      // 2026-07-09: action keys (ENTER/BACKSPACE) now use the same background
-      // as unused letter keys. Previously they used colors.key.special which
-      // (combined with the dark text.inverse in dark theme) produced an
-      // unreadable dark-on-dark combo. Same color as letters, but the text
-      // label distinguishes them (ENTER/BACKSPACE + slightly wider).
-      return theme.colors.key.unused;
-    }
-    const feedback = session?.keyColors?.[key];
-    const status: TileFeedback | 'unused' = feedback ?? 'unused';
-    return keyColorMap[status] || theme.colors.key.unused;
-  };
+  const getKeyBackground = useCallback(
+    (key: string): string => {
+      if (isActionKey(key)) {
+        // Action keys: slightly darker shade to distinguish from letter keys
+        return theme.colors.key.special;
+      }
+      const feedback = session?.keyColors?.[key];
+      const status: TileFeedback | 'unused' = feedback ?? 'unused';
+      return keyColorMap[status] || theme.colors.key.unused;
+    },
+    [session?.keyColors, keyColorMap, theme],
+  );
 
-  const isKeyDisabled = (key: string): boolean => {
-    if (isBlocked) return true;
-    if (key === 'ENTER') {
-      return currentGuess.length < (session?.letterCount ?? 5);
-    }
-    if (key === 'BACKSPACE') {
-      return currentGuess.length === 0;
-    }
-    // Letter key
-    return currentGuess.length >= (session?.letterCount ?? 5);
-  };
+  const getKeyTextColor = useCallback(
+    (key: string): string => {
+      if (isActionKey(key)) {
+        return theme.colors.key.text;
+      }
+      const feedback = session?.keyColors?.[key];
+      if (!feedback) return theme.colors.key.text;
+      if (feedback === 'present') return theme.colors.text.onPresent;
+      return theme.colors.text.inverse;
+    },
+    [session?.keyColors, theme],
+  );
 
-  const getKeyText = (key: string): string => {
-    if (key === 'BACKSPACE') return '⌫';
-    return key;
-  };
+  const isKeyDisabled = useCallback(
+    (key: string): boolean => {
+      if (isBlocked) return true;
+      if (key === 'ENTER') return currentGuess.length < (session?.letterCount ?? 5);
+      if (key === 'BACKSPACE') return currentGuess.length === 0;
+      return currentGuess.length >= (session?.letterCount ?? 5);
+    },
+    [isBlocked, currentGuess.length, session?.letterCount],
+  );
 
-  const getKeyFontSize = (key: string): number => {
-    if (key === 'ENTER') return 12;
-    if (key === 'BACKSPACE') return 16;
-    return 16;
-  };
-
-  const getKeyTextColor = (key: string): string => {
-    if (isActionKey(key)) {
-      // 2026-07-09: action keys now use the same text color as unused letter
-      // keys (colors.key.text = text.primary, theme-aware). Previously they
-      // used colors.key.actionText (= text.inverse, which is dark in dark
-      // theme → unreadable on the dark-gray key.special background).
-      return theme.colors.key.text;
-    }
-    const feedback = session?.keyColors?.[key];
-    // Unused keys get dark text; used keys get inverse white text
-    if (!feedback) {
-      return theme.colors.key.text;
-    }
-    // Present keys use dark text for contrast (D-180)
-    if (feedback === 'present') return theme.colors.text.onPresent;
-    return theme.colors.text.inverse;
-  };
+  const getKeyDisplay = useCallback((key: string): { text: string; fontSize: number; label: string } => {
+    if (key === 'ENTER') return { text: 'ENTER', fontSize: 11, label: 'Enter' };
+    if (key === 'BACKSPACE') return { text: '⌫', fontSize: 18, label: 'Backspace' };
+    return { text: key, fontSize: 16, label: key };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -169,35 +254,24 @@ function KeyboardComponent() {
         <View key={i} style={styles.row}>
           {row.map((key) => {
             if (key === '') {
-              // Spacer for row 2 offset (9 keys -> centered like QWERTY)
               return <View key="spacer" style={styles.spacer} />;
             }
+            const { text, fontSize, label } = getKeyDisplay(key);
             const disabled = isKeyDisabled(key);
+            const isHinted = hintLetter === key && !session?.keyColors?.[key];
             return (
-              <TouchableOpacity
+              <KeyboardKey
                 key={key}
-                style={[
-                  styles.key,
-                  { backgroundColor: getKeyBackground(key) },
-                  isActionKey(key) && styles.wideKey,
-                  disabled && styles.keyDisabled,
-                ]}
-                onPress={() => handlePress(key)}
+                label={label}
+                displayText={text}
+                fontSize={fontSize}
+                backgroundColor={getKeyBackground(key)}
+                textColor={getKeyTextColor(key)}
+                wide={isActionKey(key)}
                 disabled={disabled}
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="keyboardkey"
-                accessibilityLabel={key === 'ENTER' ? 'Enter' : key === 'BACKSPACE' ? 'Backspace' : key}
-              >
-                <Text
-                  style={[
-                    styles.keyText,
-                    { fontSize: getKeyFontSize(key), color: getKeyTextColor(key) },
-                  ]}
-                >
-                  {getKeyText(key)}
-                </Text>
-              </TouchableOpacity>
+                isHinted={isHinted}
+                onPress={() => handlePress(key)}
+              />
             );
           })}
         </View>

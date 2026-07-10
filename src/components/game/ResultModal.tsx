@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { View, Text, Modal, Animated, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
@@ -9,9 +10,10 @@ import { useDictionaryStore } from '../../stores/dictionaryStore';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAdStore } from '../../stores/adStore';
-import { config } from '../../constants/config';
 import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
+import { typography } from '../../constants/typography';
+import { layout } from '../../constants/layout';
 import {
   clearActiveGame,
   getEndlessStreak,
@@ -37,38 +39,52 @@ export function ResultModal() {
       StyleSheet.create({
         overlay: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(13, 27, 42, 0.7)', // darker for celebration contrast
           justifyContent: 'center',
           alignItems: 'center',
         },
         card: {
           backgroundColor: theme.colors.surface.card,
-          borderRadius: 16,
-          padding: 24,
+          borderRadius: layout.modalBorderRadius,
+          padding: 28,
           alignItems: 'center',
-          minWidth: 280,
+          minWidth: 300,
           maxWidth: '85%',
+          // Colored shadow — green for win, coral for loss
+          shadowColor: theme.colors.brand.primary,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.2,
+          shadowRadius: 32,
+          elevation: 12,
         },
-        titleRow: {
+        iconContainer: {
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          justifyContent: 'center',
           alignItems: 'center',
-          width: '100%',
-          marginBottom: 12,
+          marginBottom: 16,
+        },
+        iconContainerWin: {
+          backgroundColor: `${theme.colors.status.success}20`,
+        },
+        iconContainerLoss: {
+          backgroundColor: `${theme.colors.status.danger}20`,
         },
         title: {
-          fontSize: 28,
-          fontWeight: '700',
+          ...typography.heading,
           textAlign: 'center',
+          marginBottom: 8,
         },
         word: {
-          fontSize: 32,
-          fontWeight: '800',
-          textTransform: 'uppercase',
+          ...typography.display,
           color: theme.colors.text.primary,
-          marginBottom: 8,
-          letterSpacing: 2,
+          marginBottom: 4,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
         },
         definition: {
-          fontSize: 14,
+          ...typography.body,
           color: theme.colors.text.secondary,
           fontStyle: 'italic',
           textAlign: 'center',
@@ -77,7 +93,7 @@ export function ResultModal() {
           paddingHorizontal: 8,
         },
         streak: {
-          fontSize: 16,
+          ...typography.settingsRow,
           fontWeight: '600',
           textAlign: 'center',
           marginBottom: 4,
@@ -85,38 +101,24 @@ export function ResultModal() {
         emojiContainer: {
           marginVertical: 16,
           alignItems: 'center',
+          backgroundColor: theme.colors.surface.muted,
+          borderRadius: 12,
+          padding: 12,
         },
         emojiText: {
           fontSize: 14,
           lineHeight: 20,
           fontFamily: 'monospace',
           textAlign: 'center',
-          // Explicit color for the Text container. The emoji glyphs themselves
-          // carry color (🟩🟨⬛), so this primarily guards against a stray default
-          // (e.g. if the system font were ever used instead of an emoji font).
           color: theme.colors.text.primary,
         },
         buttonContainer: {
           marginTop: 8,
           width: '100%',
-          alignItems: 'center',
+          gap: 10,
         },
         playNextButton: {
           width: '100%',
-        },
-        watchAdButton: {
-          backgroundColor: theme.colors.button.primary.bg,
-          borderRadius: 12,
-          paddingVertical: 14,
-          paddingHorizontal: 24,
-          marginTop: 8,
-          width: '100%',
-          alignItems: 'center',
-        },
-        watchAdText: {
-          color: theme.colors.button.primary.fg,
-          fontSize: 16,
-          fontWeight: '600',
         },
       }),
     [theme],
@@ -128,12 +130,12 @@ export function ResultModal() {
   const isPro = useSettingsStore(s => s.isPro);
   const [endlessStreak, setEndlessStreakState] = useState(0);
 
-  // Compute definition from session data (static lookup, no reactivity needed)
+  // Compute definition from session data
   const definition = useMemo(() => {
     if (!session) return undefined;
     return useDictionaryStore.getState().getDefinition(
       session.letterCount,
-      session.word
+      session.word,
     );
   }, [session]);
 
@@ -142,13 +144,11 @@ export function ResultModal() {
     if (!session) return;
 
     if (session.status === 'won' || session.status === 'lost') {
-      // Daily completion tracking (D-40, D-41)
       if (session.mode === 'daily') {
         const dateStr = getDailyDateString();
         markDailyCompleted(dateStr, session.letterCount);
       }
 
-      // Endless streak tracking (D-47)
       if (session.mode === 'endless') {
         if (session.status === 'won') {
           const prev = getEndlessStreak();
@@ -160,33 +160,19 @@ export function ResultModal() {
           setEndlessStreakState(finalStreak);
           persistEndlessStreak(0);
         }
-
-        // NEW: Track total endless words guessed (D-145)
         incrementEndlessTotalWords();
       }
 
-      // Sound effects on game result (D-181-D-183)
       if (session.status === 'won') {
         sound.playWin();
       } else if (session.status === 'lost') {
         sound.playLoss();
       }
 
-      // Clear active game state (D-58)
       clearActiveGame();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status]);
-
-  const handleWatchAd = useCallback(async () => {
-    const adStore = useAdStore.getState();
-    const shown = await adStore.showRewarded(() => {
-      useGameStore.getState().addExtraGuess();
-    });
-    if (!shown) {
-      // Ad not ready — silently return, button stays visible
-    }
-  }, []);
 
   const handlePlayNext = () => {
     if (!session) return;
@@ -195,18 +181,15 @@ export function ResultModal() {
     const length = session.letterCount;
     const dictStore = useDictionaryStore.getState();
 
-    // Get today's daily words to exclude (D-52)
     const todayDailyWords = dictStore.getTodayDailyWords().words;
     const excludeWord = todayDailyWords[length];
 
-    // Get pool of target words excluding today's daily word
     const allTargets = dictStore.getWordList(length);
     const pool = excludeWord
       ? allTargets.filter((w) => w !== excludeWord)
       : allTargets;
     const nextWord = pool[Math.floor(Math.random() * pool.length)];
 
-    // Start new endless game
     clearActiveGame();
     useGameStore.getState().startGame('endless', nextWord, length, hardMode);
   };
@@ -245,60 +228,105 @@ export function ResultModal() {
     handleBackToMenu();
   }, [showInterstitialIfNeeded, handleBackToMenu]);
 
+
+
+  // Build emoji grid
+  const emojiRows = session?.feedback.map((rowFeedback) => {
+    return rowFeedback
+      .map((f) => EMOJI_MAP[f.feedback] || '⬛')
+      .join('');
+  }) ?? [];
+  const emojiText = emojiRows.join('\n');
+
+  // ── Card scale bounce animation (Phase 7E) ──
+  const cardScale = useRef(new Animated.Value(0.8)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(cardScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 5,
+        tension: 50,
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [cardScale, cardOpacity]);
+
   if (!session || session.status === 'playing') {
     return null;
   }
 
   const isWin = session.status === 'won';
 
-  const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
-  const showRewardedAd = session.status === 'lost' && session.extraGuessesUsed < maxExtra;
-
-  // Build emoji grid
-  const emojiRows = session.feedback.map((rowFeedback) => {
-    return rowFeedback
-      .map((f) => EMOJI_MAP[f.feedback] || '⬛')
-      .join('');
-  });
-  const emojiText = emojiRows.join('\n');
-
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.overlay}>
         {isWin && <Confetti />}
-        <View style={styles.card}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[
-                styles.title,
-                { color: isWin ? theme.colors.status.success : theme.colors.status.danger },
-              ]}
-            >
-              {isWin ? 'You Won!' : 'Game Over'}
-            </Text>
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              transform: [{ scale: cardScale }],
+              opacity: cardOpacity,
+            },
+          ]}
+        >
+          {/* Result icon */}
+          <View
+            style={[
+              styles.iconContainer,
+              isWin ? styles.iconContainerWin : styles.iconContainerLoss,
+            ]}
+          >
+            <MaterialIcons
+              name={isWin ? 'emoji-events' : 'sentiment-dissatisfied'}
+              size={40}
+              color={isWin ? theme.colors.status.success : theme.colors.status.danger}
+            />
           </View>
 
+          {/* Title */}
+          <Text
+            style={[
+              styles.title,
+              { color: isWin ? theme.colors.status.success : theme.colors.status.danger },
+            ]}
+          >
+            {isWin ? 'You Won!' : 'Game Over'}
+          </Text>
+
+          {/* Word */}
           <Text style={styles.word}>{session.word.toUpperCase()}</Text>
 
+          {/* Definition */}
           {definition && (
             <Text style={styles.definition}>{definition}</Text>
           )}
 
+          {/* Streak */}
           {session.mode === 'endless' && (
             <Text
               style={[
                 styles.streak,
-                { color: isWin ? theme.colors.status.accent : theme.colors.text.secondary },
+                { color: isWin ? theme.colors.brand.secondary : theme.colors.text.secondary },
               ]}
             >
-              {isWin ? `Streak: ${endlessStreak}` : `Final Streak: ${endlessStreak}`}
+              {isWin ? `🔥 Streak: ${endlessStreak}` : `Final streak: ${endlessStreak}`}
             </Text>
           )}
 
+          {/* Emoji grid */}
           <View style={styles.emojiContainer}>
             <Text style={styles.emojiText}>{emojiText}</Text>
           </View>
 
+          {/* Buttons */}
           <View style={styles.buttonContainer}>
             {session.mode === 'endless' ? (
               <Button
@@ -309,17 +337,8 @@ export function ResultModal() {
             ) : (
               <Button title="Back to Menu" onPress={handleBackToMenuWithAd} />
             )}
-            {showRewardedAd && (
-              <TouchableOpacity
-                style={styles.watchAdButton}
-                onPress={handleWatchAd}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.watchAdText}>Watch Ad for +1 Guess</Text>
-              </TouchableOpacity>
-            )}
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

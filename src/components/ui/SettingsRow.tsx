@@ -85,8 +85,12 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
       <Switch
         value={!!value}
         onValueChange={toggleAction}
-        trackColor={{ false: theme.colors.toggle.trackInactive, true: theme.colors.toggle.trackActive }}
+        trackColor={{
+          false: theme.colors.toggle.trackInactive,
+          true: theme.colors.toggle.trackActive,
+        }}
         thumbColor={theme.colors.toggle.thumb}
+        ios_backgroundColor={theme.colors.toggle.trackInactive}
       />
     </View>
   );
@@ -118,8 +122,13 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
   const theme = useTheme();
   const styles = useStyles(theme);
   return (
-    <TouchableOpacity style={styles.row} onPress={onRestore} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.row, styles.pressableRow]}
+      onPress={onRestore}
+      activeOpacity={0.7}
+    >
       <Text style={styles.label}>{config.label}</Text>
+      <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
     </TouchableOpacity>
   );
 }
@@ -128,12 +137,18 @@ function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { typ
   const theme = useTheme();
   const styles = useStyles(theme);
   return (
-    <TouchableOpacity style={styles.row} onPress={() => onPurchase?.(config.productId)} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.row, styles.pressableRow]}
+      onPress={() => onPurchase?.(config.productId)}
+      activeOpacity={0.7}
+    >
       <View style={{ flex: 1 }}>
-        <Text style={styles.label}>{config.label}</Text>
+        <Text style={[styles.label, { color: theme.colors.brand.primary }]}>{config.label}</Text>
         {config.description && <Text style={styles.purchaseDescription}>{config.description}</Text>}
       </View>
-      <Text style={styles.purchasePrice}>Buy</Text>
+      <View style={styles.buyBadge}>
+        <Text style={styles.buyBadgeText}>Buy</Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -153,12 +168,14 @@ function SignInButtonRow({
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
+
   if (isLoggedIn) {
-    // Signed in: show player name + sign out button
     return (
       <View style={styles.row}>
         <View style={styles.signInInfo}>
-          <MaterialIcons name="person" size={20} color={theme.colors.icon.accent} />
+          <View style={styles.avatarCircle}>
+            <MaterialIcons name="person" size={18} color={theme.colors.icon.inverse} />
+          </View>
           <Text style={styles.playerNameLabel}>{playerName ?? 'Player'}</Text>
         </View>
         <TouchableOpacity onPress={onSignOut} activeOpacity={0.7}>
@@ -168,14 +185,17 @@ function SignInButtonRow({
     );
   }
 
-  // Not signed in: show sign-in button
   return (
-    <TouchableOpacity style={styles.row} onPress={onSignIn} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.row, styles.pressableRow]}
+      onPress={onSignIn}
+      activeOpacity={0.7}
+    >
       <View style={styles.signInInfo}>
-        <MaterialIcons name="login" size={20} color={theme.colors.icon.accent} />
+        <MaterialIcons name="login" size={20} color={theme.colors.brand.primary} />
         <Text style={styles.signInLabel}>Sign in with Google</Text>
       </View>
-      <MaterialIcons name="chevron-right" size={24} color={theme.colors.icon.muted} />
+      <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
     </TouchableOpacity>
   );
 }
@@ -217,16 +237,8 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
   );
 }
 
-// ── Volume Slider (continuous, 0..1) ──
+// ── Volume Slider ──
 
-/**
- * Continuous horizontal volume slider built with PanResponder (no native
- * dep). User can tap anywhere on the track to jump, or drag the thumb.
- *
- * Value is rounded to 2 decimal places to avoid float noise in the
- * persisted store (a continuous drag could otherwise write dozens of
- * distinct floats per second).
- */
 function VolumeSliderRow({
   config,
 }: {
@@ -238,9 +250,6 @@ function VolumeSliderRow({
   const setBgm = useSettingsStore((s) => s.setBgmVolume);
   const setSfx = useSettingsStore((s) => s.setSfxVolume);
 
-  // Stable callback via ref. The slider's PanResponder was created once
-  // on first render; without this ref it would capture the first
-  // handleChange and miss any later changes to the closure.
   const handleChangeRef = useRef<(v: number) => void>(() => {});
   handleChangeRef.current = (v: number) => {
     if (config.storeKey === 'bgmVolume') {
@@ -273,18 +282,12 @@ function VolumeSliderRow({
   );
 }
 
-const THUMB_SIZE = 24;
-const TRACK_HEIGHT = 6;
-const TOUCH_HEIGHT = 40;
+const THUMB_SIZE = 26; // slightly larger for easier grab
+const TRACK_HEIGHT = 8; // thicker track
+const TOUCH_HEIGHT = 44; // larger touch area
 
-// Initial width estimate so the slider renders with the correct fill
-// position on the first frame. Without this, width starts at 0 and
-// the fill+thumb 'pop in' once onLayout fires (visible blink on
-// mount). The estimate is screen-width minus standard padding — close
-// enough to the actual measured width that the brief onLayout
-// adjustment is imperceptible.
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const INITIAL_WIDTH_ESTIMATE = SCREEN_WIDTH - 2 * 20; // matches layout.screenPadding (20)
+const INITIAL_WIDTH_ESTIMATE = SCREEN_WIDTH - 2 * 20;
 
 function VolumeSlider({
   value,
@@ -297,9 +300,6 @@ function VolumeSlider({
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
-  // Width starts at the screen-width estimate so the first render
-  // already shows the slider in its final position. onLayout refines
-  // it to the actual measured width on the first layout pass.
   const [width, setWidth] = useState(INITIAL_WIDTH_ESTIMATE);
   const widthRef = useRef(INITIAL_WIDTH_ESTIMATE);
 
@@ -316,9 +316,6 @@ function VolumeSlider({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      // Claim the move before any parent ScrollView can. Without this,
-      // the parent ScrollView sometimes wins the gesture race on
-      // Android and the slider stops responding mid-drag.
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (e) => {
         updateFromX(e.nativeEvent.locationX);
@@ -333,9 +330,6 @@ function VolumeSlider({
     const w = e.nativeEvent.layout.width;
     if (w > 0 && Number.isFinite(w)) {
       widthRef.current = w;
-      // Only update state if the measured width differs meaningfully
-      // from the current — avoids a re-render just to set the same
-      // value (which could itself cause visible jitter).
       if (Math.abs(w - width) > 0.5) {
         setWidth(w);
       }
@@ -363,7 +357,7 @@ function VolumeSlider({
   );
 }
 
-// Shared color-aware styles, rebuilt whenever theme changes.
+// Shared color-aware styles
 function useStyles(theme: ReturnType<typeof useTheme>) {
   const c = theme.colors;
   return useMemo(
@@ -373,7 +367,10 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingVertical: 8,
+          paddingVertical: 10,
+        },
+        pressableRow: {
+          paddingVertical: 12,
         },
         label: {
           ...typography.settingsRow,
@@ -381,7 +378,7 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           flex: 1,
         },
         comingSoon: {
-          ...typography.statLabel,
+          ...typography.small,
           color: c.text.secondary,
         },
         value: {
@@ -389,23 +386,37 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           color: c.text.secondary,
         },
         purchaseDescription: {
-          ...typography.body,
+          ...typography.small,
           color: c.text.secondary,
           marginTop: 2,
         },
-        purchasePrice: {
-          ...typography.settingsRow,
-          color: c.status.accent,
-          fontWeight: '600',
+        buyBadge: {
+          backgroundColor: c.brand.primary,
+          borderRadius: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 6,
+        },
+        buyBadgeText: {
+          ...typography.small,
+          color: '#FFFFFF',
+          fontWeight: '700',
         },
         signInInfo: {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: 10,
+        },
+        avatarCircle: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: c.brand.primary,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         signInLabel: {
           ...typography.settingsRow,
-          color: c.status.accent,
+          color: c.brand.primary,
           fontWeight: '500',
         },
         playerNameLabel: {
@@ -420,36 +431,32 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
         },
         segmentedControl: {
           flexDirection: 'row',
-          backgroundColor: c.tile.empty,
-          borderRadius: 8,
-          padding: 2,
+          backgroundColor: c.surface.muted,
+          borderRadius: 12, // pill segments
+          padding: 3,
           marginLeft: 12,
         },
         segment: {
-          paddingVertical: 6,
-          paddingHorizontal: 12,
-          borderRadius: 6,
+          paddingVertical: 7,
+          paddingHorizontal: 14,
+          borderRadius: 10,
           alignItems: 'center',
         },
         segmentActive: {
-          backgroundColor: c.surface.card,
-          borderWidth: 0.5,
-          borderColor: c.tile.border,
+          backgroundColor: c.brand.primary,
+          // No border — filled pill
         },
         segmentText: {
-          fontSize: 13,
+          ...typography.small,
+          color: c.text.secondary,
           fontWeight: '500',
-          color: c.text.primary,
-          opacity: 0.65,
         },
         segmentTextActive: {
-          color: c.text.primary,
-          fontWeight: '600',
-          opacity: 1,
+          color: '#FFFFFF',
+          fontWeight: '700',
         },
-        // Volume row: stacked layout (header, optional description, slider)
         volumeRow: {
-          paddingVertical: 8,
+          paddingVertical: 10,
         },
         volumeHeader: {
           flexDirection: 'row',
@@ -457,34 +464,32 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           alignItems: 'baseline',
         },
         volumePercent: {
-          ...typography.settingsRow,
+          ...typography.small,
           color: c.text.secondary,
           fontVariant: ['tabular-nums'],
           marginLeft: 12,
         },
         volumeDescription: {
-          ...typography.statLabel,
+          ...typography.small,
           color: c.text.secondary,
           marginTop: 2,
         },
         sliderSpacer: {
           height: 12,
         },
-        // Touch area is taller than the visual track so the slider is
-        // easy to grab. The visual track is absolutely positioned inside.
         sliderTouchArea: {
           height: TOUCH_HEIGHT,
           justifyContent: 'center',
         },
         sliderTrack: {
           height: TRACK_HEIGHT,
-          backgroundColor: c.tile.empty,
+          backgroundColor: c.surface.muted,
           borderRadius: TRACK_HEIGHT / 2,
           overflow: 'hidden',
         },
         sliderFill: {
           height: '100%',
-          backgroundColor: c.status.accent,
+          backgroundColor: c.brand.primary,
           borderRadius: TRACK_HEIGHT / 2,
         },
         sliderThumb: {
@@ -492,17 +497,15 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           width: THUMB_SIZE,
           height: THUMB_SIZE,
           borderRadius: THUMB_SIZE / 2,
-          backgroundColor: c.surface.card,
+          backgroundColor: '#FFFFFF',
           borderWidth: 2,
-          borderColor: c.status.accent,
-          // Center vertically in the TOUCH_HEIGHT container
+          borderColor: c.brand.primary,
           top: (TOUCH_HEIGHT - THUMB_SIZE) / 2,
-          // Subtle shadow for the floating thumb
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.15,
-          shadowRadius: 2,
-          elevation: 3,
+          shadowColor: c.brand.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 4,
         },
       }),
     [theme],
