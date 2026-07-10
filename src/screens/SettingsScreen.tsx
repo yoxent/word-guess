@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
 import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
@@ -25,39 +26,51 @@ export function SettingsScreen() {
           marginBottom: 24,
         },
         sectionTitle: {
-          ...typography.cardTitle,
+          ...typography.heading,
           color: theme.colors.text.primary,
-          marginBottom: 8,
+          marginBottom: 10,
           paddingHorizontal: 4,
         },
         sectionCard: {
           backgroundColor: theme.colors.surface.card,
-          borderRadius: 12,
-          padding: 24,
+          borderRadius: layout.cardBorderRadius,
+          padding: 20,
+          marginBottom: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
+          shadowOpacity: 0.06,
           shadowRadius: 8,
-          elevation: 3,
+          elevation: 2,
         },
         divider: {
           height: 1,
           backgroundColor: theme.colors.tile.empty,
-          marginVertical: 4,
+          marginVertical: 2,
         },
         toast: {
           position: 'absolute',
           bottom: 32,
-          left: 16,
-          right: 16,
-          padding: 14,
-          borderRadius: 10,
+          left: 24,
+          right: 24,
+          paddingVertical: 14,
+          paddingHorizontal: 20,
+          borderRadius: layout.buttonBorderRadius,
           alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 10,
+          elevation: 6,
+        },
+        toastIcon: {
+          marginRight: 4,
         },
         toastText: {
-          ...typography.body,
+          ...typography.button,
           color: theme.colors.text.inverse,
-          fontWeight: '600',
         },
       }),
     [theme],
@@ -180,7 +193,22 @@ export function SettingsScreen() {
         ))}
       </ScrollView>
       {toast && (
-        <View style={[styles.toast, { backgroundColor: toast.isSuccess ? theme.colors.tile.correct : theme.colors.status.danger }]}>
+        <View
+          style={[
+            styles.toast,
+            {
+              backgroundColor: toast.isSuccess
+                ? theme.colors.status.success
+                : theme.colors.status.danger,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name={toast.isSuccess ? 'check-circle' : 'error'}
+            size={18}
+            color="#FFFFFF"
+            style={styles.toastIcon}
+          />
           <Text style={styles.toastText}>{toast.message}</Text>
         </View>
       )}

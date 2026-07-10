@@ -18,30 +18,36 @@ import { getLeaderboardData } from '../services/leaderboardService';
 import type { LeaderboardData, LeaderboardEntry } from '../types';
 import type { LeaderboardType } from '../services/firestoreService';
 
-// ── Tab labels ──
+// ── Tab config ──
 
 const TAB_LABELS: Record<LeaderboardType, string> = {
-  daily_streak: 'Daily Streak',
-  endless_streak: 'Endless Streak',
-  endless_total: 'Endless Total',
+  daily_streak: 'Daily',
+  endless_streak: 'Streak',
+  endless_total: 'Total',
 };
 
 const TAB_TYPES: LeaderboardType[] = ['daily_streak', 'endless_streak', 'endless_total'];
 
+const TAB_ICONS: Record<LeaderboardType, string> = {
+  daily_streak: '🌅',
+  endless_streak: '🔥',
+  endless_total: '🏆',
+};
+
 // ── Empty state messages ──
 
 const EMPTY_MESSAGES: Record<LeaderboardType, string> = {
-  daily_streak: 'No daily entries yet. Win a Daily Challenge to appear here.',
-  endless_streak: 'No endless entries yet. Play Endless mode to set a streak.',
-  endless_total: 'No endless entries yet. Play Endless mode to guess words.',
+  daily_streak: 'No daily entries yet.\nWin a Daily Challenge to appear here.',
+  endless_streak: 'No endless entries yet.\nPlay Endless mode to set a streak.',
+  endless_total: 'No endless entries yet.\nPlay Endless mode to guess words.',
 };
 
-// ── Top 3 medal colors (intentionally NOT theme-aware — gold/silver/bronze are universal) ──
+// ── Top 3 medal config ──
 
-const MEDAL_COLORS: Record<number, string> = {
-  1: '#FFD700', // gold
-  2: '#C0C0C0', // silver
-  3: '#CD7F32', // bronze
+const MEDAL_CONFIG: Record<number, { icon: string; color: string; bg: string }> = {
+  1: { icon: '🥇', color: '#FFD700', bg: '#FFF8E1' },
+  2: { icon: '🥈', color: '#C0C0C0', bg: '#F5F5F5' },
+  3: { icon: '🥉', color: '#CD7F32', bg: '#FFF3E0' },
 };
 
 // ── Component ──
@@ -57,35 +63,42 @@ export function LeaderboardScreen() {
           padding: layout.screenPadding,
         },
 
-        // ── Segment control ──
+        // ── Pill segmented control ──
         segmentContainer: {
           flexDirection: 'row',
-          backgroundColor: theme.colors.surface.card,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.tile.empty,
+          backgroundColor: theme.colors.surface.muted,
+          borderRadius: layout.buttonBorderRadius,
+          padding: 4,
+          marginBottom: 16,
         },
         segmentTab: {
           flex: 1,
+          flexDirection: 'row',
           alignItems: 'center',
-          paddingVertical: 14,
-          position: 'relative',
+          justifyContent: 'center',
+          gap: 6,
+          paddingVertical: 10,
+          borderRadius: layout.buttonBorderRadius - 2,
+        },
+        segmentTabActive: {
+          backgroundColor: theme.colors.brand.primary,
+          shadowColor: theme.colors.brand.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 6,
+          elevation: 3,
+        },
+        segmentIcon: {
+          fontSize: 14,
         },
         segmentText: {
-          ...typography.body,
+          ...typography.small,
           color: theme.colors.text.secondary,
-          fontWeight: '500',
+          fontWeight: '600',
         },
-        activeSegmentText: {
-          color: theme.colors.status.accent,
+        segmentTextActive: {
+          color: '#FFFFFF',
           fontWeight: '700',
-        },
-        activeIndicator: {
-          position: 'absolute',
-          bottom: 0,
-          height: 3,
-          width: '60%',
-          backgroundColor: theme.colors.status.accent,
-          borderRadius: 1.5,
         },
 
         // ── Auth gate ──
@@ -95,10 +108,18 @@ export function LeaderboardScreen() {
           alignItems: 'center',
           padding: 32,
         },
+        authIcon: {
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          backgroundColor: `${theme.colors.brand.primary}15`,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 16,
+        },
         authTitle: {
-          ...typography.cardTitle,
+          ...typography.heading,
           color: theme.colors.text.primary,
-          marginTop: 16,
           marginBottom: 8,
         },
         authSubtitle: {
@@ -106,23 +127,27 @@ export function LeaderboardScreen() {
           color: theme.colors.text.secondary,
           textAlign: 'center',
           marginBottom: 24,
-          lineHeight: 20,
+          lineHeight: 22,
         },
         googleSignInButton: {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.colors.button.primary.bg,
-          borderRadius: 12,
+          borderRadius: layout.buttonBorderRadius,
           paddingVertical: 14,
-          paddingHorizontal: 24,
+          paddingHorizontal: 28,
           gap: 10,
           minWidth: 220,
+          shadowColor: theme.colors.button.primary.bg,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 4,
         },
         googleSignInText: {
-          ...typography.settingsRow,
+          ...typography.button,
           color: theme.colors.button.primary.fg,
-          fontWeight: '600',
         },
 
         // ── Loading ──
@@ -140,89 +165,129 @@ export function LeaderboardScreen() {
           alignItems: 'center',
           padding: 32,
         },
+        emptyIcon: {
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: theme.colors.surface.muted,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 16,
+        },
         emptyTitle: {
-          ...typography.cardTitle,
+          ...typography.heading,
           color: theme.colors.text.primary,
-          marginTop: 12,
-          marginBottom: 4,
+          marginBottom: 6,
         },
         emptySubtitle: {
           ...typography.body,
           color: theme.colors.text.secondary,
           textAlign: 'center',
-          lineHeight: 20,
+          lineHeight: 22,
         },
 
         // ── Error ──
+        errorIcon: {
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: `${theme.colors.status.danger}15`,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 12,
+        },
         errorTitle: {
           ...typography.body,
           color: theme.colors.status.danger,
           textAlign: 'center',
-          marginTop: 12,
           marginBottom: 16,
         },
         retryButton: {
           backgroundColor: theme.colors.button.primary.bg,
-          borderRadius: 10,
-          paddingVertical: 10,
-          paddingHorizontal: 24,
+          borderRadius: layout.buttonBorderRadius,
+          paddingVertical: 12,
+          paddingHorizontal: 28,
+          shadowColor: theme.colors.button.primary.bg,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.25,
+          shadowRadius: 6,
+          elevation: 3,
         },
         retryText: {
-          ...typography.settingsRow,
+          ...typography.button,
           color: theme.colors.button.primary.fg,
-          fontWeight: '600',
         },
 
         // ── List ──
         listContent: {
           paddingBottom: 32,
         },
+        // Entry row — rounded card
         entryRow: {
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: theme.colors.surface.card,
-          borderRadius: 10,
-          paddingVertical: 12,
+          borderRadius: layout.cardBorderRadius,
+          paddingVertical: 14,
           paddingHorizontal: 16,
           marginBottom: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 3,
-          elevation: 1,
+          shadowOpacity: 0.06,
+          shadowRadius: 4,
+          elevation: 2,
         },
         currentPlayerRow: {
-          backgroundColor: `${theme.colors.status.accent}1A`, // accent at ~10% opacity
+          backgroundColor: `${theme.colors.brand.primary}14`,
+          borderWidth: 1.5,
+          borderColor: `${theme.colors.brand.primary}40`,
         },
+        // Rank
         rankContainer: {
-          width: 32,
+          width: 36,
           alignItems: 'center',
           justifyContent: 'center',
         },
+        rankMedal: {
+          fontSize: 24,
+        },
         rankText: {
-          ...typography.settingsRow,
-          fontWeight: '700',
+          ...typography.cardTitle,
+          fontWeight: '800',
           color: theme.colors.text.secondary,
-          fontSize: 15,
+        },
+        // Player info
+        playerInfo: {
+          flex: 1,
+          marginLeft: 10,
         },
         playerNameText: {
           ...typography.settingsRow,
           color: theme.colors.text.primary,
-          flex: 1,
-          marginLeft: 8,
+          fontWeight: '500',
         },
         currentPlayerName: {
           fontWeight: '700',
-          color: theme.colors.status.accent,
+          color: theme.colors.brand.primary,
+        },
+        youBadge: {
+          ...typography.small,
+          color: theme.colors.brand.primary,
+          fontWeight: '700',
+          marginTop: 1,
+        },
+        // Score
+        scoreContainer: {
+          alignItems: 'flex-end',
+          marginLeft: 12,
         },
         scoreText: {
-          ...typography.settingsRow,
-          fontWeight: '700',
-          color: theme.colors.status.accent,
-          marginLeft: 8,
+          ...typography.cardTitle,
+          fontWeight: '800',
+          color: theme.colors.brand.primary,
         },
-        currentPlayerScore: {
-          color: theme.colors.status.accent,
+        scoreTop3: {
+          fontSize: 20,
         },
       }),
     [theme],
@@ -238,22 +303,19 @@ export function LeaderboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── Data loading ──
-
   const loadLeaderboard = useCallback(async () => {
     try {
       setError(null);
       setIsLoading(true);
       const result = await getLeaderboardData(activeTab);
       setData(result);
-    } catch (e) {
+    } catch {
       setError('Failed to load leaderboard. Please try again.');
     } finally {
       setIsLoading(false);
     }
   }, [activeTab]);
 
-  // Auto-refresh on focus (D-151)
   useFocusEffect(
     useCallback(() => {
       if (!isLoggedIn) return;
@@ -261,30 +323,30 @@ export function LeaderboardScreen() {
     }, [activeTab, isLoggedIn, loadLeaderboard]),
   );
 
-  // ── Pull-to-refresh ──
-
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadLeaderboard();
     setRefreshing(false);
   }, [loadLeaderboard]);
 
-  // ── Tab switching ──
-
   const handleTabChange = useCallback((tab: LeaderboardType) => {
     setActiveTab(tab);
     setIsLoading(true);
     setError(null);
-    // Data loading will trigger via useFocusEffect
   }, []);
 
-  // ── Sign-in gate (D-150) ──
-
+  // ── Sign-in gate ──
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>
         <View style={styles.authGate}>
-          <MaterialIcons name="emoji-events" size={64} color={theme.colors.icon.muted} />
+          <View style={styles.authIcon}>
+            <MaterialIcons
+              name="emoji-events"
+              size={40}
+              color={theme.colors.brand.primary}
+            />
+          </View>
           <Text style={styles.authTitle}>Leaderboards</Text>
           <Text style={styles.authSubtitle}>
             Sign in with Google to see how you rank against other players.
@@ -296,11 +358,17 @@ export function LeaderboardScreen() {
             disabled={isAuthPending}
           >
             {isAuthPending ? (
-              <ActivityIndicator size="small" color={theme.colors.text.inverse} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <MaterialIcons name="login" size={20} color={theme.colors.icon.inverse} />
-                <Text style={styles.googleSignInText}>Sign in with Google</Text>
+                <MaterialIcons
+                  name="login"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.googleSignInText}>
+                  Sign in with Google
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -309,26 +377,31 @@ export function LeaderboardScreen() {
     );
   }
 
-  // ── Render helpers ──
-
+  // ── Pill segmented control ──
   const renderSegment = () => (
     <View style={styles.segmentContainer}>
       {TAB_TYPES.map((type) => (
         <TouchableOpacity
           key={type}
-          style={styles.segmentTab}
+          style={[
+            styles.segmentTab,
+            activeTab === type && styles.segmentTabActive,
+          ]}
           onPress={() => handleTabChange(type)}
           activeOpacity={0.7}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === type }}
+          accessibilityLabel={TAB_LABELS[type]}
         >
+          <Text style={styles.segmentIcon}>{TAB_ICONS[type]}</Text>
           <Text
             style={[
               styles.segmentText,
-              activeTab === type && styles.activeSegmentText,
+              activeTab === type && styles.segmentTextActive,
             ]}
           >
             {TAB_LABELS[type]}
           </Text>
-          {activeTab === type && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
       ))}
     </View>
@@ -336,7 +409,13 @@ export function LeaderboardScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialIcons name="leaderboard" size={48} color={theme.colors.icon.muted} />
+      <View style={styles.emptyIcon}>
+        <MaterialIcons
+          name="leaderboard"
+          size={36}
+          color={theme.colors.text.secondary}
+        />
+      </View>
       <Text style={styles.emptyTitle}>No entries yet</Text>
       <Text style={styles.emptySubtitle}>{EMPTY_MESSAGES[activeTab]}</Text>
     </View>
@@ -344,9 +423,19 @@ export function LeaderboardScreen() {
 
   const renderErrorState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialIcons name="error-outline" size={48} color={theme.colors.status.danger} />
+      <View style={styles.errorIcon}>
+        <MaterialIcons
+          name="error-outline"
+          size={36}
+          color={theme.colors.status.danger}
+        />
+      </View>
       <Text style={styles.errorTitle}>{error}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={loadLeaderboard} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.retryButton}
+        onPress={loadLeaderboard}
+        activeOpacity={0.7}
+      >
         <Text style={styles.retryText}>Retry</Text>
       </TouchableOpacity>
     </View>
@@ -360,7 +449,7 @@ export function LeaderboardScreen() {
 
   const renderEntryRow = ({ item }: { item: LeaderboardEntry }) => {
     const isTop3 = item.rank <= 3;
-    const medalColor = MEDAL_COLORS[item.rank];
+    const medal = MEDAL_CONFIG[item.rank];
 
     return (
       <View
@@ -371,53 +460,50 @@ export function LeaderboardScreen() {
       >
         {/* Rank */}
         <View style={styles.rankContainer}>
-          {isTop3 ? (
-            <MaterialIcons
-              name="emoji-events"
-              size={22}
-              color={medalColor}
-            />
+          {isTop3 && medal ? (
+            <Text style={styles.rankMedal}>{medal.icon}</Text>
           ) : (
             <Text style={styles.rankText}>{item.rank}</Text>
           )}
         </View>
-        {/* Player name */}
-        <Text
-          style={[
-            styles.playerNameText,
-            item.isCurrentPlayer && styles.currentPlayerName,
-          ]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {item.isCurrentPlayer ? 'You' : item.playerName}
-        </Text>
+
+        {/* Player info */}
+        <View style={styles.playerInfo}>
+          <Text
+            style={[
+              styles.playerNameText,
+              item.isCurrentPlayer && styles.currentPlayerName,
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.isCurrentPlayer ? 'You' : item.playerName}
+          </Text>
+          {item.isCurrentPlayer && (
+            <Text style={styles.youBadge}>YOU</Text>
+          )}
+        </View>
+
         {/* Score */}
-        <Text
-          style={[
-            styles.scoreText,
-            isTop3 && { color: medalColor },
-            item.isCurrentPlayer && styles.currentPlayerScore,
-          ]}
-        >
-          {item.score}
-        </Text>
+        <View style={styles.scoreContainer}>
+          <Text
+            style={[
+              styles.scoreText,
+              isTop3 && styles.scoreTop3,
+              isTop3 && medal && { color: medal.color },
+            ]}
+          >
+            {item.score}
+          </Text>
+        </View>
       </View>
     );
   };
 
   const renderContent = () => {
-    if (isLoading && !data) {
-      return renderLoadingState();
-    }
-
-    if (error && !data) {
-      return renderErrorState();
-    }
-
-    if (!data || data.entries.length === 0) {
-      return renderEmptyState();
-    }
+    if (isLoading && !data) return renderLoadingState();
+    if (error && !data) return renderErrorState();
+    if (!data || data.entries.length === 0) return renderEmptyState();
 
     return (
       <FlatList

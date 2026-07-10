@@ -11,6 +11,7 @@ interface GameState {
   error: string | null;
   isRevealing: boolean;
   pendingInputs: string[];
+  hintLetter: string | null; // letter highlighted by letter hint
 
   startGame: (mode: GameMode, word: string, letterCount: number, hardMode: boolean) => void;
   addLetter: (letter: string) => void;
@@ -24,6 +25,7 @@ interface GameState {
   addPendingInput: (key: string) => void;
   flushPendingInputs: () => void;
   addExtraGuess: () => void;
+  useLetterHint: () => void;
 }
 
 // Priority order for key color accumulation: correct > present > absent > empty
@@ -40,6 +42,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   error: null,
   isRevealing: false,
   pendingInputs: [],
+  hintLetter: null,
 
   startGame: (mode, word, letterCount, hardMode) => {
     const session: GameSession = {
@@ -53,6 +56,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       status: 'playing',
       hardMode,
       extraGuessesUsed: 0,
+      letterHintUsed: false,
       maxAttempts: letterCount + 1,
       startedAt: new Date().toISOString(),
     };
@@ -137,12 +141,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     });
   },
 
-  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [] }),
+  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [], hintLetter: null }),
 
   setCurrentGuess: (guess) => set({ currentGuess: guess }),
 
   restoreSession: (session) => {
-    set({ session, currentGuess: '', error: null, pendingInputs: [] });
+    set({ session, currentGuess: '', error: null, pendingInputs: [], hintLetter: null });
   },
 
   clearError: () => set({ error: null }),
@@ -178,7 +182,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
   addExtraGuess: () => {
     const { session } = get();
-    if (!session || session.status !== 'lost') return;
+    // Allow during 'playing' (watch ad for hint) or 'lost' (continue after loss)
+    if (!session || (session.status !== 'playing' && session.status !== 'lost')) return;
 
     const maxExtra = useSettingsStore.getState().isPro
       ? config.maxExtraGuessesPro
@@ -189,12 +194,33 @@ export const useGameStore = create<GameState>()((set, get) => ({
     set({
       session: {
         ...session,
-        status: 'playing',
         maxAttempts: session.maxAttempts + 1,
         extraGuessesUsed: session.extraGuessesUsed + 1,
       },
       currentGuess: '',
       error: null,
+    });
+  },
+
+  useLetterHint: () => {
+    const { session } = get();
+    if (!session || session.status !== 'playing' || session.letterHintUsed) return;
+
+    // Find letters in the word that haven't been guessed correctly yet
+    const word = session.word.toUpperCase();
+    const guessedLetters = new Set(session.guesses.join('').split(''));
+    const unguessedLetters = [...new Set(word.split(''))].filter((l) => !guessedLetters.has(l));
+
+    // If all letters have been guessed, pick any letter from the word
+    const candidates = unguessedLetters.length > 0 ? unguessedLetters : [...new Set(word.split(''))];
+    const hintLetter = candidates[Math.floor(Math.random() * candidates.length)];
+
+    set({
+      session: {
+        ...session,
+        letterHintUsed: true,
+      },
+      hintLetter,
     });
   },
 }));

@@ -1,15 +1,30 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet, Switch, Animated, Easing } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Animated,
+  Easing,
+  ScrollView,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, GameMode } from '../types';
 import { useTheme } from '../hooks/useTheme';
-import { HOME_STAGGER_DELAY, HOME_STAGGER_DURATION } from '../constants/animations';
+import {
+  HOME_STAGGER_DELAY,
+  HOME_STAGGER_DURATION,
+} from '../constants/animations';
 import { layout } from '../constants/layout';
-import { Button, HowToPlayModal } from '../components/ui';
+import { typography } from '../constants/typography';
+import { HowToPlayModal } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
+import { ModeCard, DailyPreview, HardModePill } from '../components/home';
 import { useSettingsStore } from '../stores';
 import {
   getDailyDateString,
@@ -28,136 +43,151 @@ export function HomeScreen() {
         container: {
           flex: 1,
           backgroundColor: theme.colors.surface.background,
-          justifyContent: 'center',
+        },
+        scrollContent: {
+          flexGrow: 1,
           alignItems: 'center',
-          padding: layout.screenPadding,
+          paddingHorizontal: layout.screenPadding,
+          paddingTop: 100, // space for absolute top bar
+          paddingBottom: layout.screenPadding + 40,
         },
-        title: {
-          fontSize: 36,
-          fontWeight: '800',
-          color: theme.colors.text.primary,
-          marginBottom: 8,
-        },
-        subtitle: {
-          fontSize: 16,
-          color: theme.colors.text.secondary,
-          marginBottom: 40,
-        },
-        modes: {
-          width: '100%',
-          maxWidth: 280,
-          marginBottom: 32,
-        },
-        spacer: {
-          height: 12,
-        },
-        hardModeRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-          marginBottom: 32,
-        },
-        hardModeLabel: {
-          fontSize: 16,
-          color: theme.colors.text.primary,
-          fontWeight: '600',
-        },
+        // ── Top Bar ──
         topBar: {
           position: 'absolute',
           left: 0,
           right: 0,
-          height: 48,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingLeft: layout.screenPadding,
+          paddingRight: layout.screenPadding,
+          zIndex: 10,
         },
         topBarIcons: {
           flexDirection: 'row',
-          gap: 4,
+          gap: 6,
         },
         topIconButton: {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           justifyContent: 'center',
           alignItems: 'center',
+          backgroundColor: theme.colors.surface.card,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 4,
+          elevation: 2,
         },
+        // ── Title & Branding ──
+        titleSection: {
+          alignItems: 'center',
+          marginBottom: 32,
+        },
+        title: {
+          ...typography.display,
+          color: theme.colors.text.primary,
+          marginBottom: 4,
+        },
+        subtitle: {
+          ...typography.body,
+          color: theme.colors.text.secondary,
+        },
+        // ── Mode Cards ──
+        modesSection: {
+          width: '100%',
+          maxWidth: 340,
+          gap: 14,
+          marginBottom: 8,
+        },
+        // ── Hard Mode ──
+        hardModeSection: {
+          alignItems: 'center',
+          marginTop: 16,
+          marginBottom: 8,
+        },
+        // ── Continue Modal ──
         modalOverlay: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0,0,0,0.4)',
           justifyContent: 'center',
           alignItems: 'center',
         },
         modalCard: {
           backgroundColor: theme.colors.surface.card,
-          borderRadius: 16,
-          padding: 24,
+          borderRadius: layout.modalBorderRadius,
+          padding: 28,
           alignItems: 'center',
           minWidth: 280,
           maxWidth: '85%',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
+          shadowRadius: 16,
+          elevation: 8,
         },
         modalTitle: {
-          fontSize: 22,
-          fontWeight: '700',
+          ...typography.heading,
           color: theme.colors.text.primary,
           marginBottom: 8,
         },
         modalMessage: {
-          fontSize: 14,
+          ...typography.body,
           color: theme.colors.text.secondary,
           textAlign: 'center',
-          marginBottom: 20,
-          lineHeight: 20,
+          marginBottom: 24,
+          lineHeight: 22,
         },
         modalButtons: {
           width: '100%',
-          gap: 8,
+          gap: 10,
         },
         modalButtonContinue: {
           backgroundColor: theme.colors.button.primary.bg,
-          borderRadius: 12,
+          borderRadius: layout.buttonBorderRadius,
           paddingVertical: 14,
-          paddingHorizontal: 10,
           alignItems: 'center',
         },
         modalButtonContinueText: {
+          ...typography.button,
           color: theme.colors.button.primary.fg,
-          fontSize: 16,
-          fontWeight: '600',
         },
         modalButtonNew: {
-          borderRadius: 12,
+          borderRadius: layout.buttonBorderRadius,
           paddingVertical: 14,
-          paddingHorizontal: 10,
           alignItems: 'center',
-          borderWidth: 1,
+          borderWidth: 1.5,
           borderColor: theme.colors.status.danger,
         },
         modalButtonNewText: {
+          ...typography.button,
           color: theme.colors.status.danger,
-          fontSize: 16,
-          fontWeight: '600',
         },
       }),
     [theme],
   );
 
   const navigation = useNavigation<HomeNav>();
-
   const insets = useSafeAreaInsets();
 
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<GameMode>('daily');
-  const [completedDailyLengths, setCompletedDailyLengths] = useState<number[]>([]);
-  const [continueModal, setContinueModal] = useState<{ mode: GameMode; length: number } | null>(null);
+  const [completedDailyLengths, setCompletedDailyLengths] = useState<number[]>(
+    [],
+  );
+  const [continueModal, setContinueModal] = useState<{
+    mode: GameMode;
+    length: number;
+  } | null>(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
-  // D-176: Stagger entrance animation refs (D-175-D-177)
+  // ── Stagger entrance animation refs ──
   const titleAnim = useRef(new Animated.Value(0)).current;
   const subtitleAnim = useRef(new Animated.Value(0)).current;
-  const buttonAnims = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  const cardAnims = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  const previewAnim = useRef(new Animated.Value(0)).current;
+  const hardModeAnim = useRef(new Animated.Value(0)).current;
   const iconAnim = useRef(new Animated.Value(0)).current;
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
 
@@ -171,66 +201,68 @@ export function HomeScreen() {
     setCompletedDailyLengths(completed);
   }, []);
 
-  // D-176: Stagger entrance animation — title (0ms) → buttons (80ms each) → icons (after last)
+  // ── Daily progress ──
+  const dailyProgress = useMemo(() => {
+    const total = 6; // lengths 5-10
+    const done = completedDailyLengths.length;
+    return { done, total, fraction: done / total };
+  }, [completedDailyLengths]);
+
+  // ── Stagger entrance animation ──
   useEffect(() => {
     if (reduceMotion) {
       titleAnim.setValue(1);
       subtitleAnim.setValue(1);
-      buttonAnims.forEach(a => a.setValue(1));
+      cardAnims.forEach((a) => a.setValue(1));
+      previewAnim.setValue(1);
+      hardModeAnim.setValue(1);
       iconAnim.setValue(1);
       return;
     }
 
-    // Title (0ms delay)
-    Animated.timing(titleAnim, {
-      toValue: 1,
-      duration: HOME_STAGGER_DURATION,
-      useNativeDriver: true,
-      easing: Easing.out(Easing.ease),
-    }).start();
-
-    // Subtitle (50ms after title start per UI spec)
-    const subtitleTimer = setTimeout(() => {
-      Animated.timing(subtitleAnim, {
-        toValue: 1,
-        duration: HOME_STAGGER_DURATION,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
-      }).start();
-    }, 50);
-
-    // Buttons (80ms stagger per button — D-176)
-    Animated.stagger(HOME_STAGGER_DELAY, buttonAnims.map(anim =>
+    const fade = (anim: Animated.Value, delay: number) =>
       Animated.timing(anim, {
         toValue: 1,
         duration: HOME_STAGGER_DURATION,
         useNativeDriver: true,
         easing: Easing.out(Easing.ease),
-      })
-    )).start();
+        delay,
+      });
 
-    // Icon bar (starts after last button animation completes)
-    const lastButtonDelay = HOME_STAGGER_DELAY * 3 + HOME_STAGGER_DURATION;
-    const iconTimer = setTimeout(() => {
-      Animated.timing(iconAnim, {
-        toValue: 1,
-        duration: HOME_STAGGER_DURATION,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
-      }).start();
-    }, lastButtonDelay);
+    Animated.sequence([
+      fade(titleAnim, 0),
+      Animated.parallel([
+        fade(subtitleAnim, 0),
+        fade(iconAnim, 0),
+      ]),
+      Animated.stagger(HOME_STAGGER_DELAY, cardAnims.map((a) => fade(a, 0))),
+      fade(previewAnim, 40),
+      fade(hardModeAnim, 40),
+    ]).start();
+  }, [
+    reduceMotion,
+    titleAnim,
+    subtitleAnim,
+    cardAnims,
+    previewAnim,
+    hardModeAnim,
+    iconAnim,
+  ]);
 
-    return () => {
-      clearTimeout(subtitleTimer);
-      clearTimeout(iconTimer);
-    };
-  }, [reduceMotion, titleAnim, subtitleAnim, buttonAnims, iconAnim]);
+  // ── Fade+slide helper ──
+  const fadeSlide = (anim: Animated.Value) => ({
+    opacity: anim,
+    transform: [
+      {
+        translateY: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [12, 0],
+        }),
+      },
+    ],
+  });
 
-  // ── Check for saved game and prompt to continue or start fresh ──
-  // 2026-07-09: a game with 0 attempts is treated as "not really played"
-  // — the user just tapped a mode, the game started, then they went back.
-  // In that case skip the continue prompt and navigate directly (same
-  // behavior as the daily-mode auto-continue).
+  // ── Navigation with continue check ──
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
     const saved = getActiveGame();
     const hasProgress =
@@ -240,30 +272,32 @@ export function HomeScreen() {
       saved.status === 'playing' &&
       saved.guesses.length > 0;
     if (hasProgress) {
-      // Daily: auto-continue without prompt
       if (mode === 'daily') {
         navigation.navigate('Game', { mode, letterCount: length });
         return;
       }
-      // Non-daily with actual progress: show continue modal
       setContinueModal({ mode, length });
     } else {
-      // No progress (no saved game, different mode/length, 0 attempts, or
-      // game already over): just navigate directly.
       navigation.navigate('Game', { mode, letterCount: length });
     }
   };
 
   const handleContinue = () => {
     if (!continueModal) return;
-    navigation.navigate('Game', { mode: continueModal.mode, letterCount: continueModal.length });
+    navigation.navigate('Game', {
+      mode: continueModal.mode,
+      letterCount: continueModal.length,
+    });
     setContinueModal(null);
   };
 
   const handleNewGame = () => {
     if (!continueModal) return;
     clearActiveGame();
-    navigation.navigate('Game', { mode: continueModal.mode, letterCount: continueModal.length });
+    navigation.navigate('Game', {
+      mode: continueModal.mode,
+      letterCount: continueModal.length,
+    });
     setContinueModal(null);
   };
 
@@ -291,116 +325,156 @@ export function HomeScreen() {
     navigateWithContinueCheck(pickerMode, length);
   };
 
-  // Build staggered translate+opacity style
-  const fadeSlide = (anim: Animated.Value) => ({
-    opacity: anim,
-    transform: [
-      {
-        translateY: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [10, 0],
-        }),
-      },
-    ],
-  });
+  // ── Build daily subtitle with progress hint ──
+  const dailySubtitle = useMemo(() => {
+    const remaining = 6 - completedDailyLengths.length;
+    if (remaining === 0) return 'All done for today! 🎉';
+    return `${remaining} puzzle${remaining === 1 ? '' : 's'} remaining`;
+  }, [completedDailyLengths]);
 
   return (
-    <View style={[styles.container, { paddingBottom: layout.screenPadding + insets.bottom }]}>
-      {/* Top bar with icons (offset for status bar) */}
+    <View style={styles.container}>
+      {/* ── Top Bar ── */}
       <Animated.View
         style={[
           styles.topBar,
-          // paddingRight: respect both the standard 20px padding AND the
-          // device's right safe area inset (for landscape on notched
-          // devices). The icons should never be closer than 20px to the
-          // screen edge.
-          { top: insets.top, paddingRight: Math.max(layout.screenPadding, insets.right) },
+          {
+            top: insets.top + 8,
+            paddingRight: Math.max(layout.screenPadding, insets.right),
+          },
           fadeSlide(iconAnim),
         ]}
       >
         <View />
         <View style={styles.topBarIcons}>
-          {/* D-194: ? icon for How to Play — leftmost per UI spec */}
           <TouchableOpacity
             style={styles.topIconButton}
             onPress={() => setShowHowToPlay(true)}
             activeOpacity={0.7}
-            accessible={true}
+            accessible
             accessibilityRole="button"
             accessibilityLabel="How to Play"
           >
-            <MaterialIcons name="help-outline" size={26} color={theme.colors.icon.primary} />
+            <MaterialIcons
+              name="help-outline"
+              size={24}
+              color={theme.colors.icon.primary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Stats')}
             activeOpacity={0.7}
-            accessible={true}
+            accessible
             accessibilityRole="button"
             accessibilityLabel="Statistics"
           >
-            <MaterialIcons name="emoji-events" size={26} color={theme.colors.icon.primary} />
+            <MaterialIcons
+              name="emoji-events"
+              size={24}
+              color={theme.colors.icon.primary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Leaderboard')}
             activeOpacity={0.7}
-            accessible={true}
+            accessible
             accessibilityRole="button"
             accessibilityLabel="Leaderboard"
           >
-            <MaterialIcons name="leaderboard" size={26} color={theme.colors.icon.primary} />
+            <MaterialIcons
+              name="leaderboard"
+              size={24}
+              color={theme.colors.icon.primary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.topIconButton}
             onPress={() => navigation.navigate('Settings')}
             activeOpacity={0.7}
-            accessible={true}
+            accessible
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
-            <MaterialIcons name="settings" size={26} color={theme.colors.icon.primary} />
+            <MaterialIcons
+              name="settings"
+              size={24}
+              color={theme.colors.icon.primary}
+            />
           </TouchableOpacity>
         </View>
       </Animated.View>
 
-      <Animated.View style={fadeSlide(titleAnim)}>
-        <Text style={styles.title}>Word Guess</Text>
-      </Animated.View>
-      <Animated.View style={fadeSlide(subtitleAnim)}>
-        <Text style={styles.subtitle}>Choose a mode to play</Text>
-      </Animated.View>
+      {/* ── Scrollable Content ── */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* ── Title & Branding ── */}
+        <View style={styles.titleSection}>
+          <Animated.View style={fadeSlide(titleAnim)}>
+            <Text style={styles.title}>Word Guess</Text>
+          </Animated.View>
+          <Animated.View style={fadeSlide(subtitleAnim)}>
+            <Text style={styles.subtitle}>Guess the word!</Text>
+          </Animated.View>
+        </View>
 
-      <View style={styles.modes}>
-        <Animated.View style={fadeSlide(buttonAnims[0])}>
-          <Button title="Daily Challenge" onPress={handleDaily} />
-        </Animated.View>
-        <View style={styles.spacer} />
-        <Animated.View style={fadeSlide(buttonAnims[1])}>
-          <Button title="Endless" onPress={handleEndless} />
-        </Animated.View>
-        <View style={styles.spacer} />
-        <Animated.View style={fadeSlide(buttonAnims[2])}>
-          <Button title="Random" onPress={handleRandom} />
-        </Animated.View>
-      </View>
+        {/* ── Mode Cards ── */}
+        <View style={styles.modesSection}>
+          <Animated.View style={fadeSlide(cardAnims[0])}>
+            <ModeCard
+              mode="daily"
+              icon="🌅"
+              title="Daily Challenge"
+              subtitle={dailySubtitle}
+              progress={dailyProgress.fraction}
+              progressLabel={`${dailyProgress.done}/${dailyProgress.total} complete`}
+              onPress={handleDaily}
+            />
+          </Animated.View>
+          <Animated.View style={fadeSlide(cardAnims[1])}>
+            <ModeCard
+              mode="endless"
+              icon="🔄"
+              title="Endless"
+              subtitle="Keep guessing, build your streak"
+              onPress={handleEndless}
+            />
+          </Animated.View>
+          <Animated.View style={fadeSlide(cardAnims[2])}>
+            <ModeCard
+              mode="random"
+              icon="🎲"
+              title="Random"
+              subtitle="Surprise word length"
+              onPress={handleRandom}
+            />
+          </Animated.View>
+        </View>
 
-      <View style={styles.hardModeRow}>
-        <Text style={styles.hardModeLabel}>Hard Mode</Text>
-        <Switch
-          value={hardMode}
-          onValueChange={toggleHardMode}
-          trackColor={{ false: theme.colors.toggle.trackInactive, true: theme.colors.toggle.trackActive }}
-          thumbColor={theme.colors.toggle.thumb}
-        />
-      </View>
+        {/* ── Hard Mode Toggle ── */}
+        <Animated.View style={[styles.hardModeSection, fadeSlide(hardModeAnim)]}>
+          <HardModePill enabled={hardMode} onToggle={toggleHardMode} />
+        </Animated.View>
 
+        {/* ── Daily Preview ── */}
+        <Animated.View style={fadeSlide(previewAnim)}>
+          <DailyPreview completedLengths={completedDailyLengths} />
+        </Animated.View>
+      </ScrollView>
+
+      {/* ── Modals ── */}
       <LengthPickerModal
         visible={showPicker}
         mode={pickerMode}
         onSelect={handleLengthSelect}
         onClose={() => setShowPicker(false)}
-        completedLengths={pickerMode === 'daily' ? completedDailyLengths : []}
+        completedLengths={
+          pickerMode === 'daily' ? completedDailyLengths : []
+        }
       />
 
       <HowToPlayModal
@@ -408,13 +482,11 @@ export function HomeScreen() {
         onClose={() => setShowHowToPlay(false)}
       />
 
-      <Modal visible={continueModal !== null} transparent animationType="fade">
-        {/* 2026-07-09: standardized to the same Pressable tap-outside
-            pattern as LengthPickerModal. Tapping outside the card
-            dismisses (calls handleCancelContinue = same as choosing
-            "New Game"). Tapping inside the card is captured by
-            onStartShouldSetResponder, so the Continue / New Game
-            buttons stay interactive without accidentally dismissing. */}
+      <Modal
+        visible={continueModal !== null}
+        transparent
+        animationType="fade"
+      >
         <Pressable style={styles.modalOverlay} onPress={handleCancelContinue}>
           <View
             style={styles.modalCard}
@@ -422,13 +494,22 @@ export function HomeScreen() {
           >
             <Text style={styles.modalTitle}>Continue Game?</Text>
             <Text style={styles.modalMessage}>
-              You have an unfinished {continueModal?.mode} {continueModal?.length}-letter game.
+              You have an unfinished {continueModal?.mode}{' '}
+              {continueModal?.length}-letter game.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButtonContinue} onPress={handleContinue} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.modalButtonContinue}
+                onPress={handleContinue}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.modalButtonContinueText}>Continue</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonNew} onPress={handleNewGame} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.modalButtonNew}
+                onPress={handleNewGame}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.modalButtonNewText}>New Game</Text>
               </TouchableOpacity>
             </View>
