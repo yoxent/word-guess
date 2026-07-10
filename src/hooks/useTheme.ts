@@ -16,40 +16,48 @@ function buildSemantic(
   return {
     mode,
 
+    brand: {
+      primary: raw.primary,
+      primaryDark: raw.primaryDark,
+      secondary: raw.secondary,
+      tertiary: raw.tertiary,
+    },
+
     surface: {
       background: raw.background,
       card: raw.surface,
       header: raw.headerBackground,
+      elevated: raw.surfaceElevated,
+      muted: raw.surfaceMuted,
     },
 
     text: {
       primary: raw.textPrimary,
       secondary: raw.textSecondary,
       inverse: raw.textInverse,
-      // P16 / D-180: present tile/key background is a similar warm yellow in
-      // both themes, so the same dark text works for both. Hardcoded in
-      // Tile.tsx and Keyboard.tsx before this refactor.
-      onPresent: '#1a1a2e',
+      // Present tile/key background is a similar warm yellow in both
+      // themes, so dark text works for both.
+      onPresent: '#37474F',
     },
 
     button: {
-      primary: { bg: raw.accent, fg: raw.textInverse },
+      primary: { bg: raw.primary, fg: '#FFFFFF', bgDark: raw.primaryDark },
       secondary: { bg: raw.surface, fg: raw.accent, border: raw.accent },
-      danger: { bg: raw.danger, fg: raw.textInverse },
+      danger: { bg: raw.danger, fg: '#FFFFFF', bgDark: raw.accentDark },
       ghost: { fg: raw.accent },
     },
 
     toggle: {
       trackActive: raw.accent,
       trackInactive: raw.tileEmpty,
-      thumb: raw.textInverse,
+      thumb: '#FFFFFF',
     },
 
     icon: {
       primary: raw.textPrimary,
       accent: raw.accent,
       muted: raw.textSecondary,
-      inverse: raw.textInverse,
+      inverse: '#FFFFFF',
     },
 
     tile: {
@@ -67,7 +75,7 @@ function buildSemantic(
       unused: raw.keyUnused,
       text: raw.keyText,
       special: raw.keySpecial,
-      actionText: raw.textInverse,
+      actionText: raw.textPrimary,
     },
 
     status: {
@@ -81,17 +89,11 @@ function buildSemantic(
 
 /**
  * Semantic theme hook. Returns a fully-built `Theme` object with named
- * color groups (button / toggle / icon / tile / key / status) for the
- * active theme.
+ * color groups (brand / surface / text / button / toggle / icon / tile / key / status)
+ * for the active theme.
  *
  * Mode is resolved from `settingsStore.themeMode` ('light' | 'dark' | 'system')
  * plus the OS color scheme. Resolves to 'light' or 'dark' before building.
- *
- * @example
- *   const theme = useTheme();
- *   <View style={{ backgroundColor: theme.colors.button.primary.bg }}>
- *     <Text style={{ color: theme.colors.button.primary.fg }}>Continue</Text>
- *   </View>
  */
 export function useTheme(): Theme {
   const themeMode = useSettingsStore((s) => s.themeMode);

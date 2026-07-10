@@ -18,6 +18,7 @@ export interface GameSession {
   status: 'playing' | 'won' | 'lost';
   hardMode: boolean;
   extraGuessesUsed: number;
+  letterHintUsed: boolean;
   maxAttempts: number;
   startedAt: string;
   completedAt?: string;

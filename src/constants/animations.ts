@@ -20,8 +20,8 @@ export const TILE_BOUNCE_SCALE_DOWN = 100;
 /** Total combined correct bounce duration (scale-up + scale-down) */
 export const TILE_BOUNCE_TOTAL = TILE_BOUNCE_SCALE_UP + TILE_BOUNCE_SCALE_DOWN;
 
-/** Correct tile scale peak value */
-export const TILE_BOUNCE_MAX = 1.15;
+/** Correct tile scale peak value — bumped 1.15 → 1.2 for more playful bounce (Phase 4) */
+export const TILE_BOUNCE_MAX = 1.2;
 
 /** Resting scale value */
 export const TILE_BOUNCE_NORMAL = 1.0;

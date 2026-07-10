@@ -4,23 +4,25 @@
  * named colors (`button.primary.bg`, `toggle.trackActive`, `icon.muted`)
  * instead of raw flat hex values.
  *
- * The flat `lightColors` / `darkColors` in `src/constants/colors.ts` are the
- * raw palette tokens. The builder in `src/hooks/useTheme.ts` maps them to
- * this semantic shape. To add a new color, add it to both palettes AND to
- * the builder. To add a new semantic category, add it here AND to the
- * builder — components will fail TypeScript checks if they try to use a
- * category that doesn't exist.
- *
- * This file exists to prevent the "two ways to do the same thing" anti-pattern
- * that produced P30 (a ToggleRow using a module-level style without color,
- * which made the "Sound Effects" label unreadable in dark theme). With
- * semantic names, the type system forces every color to be explicitly chosen
- * from a known-good mapping.
+ * Updated 2026-07-10: added `brand`, `surface.elevated`, `surface.muted`
+ * for the bright playful palette redesign.
  */
 
 export interface ThemeColors {
   /** The active theme mode. 'light' or 'dark' (system mode resolves to one of these). */
   mode: 'light' | 'dark';
+
+  /** Brand colors — the primary interactive palette. */
+  brand: {
+    /** Primary CTA color — sky blue in light, cyan in dark. */
+    primary: string;
+    /** Pressed state of primary. */
+    primaryDark: string;
+    /** Secondary accent — orange. */
+    secondary: string;
+    /** Tertiary accent — pink. */
+    tertiary: string;
+  };
 
   /** Backgrounds — the layers of the visual stack from page-level down to card-level. */
   surface: {
@@ -30,6 +32,10 @@ export interface ThemeColors {
     card: string;
     /** Navigation header background. */
     header: string;
+    /** Elevated card with shadow. */
+    elevated: string;
+    /** Subtle section background. */
+    muted: string;
   };
 
   /** Text colors. The `on*` variants are for text on specific colored backgrounds. */
@@ -40,22 +46,18 @@ export interface ThemeColors {
     secondary: string;
     /** Text on a colored (accent / danger / tile-correct) background. */
     inverse: string;
-    /**
-     * Dark text on the yellow `present` tile / key. Both themes use #1a1a2e
-     * (P16 / D-180) because the present background is a similar warm yellow
-     * in both light and dark themes — dark text on yellow passes WCAG AA.
-     */
+    /** Dark text on the yellow present tile / key. */
     onPresent: string;
   };
 
   /** Button styles for `src/components/ui/Button.tsx`. */
   button: {
-    /** Solid accent button. Used for primary CTAs (Daily Challenge, Continue, Buy). */
-    primary: { bg: string; fg: string };
+    /** Solid primary button. Used for primary CTAs (Daily Challenge, Continue, Buy). */
+    primary: { bg: string; fg: string; bgDark: string };
     /** Outlined button. Card surface bg, accent text + border. */
     secondary: { bg: string; fg: string; border: string };
-    /** Solid danger button. Reserved for destructive actions (not used in v1). */
-    danger: { bg: string; fg: string };
+    /** Solid danger button. Reserved for destructive actions. */
+    danger: { bg: string; fg: string; bgDark: string };
     /** Text-only button, no background or border. */
     ghost: { fg: string };
   };
@@ -66,7 +68,7 @@ export interface ThemeColors {
     trackActive: string;
     /** Track color when the switch is off. */
     trackInactive: string;
-    /** Thumb color (RN's `Switch` does not differentiate active/inactive thumb). */
+    /** Thumb color. */
     thumb: string;
   };
 
@@ -87,7 +89,7 @@ export interface ThemeColors {
     correct: string;
     present: string;
     absent: string;
-    /** Unrevealed tile background. Also used as the inactive toggle track (`toggle.trackInactive`). */
+    /** Unrevealed tile background. Also used as the inactive toggle track. */
     empty: string;
     /** Border on unrevealed tiles. */
     border: string;
@@ -103,11 +105,11 @@ export interface ThemeColors {
     text: string;
     /** Background of the ENTER / BACKSPACE action keys. */
     special: string;
-    /** Text color of the ENTER / BACKSPACE action keys (same as `text.inverse`). */
+    /** Text color of the ENTER / BACKSPACE action keys. */
     actionText: string;
   };
 
-  /** Semantic status colors. `accent` / `accentDark` are also used in many non-status contexts. */
+  /** Semantic status colors. */
   status: {
     success: string;
     danger: string;
