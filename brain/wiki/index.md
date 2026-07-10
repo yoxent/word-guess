@@ -33,3 +33,4 @@ related: []
 | mixed-driver-animation-crash | Animated.parallel with mixed useNativeDriver crashes on remount — fix: overlay opacity (preferred) or independent .start() calls | animation, bug, gotcha, anti-pattern |
 | hooks-order-discipline | ALL hooks must be called before any conditional returns — prevents "Rendered more hooks" crash | react, hooks, gotcha, rules-of-hooks |
 | testing-skill | Global testing skill — 4-layer strategy, project profiling, layer gates, state tracking | testing, skill, qa, automation |
+| testing-decisions | Layer coverage decisions, component testing challenges, Maestro vs Detox, architecture tradeoffs | testing, architecture, decisions, tradeoffs |

@@ -13,14 +13,14 @@ Global testing skill for layered test generation. Project-agnostic core with pro
 
 ## Four Layers
 
-| Layer | Tool | Purpose | Gate |
-|-------|------|---------|------|
-| Unit | Jest | Pure logic, stores, services | None |
-| Component | Jest + RNTL | Individual components | Unit tests exist |
-| Integration | Jest + RNTL | Multi-component flows | Component tests exist |
-| E2E | Maestro | User journeys | Integration tests exist |
+| Layer | Tool | Purpose | Status |
+|-------|------|---------|--------|
+| Unit | Jest | Pure logic, stores, services | ✅ Done |
+| Component | Jest + RNTL | Individual components | ⚠️ Skipped (native deps) |
+| Integration | Jest + RNTL | Multi-component flows | ⏭️ Skipped |
+| E2E | Maestro | User journeys | 🔜 Next |
 
-**Gate enforcement:** Blocks skipping layers. Must satisfy prerequisites.
+**Gate enforcement:** Originally blocked skipping layers. Decision: skip to E2E for game (see testing-decisions.md)
 
 ## Project Files
 
