@@ -21,6 +21,7 @@ import {
   TILE_BOUNCE_SCALE_DOWN,
   TILE_BOUNCE_MAX,
   TILE_BOUNCE_NORMAL,
+  TILE_CORRECT_BOUNCE_EXTRA,
 } from '../../constants/animations';
 
 interface TileProps {
@@ -109,15 +110,19 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       return;
     }
 
-    // Skip animation on first render (static initial state)
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-    }
+    // 2026-07-09: removed the broken isFirstRender check. The previous code
+    // set isFirstRender.current = false but did NOT return, so the
+    // animation still ran on first render. The intent was apparently
+    // to skip the animation on first render of the Tile (e.g., when
+    // navigating to a saved game), but the implementation was wrong.
+    // With the new opacity-based animation (no rotateX), this is less
+    // critical — the animation is brief and the text is always visible
+    // regardless of the animation state.
 
     // Stagger: TILE_STAGGER_DELAY ms per tile left-to-right (D-28)
     const staggerDelay = index * TILE_STAGGER_DELAY;
 
-    // Flip animation (rotateX 0 → -90 → 0 via interpolation)
+    // Color + opacity + scale animation (2026-07-09: no rotation)
     flipProgress.value = withDelay(
       staggerDelay,
       withTiming(1, {
@@ -126,7 +131,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       }),
     );
 
-    // Correct tiles get scale bounce (D-28)
+    // Correct tiles still get the bounce effect (D-28)
     if (feedback === 'correct') {
       scale.value = withDelay(
         staggerDelay + TILE_FLIP_DURATION,
@@ -136,6 +141,23 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         ),
       );
     }
+
+    // 2026-07-09: safety-net timeout. Even if the worklet is interrupted
+    // (busy JS thread during the gameStore update, re-render storm, etc.),
+    // this setTimeout guarantees the tile reaches its final state.
+    // The duration is the worst-case animation time for this tile:
+    //   staggerDelay (left-to-right) + flip duration + bounce (if correct)
+    // + 100ms buffer. Without this, the previous rotateX animation could
+    // get stuck at -90° (invisible from the front) and the text would
+    // appear 'missing' until the user navigated away and back.
+    const totalDuration = staggerDelay + TILE_FLIP_DURATION
+      + (feedback === 'correct' ? TILE_CORRECT_BOUNCE_EXTRA : 0)
+      + 100;
+    const safetyTimer = setTimeout(() => {
+      flipProgress.value = 1;
+      scale.value = 1;
+    }, totalDuration);
+    return () => clearTimeout(safetyTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealing]);
 
@@ -146,17 +168,32 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       [theme.colors.tile.empty, theme.colors.tile.empty, feedbackColors[feedback]],
     );
 
-    const rotateX = interpolate(
+    // 2026-07-09: removed rotateX transform. The previous rotateX 0→-90→0
+    // animation made the tile edge-on at the midpoint. If the worklet
+    // didn't complete (busy JS thread, interruption), the tile would stay
+    // at -90° (invisible from the front) and the text would appear
+    // 'missing' to the user. The text would reappear on remount (back
+    // home + revisit) because the fresh component instance ran the
+    // animation from scratch. Using opacity + scale now keeps the tile
+    // upright at all times, with a brief fade-pulse at the midpoint
+    // for visual feedback. Text is always visible.
+    const opacity = interpolate(
       flipProgress.value,
       [0, 0.5, 1],
-      [0, -90, 0],
+      [1, 0.5, 1],
+    );
+
+    const scaleVal = interpolate(
+      flipProgress.value,
+      [0, 0.5, 1],
+      [1, 1.08, 1],
     );
 
     return {
       backgroundColor: bgColor,
+      opacity,
       transform: [
-        { rotateX: `${rotateX}deg` },
-        { scale: scale.value },
+        { scale: scaleVal },
       ],
     };
   });
