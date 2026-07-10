@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -47,7 +47,15 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const flipProgress = useSharedValue(0);
   const scale = useSharedValue(1);
-  const isFirstRender = useRef(true);
+  // 2026-07-10: dedicated shared value for text visibility.
+  // - Active/unrevealed tiles (feedback='empty'): initialize to 1 so the
+  //   letter is visible while the user is typing.
+  // - Revealing/completed tiles: initialize to 0 so the letter is hidden
+  //   from the start. The useEffect animates it according to the user's
+  //   preferences: for normal mode it appears at the 50% point of the
+  //   flip; for reduceMotion it appears instantly (no flip) but staggered
+  //   left-to-right.
+  const textOpacity = useSharedValue(feedback === 'empty' ? 1 : 0);
 
   // Build dynamic styles + feedback color map from active theme
   const { styles, feedbackColors } = useMemo(() => {
@@ -98,37 +106,48 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
 
   useEffect(() => {
     if (!isRevealing) {
+      // Active row (typing) or empty/future row.
+      // Text is always visible during typing.
+      textOpacity.value = 1;
       flipProgress.value = 0;
       scale.value = 1;
       return;
     }
 
-    // When reduceMotion is on, skip animation and jump to final state
+    const staggerDelay = index * TILE_STAGGER_DELAY;
+
     if (reduceMotion) {
+      // 2026-07-10: When reduceMotion is on, skip the rotateX flip BUT
+      // stagger the text appearance left-to-right over a brief instant
+      // so the player still gets some sense of progression. The actual
+      // reveal has zero motion (instant text appearance after delay).
       flipProgress.value = 1;
       scale.value = 1;
+      textOpacity.value = 0;
+      textOpacity.value = withDelay(
+        staggerDelay,
+        withTiming(1, { duration: 0 }),
+      );
       return;
     }
 
-    // 2026-07-09: removed the broken isFirstRender check. The previous code
-    // set isFirstRender.current = false but did NOT return, so the
-    // animation still ran on first render. The intent was apparently
-    // to skip the animation on first render of the Tile (e.g., when
-    // navigating to a saved game), but the implementation was wrong.
-    // With the new opacity-based animation (no rotateX), this is less
-    // critical — the animation is brief and the text is always visible
-    // regardless of the animation state.
-
-    // Stagger: TILE_STAGGER_DELAY ms per tile left-to-right (D-28)
-    const staggerDelay = index * TILE_STAGGER_DELAY;
-
-    // Color + opacity + scale animation (2026-07-09: no rotation)
+    // 2026-07-10: Normal mode. The text is hidden during the first
+    // half of the flip (when the empty side is showing), then fades
+    // in over the second half (when the new face with the feedback
+    // color is rotating back to face the user). The fade-in starts
+    // exactly at the 50% point of the flip animation, so the
+    // displayed character appears simultaneously with the feedback
+    // color — a natural-feeling 'reveal'.
     flipProgress.value = withDelay(
       staggerDelay,
       withTiming(1, {
         duration: TILE_FLIP_DURATION,
         easing: Easing.inOut(Easing.ease),
       }),
+    );
+    textOpacity.value = withDelay(
+      staggerDelay + TILE_FLIP_DURATION / 2,
+      withTiming(1, { duration: TILE_FLIP_DURATION / 2 }),
     );
 
     // Correct tiles still get the bounce effect (D-28)
@@ -147,19 +166,19 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     // this setTimeout guarantees the tile reaches its final state.
     // The duration is the worst-case animation time for this tile:
     //   staggerDelay (left-to-right) + flip duration + bounce (if correct)
-    // + 100ms buffer. Without this, the previous rotateX animation could
-    // get stuck at -90° (invisible from the front) and the text would
-    // appear 'missing' until the user navigated away and back.
+    // + 100ms buffer. The safety net forces textOpacity = 1 too so the
+    // letter is definitely visible at end of animation.
     const totalDuration = staggerDelay + TILE_FLIP_DURATION
       + (feedback === 'correct' ? TILE_CORRECT_BOUNCE_EXTRA : 0)
       + 100;
     const safetyTimer = setTimeout(() => {
       flipProgress.value = 1;
       scale.value = 1;
+      textOpacity.value = 1;
     }, totalDuration);
     return () => clearTimeout(safetyTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealing]);
+  }, [isRevealing, reduceMotion]);
 
   const animatedTileStyle = useAnimatedStyle(() => {
     const bgColor = interpolateColor(
@@ -169,13 +188,18 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     );
 
     // 2026-07-10: restored the rotateX flip animation 0 -> -90 -> 0.
-    // (The text-opacity animation hides the letter at the midpoint so
-    // it doesn't appear smushed.) The text would previously get stuck
-    // at -90deg (invisible) when React reused a Tile instance, but
-    // the newly added key-based remount in GuessRow forces a fresh
+    // The text is kept hidden during the first half of the flip via the
+    // dedicated textOpacity shared value (see useEffect above) so it
+    // doesn't appear smushed as the tile rotates edge-on, then it
+    // fades in over the second half so the letter appears simultaneously
+    // with the feedback color (the natural Wordle tile reveal).
+    //
+    // Previous bug reference: the text used to get stuck at -90deg
+    // (invisible) when React reused a Tile instance. The key-based
+    // remount in GuessRow (key=`${i}-${tileFeedback}`) forces a fresh
     // component instance when an active row becomes a completed row,
-    // so the animation runs cleanly. The safety-net setTimeout below
-    // guarantees the final state even if the worklet is interrupted.
+    // so the animation runs cleanly. The safety-net setTimeout above
+    // guarantees the final state if a worklet is interrupted for any reason.
     const rotateX = interpolate(
       flipProgress.value,
       [0, 0.5, 1],
@@ -191,12 +215,17 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     };
   });
 
-  // 2026-07-10: re-applied to the <Animated.Text> below. Fires in lockstep
-  // with animatedTileStyle, hiding the letter at the flip midpoint so it
-  // doesn't look smushed as the tile rotates edge-on. At the end of the
-  // animation (flipProgress = 1), text opacity = 1 (visible).
+  // 2026-07-10: text opacity is driven by the dedicated textOpacity
+  // shared value (no longer interpolated from flipProgress). The
+  // useEffect sets this value:
+  //   - Active/unrevealed tiles: instant 1 (always visible)
+  //   - reduceMotion: instant 1 after the stagger delay (no flip, just
+  //     left-to-right stagger of text appearance)
+  //   - Normal: 0 from the start, fades to 1 over the second half of
+  //     the flip (so the letter reveals simultaneously with the
+  //     feedback color after the 50% edge-on point)
   const animatedTextStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(flipProgress.value, [0, 0.5, 1], [1, 0, 1]),
+    opacity: textOpacity.value,
   }));
 
   // Compute dynamic text color with proper WCAG contrast in BOTH themes.
