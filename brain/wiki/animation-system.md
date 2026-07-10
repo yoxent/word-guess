@@ -1,5 +1,5 @@
 # animation-system
-updated: 2026-07-08 (Phase 6 additions — home screen stagger, reduce motion, confetti fix)
+updated: 2026-07-10 (textOpacity shared value, safety-net, key-based remount, GameBoard hooks fix, isFirstRender removed)
 tags: [animation, reanimated, tile-flip, confetti, stagger, reduce-motion]
 related: [architecture, game-modes, tech-stack, accessibility]
 
@@ -50,14 +50,18 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 ## Implementation details
 
 ### Tile (Reanimated worklet)
-- `useSharedValue(0)` for `flipProgress`, `useSharedValue(1)` for `scale`
+- Three shared values: `flipProgress(0)`, `scale(1)`, `textOpacity(0 or 1)`
+  - `textOpacity` initial: `feedback === 'empty' ? 1 : 0` — typing tiles always visible from first render
 - `useEffect` on `isRevealing`:
   - stagger = `index * TILE_STAGGER_DELAY`
   - Flip: `withDelay(stagger, withTiming(1, {duration: TILE_FLIP_DURATION, easing: Easing.inOut(Easing.ease)}))`
   - Correct: `withDelay(stagger + TILE_FLIP_DURATION, withSequence(withTiming(1.15, {d:100}), withTiming(1.0, {d:100})))`
-- `useAnimatedStyle()` — `interpolateColor` for background (empty→feedback color midway), `interpolate` for rotateX (0→-90→0)
-- Text opacity: `interpolate(progress, [0,0.5,1], [0,0,1])` — invisible during flip, visible after
-- Uses `isFirstRender` ref to skip initial animation trigger
+  - Text opacity (normal): `withDelay(stagger + TILE_FLIP_DURATION/2, withTiming(1, {duration: TILE_FLIP_DURATION/2}))` — letter hidden during first half, reveals over second half
+  - Text opacity (reduceMotion): `withDelay(stagger, withTiming(1, {duration: 0}))` — instant after stagger delay, left-to-right progression preserved
+- `useAnimatedStyle()` — `interpolateColor` for background, `interpolate` for rotateX (0→-90→0), `interpolate` for scale (bounce)
+- `textOpacity` applied via separate Animated.Text style (not part of flip animation) — text stays upright, only opacity animates
+- **Safety-net setTimeout** — forces `flipProgress=1`, `scale=1`, `textOpacity=1` after worst-case animation duration, guaranteeing final state even if worklet interrupted
+- `isFirstRender` ref **removed** (2026-07-10) — was broken (set flag but didn't early-return). Key-based remount (see GuessRow) handles fresh-instance-on-revisit correctly.
 - Animated.View + Animated.Text
 
 ### Confetti (Reanimated particle burst)
@@ -80,6 +84,18 @@ if (any correct tile in guess) totalTime += TILE_CORRECT_BOUNCE_EXTRA
 - `gameStore.pendingInputs` — queued keystrokes during animation (if queue preferred over drop)
 - `gameStore.flushPendingInputs()` — process queue after animation completes
 - Timer managed via `setTimeout` in GameScreen `useEffect` (with `clearTimeout` cleanup)
+
+## GuessRow key-based Tile remount (FIXED 2026-07-10)
+- Old: `key={i}` (position-only) — React reused Tile instance when active row became completed row, carrying stale shared values
+- New: `key={\`${i}-${tileFeedback}\`}` — includes feedback type (empty/correct/present/absent). Tile REMOUNTS on transition from active typing to revealed state. Fresh instance = fresh shared values = animation runs from scratch.
+- This was the root cause of the "text missing" bug: the reused instance's flipProgress was stuck at 0 from the early-return in the `!isRevealing` path, and the rotateX at -90deg made the text edge-on (invisible)
+
+## GameBoard hooks violation (FIXED 2026-07-10)
+- `useMemo` for tileSize was called AFTER an early return (`if (!session) return <Loading/>`)
+- This violates React Rules of Hooks — hook called conditionally
+- On certain re-renders (e.g. AppState transition), hook tracking corrupted, causing downstream components to render with stale shared values or undefined behavior
+- Fix: move `useMemo` before the early return, with default wordLength when session is null
+- Rule: all hooks must execute in the same order on every render, regardless of early returns
 
 ## Input queue bug (FIXED 2026-07-05)
 - `flushPendingInputs()` originally processed only 1 queued item per call (P14).

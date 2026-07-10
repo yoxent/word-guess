@@ -114,7 +114,19 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 
 **Bug 1 — Keyboard action key colors:** Action keys (ENTER/BACKSPACE) used `colors.key.special` (dark gray in dark theme) + `colors.key.actionText` (= `text.inverse`, dark in dark theme) → unreadable dark-on-dark in dark theme. Fixed by using the same `colors.key.unused` background and `colors.key.text` (= `text.primary`, theme-aware) as letter keys. Action keys are now visually consistent with letter keys, just wider and with a different text label.
 
-**Bug 2 — Tile text "missing" after guessing:** The `animatedTextStyle` in `Tile.tsx` interpolated the text opacity from 1 → 0 → 1 during the flip animation. If the worklet got stuck or the JS thread was busy (e.g., the gameStore update happening in the same render cycle), `flipProgress.value` could be left at 0.5, which would render the text at opacity 0 (invisible). The text would reappear on remount because a fresh animation ran to completion. Fixed by removing the text opacity animation entirely — the text is always visible. The background color and rotation still animate for the Wordle-style flip effect. Side effect: the text is no longer hidden during the flip (a small UX trade-off, but worth it for reliability). The `animatedTextStyle` is left defined in the code with a comment explaining why it's unused, so a future maintainer doesn't try to re-add it.
+**Bug 2 — Tile text "missing" after guessing (FIXED 2026-07-10, 3-part fix):**
+
+*Root cause:* When the active typing row transitioned to a completed row after submit, GuessRow used `key={i}` (position-only). React REUSED the same Tile component instance carrying stale shared values from the typing phase (`flipProgress` stuck at 0 from the early-return in the `!isRevealing` path). The rotateX at -90deg (edge-on) made the text invisible. On re-mount (back-to-home + revisit), fresh Tile instances ran clean animations to completion.
+
+*Fix (3 parts):*
+
+1. **GuessRow key strategy** — `key={\`${i}-${tileFeedback}\`}` includes feedback type. Tile REMOUNTS on transition from active (`empty`) to revealed (`correct/present/absent`). Fresh component instance = fresh shared values = animation runs from scratch.
+
+2. **GameBoard hooks violation** — `useMemo` for tileSize was called AFTER an early return `if (!session) return null`, violating React Rules of Hooks. On certain re-renders (AppState transitions), hook tracking corrupted. Fix: move `useMemo` before the early return with a default wordLength.
+
+3. **Dedicated `textOpacity` shared value** — Separated from `flipProgress`. Normal mode: letter hidden during first half, fades in over second half. Reduce motion: instant per-tile after stagger. Safety-net `setTimeout` forces all shared values to final state after worst-case duration. The original text opacity interpolation (1→0→1 on flipProgress) was the right intent but fragile — the dedicated value with proper timing and safety-net is the robust solution.
+
+*Lesson:* A shared value interpolated by a worklet can get stuck if the component instance is reused. Key-based remount is the clean fix. Hooks must be unconditional. A dedicated shared value per concern (flip vs text) is more robust than reusing one.
 
 **Bug 3 — LengthPickerModal Cancel button + Continue Game modal standardization:**
 - `LengthPickerModal`: removed the Cancel button. Changed the overlay to a `Pressable` with `onPress={onClose}` so tapping outside the card dismisses. Added `onStartShouldSetResponder={() => true}` to the card so tapping inside the card (including the length buttons) does NOT dismiss.
@@ -122,8 +134,11 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - The pattern is: tap on overlay → dismiss; tap on card → does NOT dismiss (buttons inside the card still work).
 - No other modals have Cancel buttons to change (`ResultModal` has action buttons Play Next/Back to Menu, `HowToPlayModal` has Got it! — these are actions, not cancels, and aren't in scope for this pattern).
 
-- Lesson: For text content that should always be visible, don't tie its opacity to an animation that could get stuck. The text should be stable; only the background/visual chrome should animate. For modal dismissal, the Pressable + onStartShouldSetResponder pattern is more explicit and standard than onTouchEnd.
+- Lesson (Bug 2): A shared value interpolated by a worklet can get stuck if the component instance is reused. Key-based remount (include feedback type in key) is the clean fix. Hooks must be unconditional — all hooks before any early return. Dedicated shared values per concern (textOpacity separate from flipProgress) are more robust than reusing one value. Safety-net setTimeout guarantees final state if worklet interrupted.
+- Lesson (Bug 3): For modal dismissal, the Pressable + onStartShouldSetResponder pattern is more explicit and standard than onTouchEnd.
 - Phase: 6 (Post-launch)
+---
+The following attributionTag entry was appended to P37 but is a separate issue:
 - Cause: On Android 11+ (API 30+), every service that uses app-ops (like media playback) must declare an `android:attributionTag` in the manifest. `expo-audio`'s `AudioControlsService` does NOT set this by default. The system logs a warning every time the service is active: `AppOps: attributionTag not declared in manifest of com.vorithstudio.wordguess`. The user noticed these during the login flow (because the BGM was playing while they tapped Sign In).
 - Attempted fix: `scripts/patch-audio-attribution-tag.mjs` added `android:attributionTag="audioPlayback"` to the `<service>` element. **REVERTED** — the AAPT2 binary used by the project's build chain does not recognize the `android:attributionTag` attribute, even with compileSdk = 36. The build fails with: `AAPT: error: attribute android:attributionTag not found.`
 - Why: The attribute is added in API 31+ in AOSP, and `node_modules/react-native/gradle/libs.versions.toml` declares `compileSdk = "36"`. The failure suggests a build-tools / AAPT2 version mismatch — the AAPT2 binary in the toolchain may predate the attribute even though the framework jar at API 36 should know about it.
