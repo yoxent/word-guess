@@ -32,3 +32,4 @@ related: []
 | agent-skills-setup | Matt Pocock skills installed, per-repo config in docs/agents/, AGENTS.md block | skills, setup, agent-config |
 | mixed-driver-animation-crash | Animated.parallel with mixed useNativeDriver crashes on remount — fix: overlay opacity (preferred) or independent .start() calls | animation, bug, gotcha, anti-pattern |
 | hooks-order-discipline | ALL hooks must be called before any conditional returns — prevents "Rendered more hooks" crash | react, hooks, gotcha, rules-of-hooks |
+| testing-skill | Global testing skill — 4-layer strategy, project profiling, layer gates, state tracking | testing, skill, qa, automation |
