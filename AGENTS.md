@@ -14,3 +14,18 @@
 - `brain/wiki/git-conventions.md` — detailed git conventions
 - `.pi/CODEBASE.md` — codebase overview
 - `.pi/KNOWLEDGE.md` — agent knowledge
+- `.pi/FRONTEND.md` — mobile game UI design principles (read before any frontend/UI work)
+
+## Agent skills
+
+### Issue tracker
+
+Issues track on GitHub Issues via `gh` CLI. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles with default names (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo. Project knowledge lives in `brain/wiki/` with decision records in `.planning/`. See `docs/agents/domain.md`.
