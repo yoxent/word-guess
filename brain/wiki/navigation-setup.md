@@ -1,5 +1,5 @@
 # navigation-setup
-updated: 2026-07-05 (Home icon bar reorder/medal, Game header redesign)
+updated: 2026-07-11 (back button chevron via headerBackImage, header color per mode, no circle on game back)
 tags: [navigation, react-navigation, screens, stack]
 related: [architecture, phase-structure, tech-stack, game-modes]
 
@@ -30,7 +30,7 @@ Free Play removed (merged into Endless).
 - Home screen: `headerShown: false` — navigation header removed entirely
 - Home navigation replaced by top-right icon bar with MaterialIcons (order left→right): `help-outline` (How to Play), `emoji-events` (Stats/medal), `leaderboard` (Leaderboard), `settings` (Settings)
 - Uses `@expo/vector-icons/MaterialIcons` — installed as explicit dependency
-- Game screen: `headerShown: false`, custom header with arrow-back-ios icon (40×40, default nav style). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: layout.screenPadding` (16). Header spans full width via `marginHorizontal: -layout.screenPadding`. No attempts counter (shown in GameBoard).
+- Game screen: `headerShown: false`, custom header with plain arrow-back-ios icon (no circle background, 22px, white on colored header). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: layout.screenPadding` (16). Header spans full width via `marginHorizontal: -layout.screenPadding`. No attempts counter (shown in GameBoard).
 - Result screen: `headerShown: false` — clean reveal experience
 
 ## Screen padding (consistent 16px, 2026-07-09)
@@ -90,6 +90,19 @@ export function Navigation() {
 ```
 
 This applies to ANY centralized logic that needs focus tracking (BackHandler, focus-based analytics, keyboard shortcut wiring, etc.).
+
+## Back button: standardized chevron (2026-07-11)
+- All screens (Stats, Settings, Leaderboard) use `arrow-back-ios` via global `headerBackImage` in `screenOptions` — overrides Android's default `arrow-back` (left-arrow) to match iOS-style chevron `<`
+- Game screen uses custom back button (no `headerBackImage`, owns its rendering): plain chevron icon, no circle background, `padding: 8` for touch target
+- `headerBackImage` renders `MaterialIcons arrow-back-ios size={22}` with `tintColor` from nav theme; Android gets `marginLeft: 4` for alignment
+
+## Header color per game mode (2026-07-11)
+Game screen header `backgroundColor` now matches the selected mode's ModeCard gradient:
+- `daily` → `#42A5F5` (sky blue)
+- `endless` → `#66BB6A` (green)
+- `random` / `free` → `#FFA726` (orange)
+
+Set inline via `MODE_HEADER_COLORS` map in GameScreen, overriding the static style. Hint buttons remain `theme.colors.brand.primary` (sky blue).
 
 ## Key decisions
 | Decision | Rationale |

@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-08 (continue-game prompt: Alert→Modal, daily auto-continues)
+updated: 2026-07-11 (hard mode counting fix: cumulative→max-per-row)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup]
 
@@ -45,11 +45,20 @@ When selecting a game mode from Home, if a saved in-progress game exists with ma
 ## Universal toggle: Hard Mode
 - Applies to ANY mode (per-game toggle)
 - Enforced at submit time (not input time) — shake + toast on violation
-- Must reuse green tiles in same position
+- Must reuse green tiles in same position (most recent guess only — earlier greens are implicitly carried forward)
 - Must include yellow tiles somewhere in guess
 - NYT Wordle exact rules (including duplicate letter handling)
 - 20+ unit test edge cases required before integration
 - Pure function in `services/wordLogic.ts` — trivially testable
+
+### Validation: required count per letter = max-per-row (NOT cumulative)
+Bug fixed 2026-07-11: Previous implementation counted yellow letters cumulatively across ALL feedback rows. If letter S appeared yellow in guess 2 AND guess 3, the function required S×2 in the next guess — even when the target only has one S.
+
+**Fix:** Required count per letter = MAXIMUM number of times that letter appears as `present` OR `correct` in any single feedback row. This matches NYT Wordle behavior:
+- Confirming a letter is in the word once is enough — re-confirming it in a later guess doesn't increase the count
+- If a letter appears as BOTH `correct` AND `present` in the SAME row (duplicate letter in target), the row captures count = 2, correctly requiring both instances
+
+**Code location:** `validateHardMode()` in `src/services/wordLogic.ts`, Rule 2
 
 ## Result flow (all modes — Phase 2 change)
 - Result displayed as **modal overlay** (not navigation to ResultScreen)

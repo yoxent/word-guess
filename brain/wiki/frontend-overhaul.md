@@ -1,5 +1,5 @@
 # frontend-overhaul
-updated: 2026-07-10 (Phases 3-7 complete — all 7 phases done)
+updated: 2026-07-11 (MarqueeBackground, HardModePill icon change, back button UX)
 tags: [ui, redesign, visual, palette, font, animation, phase-7, complete]
 related: [design-tokens, theme-system, tech-stack, architecture, animation-system]
 
@@ -35,7 +35,7 @@ Transform from "Wordle clone with muted earth tones" to "bright, playful, family
 |-----------|------|---------|
 | ModeCard | `src/components/home/ModeCard.tsx` | Gradient-background tappable card (daily/endless/random) |
 | DailyPreview | `src/components/home/DailyPreview.tsx` | 6 pill badges showing daily completion per length (5-10) |
-| HardModePill | `src/components/home/HardModePill.tsx` | Pill toggle with 🔥/⚡ icon, orange when active |
+| HardModePill | `src/components/home/HardModePill.tsx` | Pill toggle with 🔥/🧘 icon (lightning→meditation 2026-07-11), orange when active |
 
 ### HomeScreen rewrite
 - ScrollView layout for small screens
@@ -129,7 +129,7 @@ Keep both themes. Light default. Dark opt-in via Settings → Theme.
 - `src/components/ui/ProgressRing.tsx`
 
 ## Files modified (Phases 3-7)
-- `src/screens/HomeScreen.tsx` — complete rewrite
+- `src/screens/HomeScreen.tsx` — complete rewrite, MarqueeBackground integration
 - `src/screens/GameScreen.tsx` — header, toast, back button
 - `src/screens/StatsScreen.tsx` — ProgressRing, streak badges, chart, FAB
 - `src/screens/LeaderboardScreen.tsx` — pill tabs, rounded rows, medals
@@ -139,7 +139,8 @@ Keep both themes. Light default. Dark opt-in via Settings → Theme.
 - `src/components/game/LengthPickerModal.tsx` — scale+fade open animation
 - `src/components/ui/Button.tsx` — haptic feedback, mixed-driver fix
 - `src/components/ui/HowToPlayModal.tsx` — scale+fade open animation
-- `src/components/ui/index.ts` — ProgressRing barrel export
+- `src/components/ui/MarqueeBackground.tsx` — slow-moving icon grid background (2026-07-11)
+- `src/components/ui/index.ts` — ProgressRing, MarqueeBackground barrel exports
 - `src/constants/animations.ts` — TILE_BOUNCE_MAX 1.15→1.2
 - `package.json` — expo-linear-gradient added
 

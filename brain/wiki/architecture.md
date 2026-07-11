@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-09 (toggle side-effect pattern added — sound/haptic fixes)
+updated: 2026-07-11 (error toast overlay, game restoration letterCount guard)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility, toggle-side-effects]
 
@@ -145,9 +145,21 @@ store.submitGuess(guess):
   → Other: "Back to Menu" → HomeScreen
 ```
 
+## Error toast (overlay pattern)
+- "Not in word list" etc. overlaid as absolutely-positioned view at bottom of board area
+- `position: 'absolute', bottom: 0` inside `position: 'relative'` board container
+- Does NOT participate in flex layout — grid does not shift when toast appears/disappears
+- Previously was in normal flow between board and hint buttons, causing grid to shrink on every toast
+
+## Game restoration guard (letterCount check)
+- GameScreen init: `saved.mode === mode && saved.letterCount === letterCount`
+- Previously only checked mode, which caused wrong game restoration: going from 5-letter endless back to home then picking 6-letter endless would restore the 5-letter session (both were `endless`)
+- Random mode: `handleRandom()` generates new length; if it happened to match saved game's length (e.g., both 10), the continue modal would not show and the old game would silently restore
+- Fix: added `letterCount` comparison to both the GameScreen init AND the home screen's `navigateWithContinueCheck`
+
 ## Animation architecture
 - All tile animations on UI thread via Reanimated worklets
 - Keyboard color update fires AFTER last tile reveal completes (not during)
 - Keyboard input blocked during animation sequence (queue preferred)
 - Confetti: Reanimated-based particle system (~30 particles, gravity + fade + scale)
-- typegpu-confetti evaluated (v0.3.0) but deferred — WebGPU on Android too experimental
+- typegpu-confetti evaluated (v0.3.0) but deferred — WebGPU on Android too experimental 
