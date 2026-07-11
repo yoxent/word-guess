@@ -93,6 +93,12 @@ describe('gameStore', () => {
       expect(useGameStore.getState().currentGuess).toBe('A');
     });
 
+    it('clears hintLetter when the hinted letter is typed', () => {
+      useGameStore.setState({ hintLetter: 'A' });
+      useGameStore.getState().addLetter('A');
+      expect(useGameStore.getState().hintLetter).toBeNull();
+    });
+
     it('does not exceed word length', () => {
       for (let i = 0; i < 7; i++) {
         useGameStore.getState().addLetter('A');
@@ -151,6 +157,10 @@ describe('gameStore', () => {
     it('marks win when guess matches word', () => {
       useGameStore.setState({ currentGuess: 'APPLE' });
       useGameStore.getState().submitGuess();
+      const session = useGameStore.getState().session;
+      expect(session?.pendingStatus).toBe('won');
+      expect(session?.status).toBe('playing');
+      useGameStore.getState().finalizeRevealOutcome();
       expect(useGameStore.getState().session?.status).toBe('won');
     });
 
@@ -208,8 +218,11 @@ describe('gameStore', () => {
       // Word is APPLE, first guess CRANE
       useGameStore.setState({ currentGuess: 'CRANE' });
       useGameStore.getState().submitGuess();
+      // Colors apply after reveal finishes, not on submit
+      expect(useGameStore.getState().session?.pendingKeyColors).toBeDefined();
+      expect(Object.keys(useGameStore.getState().session?.pendingKeyColors || {}).length).toBeGreaterThan(0);
+      useGameStore.getState().finalizeRevealOutcome();
       const colors1 = useGameStore.getState().session?.keyColors;
-      // Should have colors for C, R, A, N, E
       expect(colors1).toBeDefined();
       expect(Object.keys(colors1 || {}).length).toBeGreaterThan(0);
     });

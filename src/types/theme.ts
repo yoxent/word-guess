@@ -101,6 +101,12 @@ export interface ThemeColors {
     present: string;
     absent: string;
     unused: string;
+    /** Light blue background for ad letter-hint blink. */
+    hint: string;
+    /** Alternate phase for hint color pulse (no Animated opacity — Fabric safe). */
+    hintDim: string;
+    /** Text on the letter-hint key. */
+    hintText: string;
     /** Text color on an unused letter key. */
     text: string;
     /** Background of the ENTER / BACKSPACE action keys. */

@@ -7,7 +7,7 @@ jest.mock('../../../stores', () => ({
     selector({
       colorBlindMode: false,
       reduceMotion: false,
-    })
+    }),
   ),
 }));
 
@@ -40,9 +40,11 @@ describe('GuessRow', () => {
       { letter: 'N', feedback: 'absent' as const },
       { letter: 'E', feedback: 'correct' as const },
     ],
+    isActive: false,
+    isRevealingRow: false,
+    rowIndex: 0,
+    wordLength: 5,
     tileSize: 50,
-    isRevealing: false,
-    shake: false,
   };
 
   it('renders all letters', () => {
@@ -64,11 +66,12 @@ describe('GuessRow', () => {
     render(
       <GuessRow
         guess=""
-        feedback={[]}
+        isActive={false}
+        isRevealingRow={false}
+        rowIndex={1}
+        wordLength={5}
         tileSize={50}
-        isRevealing={false}
-        shake={false}
-      />
+      />,
     );
   });
 
@@ -81,10 +84,12 @@ describe('GuessRow', () => {
       <GuessRow
         guess="AB"
         feedback={shortFeedback}
+        isActive={false}
+        isRevealingRow={false}
+        rowIndex={0}
+        wordLength={2}
         tileSize={50}
-        isRevealing={false}
-        shake={false}
-      />
+      />,
     );
     expect(screen.getByText('A')).toBeTruthy();
     expect(screen.getByText('B')).toBeTruthy();

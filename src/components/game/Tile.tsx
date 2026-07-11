@@ -9,6 +9,7 @@ import Animated, {
   interpolate,
   interpolateColor,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import type { TileFeedback } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -108,6 +109,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     if (!isRevealing) {
       // Active row (typing) or empty/future row.
       // Text is always visible during typing.
+      cancelAnimation(flipProgress, scale, textOpacity);
       textOpacity.value = 1;
       flipProgress.value = 0;
       scale.value = 1;
@@ -115,6 +117,9 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     }
 
     const staggerDelay = index * TILE_STAGGER_DELAY;
+
+    // Stop any in-flight worklets before scheduling a new reveal sequence.
+    cancelAnimation(flipProgress, scale, textOpacity);
 
     if (reduceMotion) {
       // 2026-07-10: When reduceMotion is on, skip the rotateX flip BUT
@@ -130,6 +135,14 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       );
       return;
     }
+
+    // 2026-07-11: reset textOpacity to 0 BEFORE scheduling the fade-in.
+    // With stable keys (no remount), the shared value persists at 1 from
+    // the active typing phase. Without this reset, the letter would stay
+    // visible throughout the flip instead of hiding until the 50% point.
+    // This replaces the previous key-based remount that forced fresh
+    // shared values but caused Fabric mount/unmount churn crashes.
+    textOpacity.value = 0;
 
     // 2026-07-10: Normal mode. The text is hidden during the first
     // half of the flip (when the empty side is showing), then fades
@@ -194,12 +207,13 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     // fades in over the second half so the letter appears simultaneously
     // with the feedback color (the natural Wordle tile reveal).
     //
-    // Previous bug reference: the text used to get stuck at -90deg
-    // (invisible) when React reused a Tile instance. The key-based
-    // remount in GuessRow (key=`${i}-${tileFeedback}`) forces a fresh
-    // component instance when an active row becomes a completed row,
-    // so the animation runs cleanly. The safety-net setTimeout above
-    // guarantees the final state if a worklet is interrupted for any reason.
+    // 2026-07-11: the previous key-based remount in GuessRow (key=`${i}-${tileFeedback}`)
+    // was removed because unmounting/re mounting ~7 Animated.Views per guess
+    // triggered Fabric SurfaceMountingManager assertion failures. The
+    // missing-text bug that remount worked around is now fixed by resetting
+    // textOpacity to 0 in the reveal useEffect above, so the stable-key Tile
+    // instance animates cleanly. The safety-net setTimeout below guarantees
+    // the final state if a worklet is interrupted for any reason.
     const rotateX = interpolate(
       flipProgress.value,
       [0, 0.5, 1],
@@ -287,26 +301,37 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         </Animated.Text>
       )}
 
-      {/* Texture overlay for color blind mode (LAUNCH-01) */}
-      {colorBlindMode && feedback !== 'empty' && (
+      {/* Texture overlay for color blind mode (LAUNCH-01). Container is always
+          mounted when colorBlindMode is on so feedback transitions do not
+          insert native views mid-flip (Fabric mount + Reanimated prop flush). */}
+      {colorBlindMode && (
         <View style={[StyleSheet.absoluteFill, styles.textureContainer]} pointerEvents="none">
-          {feedback === 'correct' && (
-            <>
-              <View style={[styles.dot, { top: '25%', left: '50%', marginLeft: -3, marginTop: -3 }]} />
-              <View style={[styles.dot, { top: '60%', left: '25%', marginLeft: -3, marginTop: -3 }]} />
-              <View style={[styles.dot, { top: '60%', left: '75%', marginLeft: -3, marginTop: -3 }]} />
-            </>
-          )}
-          {feedback === 'present' && (
-            <View style={[StyleSheet.absoluteFill, { transform: [{ rotate: '45deg' }] }]}>
-              <View style={[styles.stripeBar, { top: '20%' }]} />
-              <View style={[styles.stripeBar, { top: '50%' }]} />
-              <View style={[styles.stripeBar, { top: '80%' }]} />
-            </View>
-          )}
-          {feedback === 'absent' && (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.15)' }]} />
-          )}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: feedback === 'correct' ? 1 : 0 },
+            ]}
+          >
+            <View style={[styles.dot, { top: '25%', left: '50%', marginLeft: -3, marginTop: -3 }]} />
+            <View style={[styles.dot, { top: '60%', left: '25%', marginLeft: -3, marginTop: -3 }]} />
+            <View style={[styles.dot, { top: '60%', left: '75%', marginLeft: -3, marginTop: -3 }]} />
+          </View>
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: feedback === 'present' ? 1 : 0, transform: [{ rotate: '45deg' }] },
+            ]}
+          >
+            <View style={[styles.stripeBar, { top: '20%' }]} />
+            <View style={[styles.stripeBar, { top: '50%' }]} />
+            <View style={[styles.stripeBar, { top: '80%' }]} />
+          </View>
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: feedback === 'absent' ? 1 : 0, backgroundColor: 'rgba(0,0,0,0.15)' },
+            ]}
+          />
         </View>
       )}
     </Animated.View>

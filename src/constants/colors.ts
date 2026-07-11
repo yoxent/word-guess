@@ -21,6 +21,9 @@ export const lightColors = {
   keyPresent: '#FFD54F',     // match tile present
   keyAbsent: '#B0BEC5',      // match tile absent
   keyUnused: '#E3F2FD',      // unused key bg (matches tile empty)
+  keyHint: '#4FC3F7',        // light blue — letter-hint blink target
+  keyHintDim: '#81D4FA',     // lighter pulse phase for hint blink
+  keyHintText: '#0D47A1',    // dark blue — text on hint key
   keyText: '#37474F',        // dark blue-gray — text on unused keys
   keySpecial: '#CFD8DC',     // light blue-gray — ENTER/BACKSPACE bg
 
@@ -63,6 +66,9 @@ export const darkColors = {
   keyPresent: '#FFD54F',     // match tile present
   keyAbsent: '#546E7A',      // match tile absent
   keyUnused: '#1E3A5F',      // unused key bg
+  keyHint: '#42A5F5',        // light blue — letter-hint blink target
+  keyHintDim: '#29B6F6',     // lighter pulse phase for hint blink
+  keyHintText: '#FFFFFF',    // white — text on hint key (dark theme)
   keyText: '#B0BEC5',        // light text on dark keys
   keySpecial: '#37474F',     // ENTER/BACKSPACE bg
 

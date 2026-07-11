@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
 import { useGameStore, useSettingsStore } from '../../stores';
-import * as sound from '../../services/sound';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 
 import { useTheme } from '../../hooks/useTheme';
@@ -127,6 +126,7 @@ export function ResultModal() {
   const navigation = useNavigation<Nav>();
   const session = useGameStore((s) => s.session);
   const resetGame = useGameStore((s) => s.resetGame);
+  const isRevealing = useGameStore((s) => s.isRevealing);
   const isPro = useSettingsStore(s => s.isPro);
   const [endlessStreak, setEndlessStreakState] = useState(0);
 
@@ -139,9 +139,11 @@ export function ResultModal() {
     );
   }, [session]);
 
-  // Track daily completions and endless streak
+  // Track daily completions and endless streak. Win/loss SFX are played from
+  // GameScreen after reveal finishes — not here — so audio never fires while
+  // tiles are still flipping.
   useEffect(() => {
-    if (!session) return;
+    if (!session || isRevealing) return;
 
     if (session.status === 'won' || session.status === 'lost') {
       if (session.mode === 'daily') {
@@ -164,16 +166,10 @@ export function ResultModal() {
         incrementEndlessTotalWords();
       }
 
-      if (session.status === 'won') {
-        sound.playWin();
-      } else if (session.status === 'lost') {
-        sound.playLoss();
-      }
-
       clearActiveGame(session.hardMode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.status]);
+  }, [session?.status, isRevealing]);
 
   const handlePlayNext = () => {
     if (!session) return;
@@ -240,11 +236,28 @@ export function ResultModal() {
   const emojiText = emojiRows.join('\n');
 
   // ── Card scale bounce animation (Phase 7E) ──
+  // Declared before the early return so isWin is always initialized (was
+  // previously referenced before its declaration — a TDZ/hooks-order hazard
+  // masked only by Babel's const→var hoisting).
+  const isWin = session?.status === 'won';
   const cardScale = useRef(new Animated.Value(0.8)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
+    // Run the entrance animation only when the modal actually appears —
+    // i.e. after the tile-reveal animation finishes (isRevealing=false) and
+    // the game has ended. Previously this fired during 'playing' state too
+    // (with isWin hoisted to undefined), springing the card to 1 invisibly
+    // so the bounce was lost by the time the modal really appeared.
+    if (!session || isRevealing || (session.status !== 'won' && session.status !== 'lost')) {
+      return;
+    }
+
+    // Reset to start values so the bounce replays on every real appearance.
+    cardScale.setValue(0.8);
+    cardOpacity.setValue(0);
+
     Animated.parallel([
       Animated.spring(cardScale, {
         toValue: 1,
@@ -259,17 +272,19 @@ export function ResultModal() {
       }),
     ]).start(() => {
       // Delay confetti until modal animation completes to avoid Fabric crash
-      if (isWin) {
+      if (session.status === 'won') {
         setTimeout(() => setShowConfetti(true), 100);
       }
     });
-  }, [cardScale, cardOpacity, isWin]);
+  }, [session?.status, isRevealing, cardScale, cardOpacity]);
 
-  if (!session || session.status === 'playing') {
+  // Defer mounting until the tile-reveal animation finishes. Mounting the
+  // Modal (and Confetti) while tiles are still flipping overwhelms Fabric's
+  // SurfaceMountingManager when the board is large (e.g. after ad-rewarded
+  // extra rows) and triggers an AssertionError. See fabric-crash-patterns.md.
+  if (!session || session.status === 'playing' || isRevealing) {
     return null;
   }
-
-  const isWin = session.status === 'won';
 
   return (
     <Modal visible transparent animationType="fade">

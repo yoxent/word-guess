@@ -43,6 +43,7 @@ export function GameBoard() {
 
   const session = useGameStore((s) => s.session);
   const currentGuess = useGameStore((s) => s.currentGuess);
+  const isRevealing = useGameStore((s) => s.isRevealing);
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,8 +108,8 @@ export function GameBoard() {
     });
   }
 
-  // Active row (if game is still playing)
-  if (session.status === 'playing') {
+  // Active row (if game is still playing and no deferred win/loss pending reveal)
+  if (session.status === 'playing' && !session.pendingStatus) {
     rows.push({
       guess: currentGuess,
       feedback: undefined,
@@ -141,6 +142,9 @@ export function GameBoard() {
             guess={row.guess}
             feedback={row.feedback}
             isActive={row.isActive}
+            isRevealingRow={
+              isRevealing && !!row.feedback && i === completedGuesses - 1
+            }
             rowIndex={i}
             wordLength={wordLength}
             tileSize={tileSize}

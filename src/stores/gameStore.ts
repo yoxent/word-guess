@@ -22,6 +22,8 @@ interface GameState {
   restoreSession: (session: GameSession) => void;
   clearError: () => void;
   setIsRevealing: (revealing: boolean) => void;
+  /** Promote pendingStatus → status after tile reveal finishes. */
+  finalizeRevealOutcome: () => void;
   addPendingInput: (key: string) => void;
   flushPendingInputs: () => void;
   addExtraGuess: () => void;
@@ -64,10 +66,15 @@ export const useGameStore = create<GameState>()((set, get) => ({
   },
 
   addLetter: (letter) => {
-    const { session, currentGuess } = get();
+    const { session, currentGuess, hintLetter } = get();
     if (!session || session.status !== 'playing') return;
     if (currentGuess.length >= session.letterCount) return;
-    set({ currentGuess: currentGuess + letter });
+    const upper = letter.toUpperCase();
+    set({
+      currentGuess: currentGuess + upper,
+      // Clear hint highlight once the player uses the hinted letter (before submit).
+      hintLetter: hintLetter === upper ? null : hintLetter,
+    });
   },
 
   removeLetter: () => {
@@ -103,9 +110,6 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
     }
 
-    // Block input during tile reveal animation
-    set({ isRevealing: true });
-
     // Evaluate feedback
     const feedback = evaluateGuess(word, guess);
 
@@ -123,18 +127,25 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const newGuesses = [...session.guesses, guess];
     const newFeedback = [...session.feedback, feedback];
 
-    // Win/loss detection (GAME-04)
+    // Win/loss detection (GAME-04). Keep status 'playing' until the tile-reveal
+    // animation finishes — flipping status to won/lost mid-reveal unmounts hint
+    // UI and fires ResultModal side effects while Reanimated is still flushing
+    // tile prop overrides, triggering Fabric SurfaceMountingManager assertions.
     const isWon = guess === word;
     const isLost = newGuesses.length >= session.maxAttempts;
+    const gameEnded = isWon || isLost;
 
     set({
+      isRevealing: true,
       session: {
         ...session,
         guesses: newGuesses,
         feedback: newFeedback,
-        keyColors: newKeyColors,
-        status: isWon ? 'won' : isLost ? 'lost' : 'playing',
-        completedAt: isWon || isLost ? new Date().toISOString() : undefined,
+        keyColors: session.keyColors,
+        pendingKeyColors: newKeyColors,
+        status: 'playing',
+        pendingStatus: gameEnded ? (isWon ? 'won' : 'lost') : undefined,
+        completedAt: gameEnded ? new Date().toISOString() : undefined,
       },
       currentGuess: '',
       error: null,
@@ -152,6 +163,25 @@ export const useGameStore = create<GameState>()((set, get) => ({
   clearError: () => set({ error: null }),
 
   setIsRevealing: (revealing) => set({ isRevealing: revealing }),
+
+  finalizeRevealOutcome: () => {
+    const { session } = get();
+    if (!session) return;
+
+    const outcome = session.pendingStatus;
+    const nextKeyColors = session.pendingKeyColors ?? session.keyColors;
+
+    if (!outcome && !session.pendingKeyColors) return;
+
+    set({
+      session: {
+        ...session,
+        ...(outcome ? { status: outcome, pendingStatus: undefined } : {}),
+        keyColors: nextKeyColors,
+        pendingKeyColors: undefined,
+      },
+    });
+  },
 
   addPendingInput: (key) => {
     const { pendingInputs } = get();

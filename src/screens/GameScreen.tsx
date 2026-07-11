@@ -38,7 +38,7 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
-import type { GameMode } from '../types';
+import type { GameMode, GameSession } from '../types';
 import { useNavigation } from '@react-navigation/native';import { GRADIENTS } from '../components/home/ModeCard';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -51,6 +51,89 @@ function capitalize(s: string): string {
 
 function randomLength(): number {
   return 5 + Math.floor(Math.random() * 6);
+}
+
+/** Wait for current frame + paint so Fabric can finish Animated tile → StaticTile swap. */
+function runAfterUiSettle(callback: () => void): void {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(callback);
+  });
+}
+
+function recordEndGameSideEffects(currentSession: GameSession): void {
+  clearActiveGame(currentSession.hardMode);
+
+  if (currentSession.mode === 'daily') {
+    markDailyCompleted(getDailyDateString(), currentSession.letterCount);
+  }
+
+  if (__DEV__) {
+    console.time('stats-write');
+  }
+  useStatsStore.getState().recordGame({
+    id: currentSession.id,
+    mode: currentSession.mode,
+    word: currentSession.word,
+    letterCount: currentSession.letterCount,
+    guesses: currentSession.guesses.length,
+    won: currentSession.status === 'won',
+    hardMode: currentSession.hardMode,
+    extraGuessesUsed: currentSession.extraGuessesUsed,
+    completedAt: currentSession.completedAt || new Date().toISOString(),
+    feedback: currentSession.feedback,
+  });
+  if (__DEV__) {
+    console.timeEnd('stats-write');
+  }
+
+  useAdStore.getState().incrementGamesSinceLastAd();
+  useAdStore.getState().preloadInterstitial();
+
+  const statsStore = useStatsStore.getState();
+  const stats = statsStore.stats;
+
+  const leaderboardParams: {
+    mode: string;
+    won: boolean;
+    dailyStreak?: number;
+    endlessStreak?: number;
+    endlessTotalWords?: number;
+  } = {
+    mode: currentSession.mode,
+    won: currentSession.status === 'won',
+  };
+
+  if (currentSession.mode === 'daily' && currentSession.status === 'won' && stats) {
+    const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
+    const baseStreak = stats.perModeStreaks?.[dailyKey]?.current ?? 0;
+    leaderboardParams.dailyStreak = baseStreak + 1;
+  }
+
+  if (currentSession.mode === 'endless') {
+    const { getEndlessStreak, getEndlessTotalWords } = require('../services/storage');
+    leaderboardParams.endlessStreak = getEndlessStreak(currentSession.hardMode);
+    leaderboardParams.endlessTotalWords = getEndlessTotalWords();
+  }
+
+  import('../services/leaderboardService').then(({ updateLeaderboardAfterGame }) => {
+    updateLeaderboardAfterGame(leaderboardParams);
+  });
+
+  import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
+    const authState = authStoreRef.getState();
+    if (authState.isLoggedIn && stats) {
+      import('../services/firestoreService').then(({ updatePlayerStats }) => {
+        updatePlayerStats(authState.playerId!, authState.playerName ?? 'Player', stats);
+      });
+    } else if (stats) {
+      import('../services/syncQueue').then(({ enqueueEvent }) => {
+        enqueueEvent('game_result', {
+          playerName: 'Player',
+          stats,
+        });
+      });
+    }
+  });
 }
 
 export function GameScreen({ route }: Props) {
@@ -197,6 +280,7 @@ export function GameScreen({ route }: Props) {
   const error = useGameStore((s) => s.error);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const setIsRevealing = useGameStore((s) => s.setIsRevealing);
+  const finalizeRevealOutcome = useGameStore((s) => s.finalizeRevealOutcome);
   const flushPendingInputs = useGameStore((s) => s.flushPendingInputs);
   const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
@@ -298,102 +382,41 @@ export function GameScreen({ route }: Props) {
       }
 
       const timer = setTimeout(() => {
+        // Phase 1: stop flip animations (Animated Tile → StaticTile swap).
         setIsRevealing(false);
         flushPendingInputs();
 
-        sound.playReveal();
+        // Phase 2 (next paint): status + keyboard colors + ResultModal mount.
+        runAfterUiSettle(() => {
+          finalizeRevealOutcome();
 
-        if (useSettingsStore.getState().hapticEnabled) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        }
-
-        const currentSession = useGameStore.getState().session;
-        if (currentSession && (currentSession.status === 'won' || currentSession.status === 'lost')) {
-          clearActiveGame(currentSession.hardMode);
-
-          if (currentSession.mode === 'daily') {
-            markDailyCompleted(getDailyDateString(), currentSession.letterCount);
-          }
-          // Endless streak is managed by ResultModal.tsx
-
-          if (__DEV__) {
-            console.time('stats-write');
-          }
-          useStatsStore.getState().recordGame({
-            id: currentSession.id,
-            mode: currentSession.mode,
-            word: currentSession.word,
-            letterCount: currentSession.letterCount,
-            guesses: currentSession.guesses.length,
-            won: currentSession.status === 'won',
-            hardMode: currentSession.hardMode,
-            extraGuessesUsed: currentSession.extraGuessesUsed,
-            completedAt: currentSession.completedAt || new Date().toISOString(),
-            feedback: currentSession.feedback,
-          });
-          if (__DEV__) {
-            console.timeEnd('stats-write');
-          }
-
-          useAdStore.getState().incrementGamesSinceLastAd();
-          useAdStore.getState().preloadInterstitial();
-
-          const statsStore = useStatsStore.getState();
-          const stats = statsStore.stats;
-
-          const leaderboardParams: {
-            mode: string;
-            won: boolean;
-            dailyStreak?: number;
-            endlessStreak?: number;
-            endlessTotalWords?: number;
-          } = {
-            mode: currentSession.mode,
-            won: currentSession.status === 'won',
-          };
-
-          if (currentSession.mode === 'daily' && currentSession.status === 'won' && stats) {
-            const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
-            const baseStreak = stats.perModeStreaks?.[dailyKey]?.current ?? 0;
-            leaderboardParams.dailyStreak = baseStreak + 1;
-          }
-
-          if (currentSession.mode === 'endless') {
-            const { getEndlessStreak, getEndlessTotalWords } = require('../services/storage');
-            leaderboardParams.endlessStreak = getEndlessStreak(currentSession.hardMode);
-            leaderboardParams.endlessTotalWords = getEndlessTotalWords();
-          }
-
-          import('../services/leaderboardService').then(
-            ({ updateLeaderboardAfterGame }) => {
-              updateLeaderboardAfterGame(leaderboardParams);
-            },
-          );
-
-          import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
-            const authState = authStoreRef.getState();
-            if (authState.isLoggedIn && stats) {
-              import('../services/firestoreService').then(
-                ({ updatePlayerStats }) => {
-                  updatePlayerStats(
-                    authState.playerId!,
-                    authState.playerName ?? 'Player',
-                    stats,
-                  );
-                },
-              );
-            } else if (stats) {
-              import('../services/syncQueue').then(
-                ({ enqueueEvent }) => {
-                  enqueueEvent('game_result', {
-                    playerName: 'Player',
-                    stats,
-                  });
-                },
-              );
+          // Phase 3 (+50ms): audio/haptics — separate from Fabric commit batch.
+          setTimeout(() => {
+            const currentSession = useGameStore.getState().session;
+            if (currentSession?.status === 'won') {
+              sound.playWin();
+            } else if (currentSession?.status === 'lost') {
+              sound.playLoss();
+            } else {
+              sound.playReveal();
             }
-          });
-        }
+
+            if (useSettingsStore.getState().hapticEnabled) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            }
+          }, 50);
+
+          // Phase 4 (+100ms): stats, ads, leaderboard — heavy JS off critical path.
+          setTimeout(() => {
+            const currentSession = useGameStore.getState().session;
+            if (
+              currentSession &&
+              (currentSession.status === 'won' || currentSession.status === 'lost')
+            ) {
+              recordEndGameSideEffects(currentSession);
+            }
+          }, 100);
+        });
       }, totalAnimationTime);
 
       return () => clearTimeout(timer);

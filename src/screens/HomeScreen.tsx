@@ -22,7 +22,7 @@ import {
 } from '../constants/animations';
 import { layout } from '../constants/layout';
 import { typography } from '../constants/typography';
-import { HowToPlayModal, MarqueeBackground } from '../components/ui';
+import { HowToPlayModal, HomeBackground } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { ModeCard, DailyPreview, HardModePill } from '../components/home';
 import { useSettingsStore } from '../stores';
@@ -43,6 +43,13 @@ export function HomeScreen() {
         container: {
           flex: 1,
           backgroundColor: theme.colors.surface.background,
+        },
+        overlay: {
+          ...StyleSheet.absoluteFill,
+        },
+        scroll: {
+          flex: 1,
+          backgroundColor: 'transparent',
         },
         scrollContent: {
           flexGrow: 1,
@@ -340,9 +347,9 @@ export function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Marquee background — slow-moving game icons ── */}
-      <MarqueeBackground />
+      <HomeBackground />
 
+      <View style={styles.overlay} pointerEvents="box-none">
       {/* ── Top Bar ── */}
       <Animated.View
         style={[
@@ -417,6 +424,7 @@ export function HomeScreen() {
 
       {/* ── Scrollable Content ── */}
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -474,6 +482,7 @@ export function HomeScreen() {
           <DailyPreview completedLengths={completedDailyLengths} />
         </Animated.View>
       </ScrollView>
+      </View>
 
       {/* ── Modals ── */}
       <LengthPickerModal

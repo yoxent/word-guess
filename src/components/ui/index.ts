@@ -3,4 +3,4 @@ export { StatCard } from './StatCard';
 export { SettingsRow } from './SettingsRow';
 export { HowToPlayModal } from './HowToPlayModal';
 export { ProgressRing } from './ProgressRing';
-export { MarqueeBackground } from './MarqueeBackground';
+export { HomeBackground } from './HomeBackground';

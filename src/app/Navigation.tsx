@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { BackHandler, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
@@ -38,9 +38,8 @@ function BackHandlerController() {
         // During tile animation: skip to final state (D-167)
         if (gameStore.isRevealing) {
           gameStore.setIsRevealing(false);
-          if (gameStore.flushPendingInputs) {
-            gameStore.flushPendingInputs();
-          }
+          gameStore.flushPendingInputs();
+          gameStore.finalizeRevealOutcome();
           return true;
         }
 
@@ -57,8 +56,16 @@ function BackHandlerController() {
 
 export function Navigation() {
   const theme = useTheme();
-  // D-189: Nav theme injection — prevent white flash on navigation
-  const navTheme = theme.colors.mode === 'dark' ? DarkTheme : DefaultTheme;
+  const navTheme = useMemo(
+    () => ({
+      ...(theme.colors.mode === 'dark' ? DarkTheme : DefaultTheme),
+      colors: {
+        ...(theme.colors.mode === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+        background: 'transparent',
+      },
+    }),
+    [theme.colors.mode],
+  );
 
   return (
     <NavigationContainer theme={navTheme}>
@@ -83,7 +90,10 @@ export function Navigation() {
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{ headerShown: false }}
+          options={{
+            headerShown: false,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
         />
         <Stack.Screen
           name="Game"

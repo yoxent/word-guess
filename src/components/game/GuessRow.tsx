@@ -9,18 +9,30 @@ import Animated, {
 import type { GuessFeedback } from '../../types';
 import { layout } from '../../constants/layout';
 import { Tile } from './Tile';
+import { StaticTile } from './StaticTile';
 
 interface GuessRowProps {
   guess: string;
   feedback?: GuessFeedback[];
   isActive: boolean;
+  /** True only for the row currently playing the flip animation. */
+  isRevealingRow: boolean;
   rowIndex: number;
   wordLength: number;
   tileSize: number;
   error?: string | null;
 }
 
-export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordLength, tileSize, error }: GuessRowProps) {
+export function GuessRow({
+  guess,
+  feedback,
+  isActive,
+  isRevealingRow,
+  rowIndex: _rowIndex,
+  wordLength,
+  tileSize,
+  error,
+}: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
   useEffect(() => {
@@ -65,25 +77,30 @@ export function GuessRow({ guess, feedback, isActive, rowIndex: _rowIndex, wordL
     <Animated.View style={[styles.row, animatedRowStyle]}>
       {letters.map((letter, i) => {
         const tileFeedback = feedback ? feedback[i].feedback : 'empty';
-        const isRevealing = !isActive && !!feedback;
+
+        // Only the row actively revealing uses Reanimated Tile (~7 worklets).
+        // All other rows use StaticTile so a large board (e.g. after ad rows)
+        // does not register dozens of idle useAnimatedStyle prop overrides
+        // that collide with Fabric during the flip commit batch.
+        if (isRevealingRow && feedback) {
+          return (
+            <Tile
+              key={i}
+              letter={letter}
+              feedback={tileFeedback}
+              index={i}
+              isRevealing
+              tileSize={tileSize}
+            />
+          );
+        }
+
         return (
-          <Tile
-            // 2026-07-10: include tileFeedback in the key so the Tile
-            // REMOUNTS when an active row (tileFeedback='empty') becomes
-            // a completed row (tileFeedback='correct'/'present'/'absent').
-            // Previously, the key was just `i`, so React reused the same
-            // Tile instance from the typing phase — that instance held
-            // stale `flipProgress` shared-value state from the active row
-            // phase, which corrupted the reveal animation and made the
-            // letter appear 'missing' until the screen was remounted
-            // (back-to-home + revisit). Remounting guarantees a fresh
-            // component instance, fresh shared values, and a clean
-            // animation that always reaches its final state.
-            key={`${i}-${tileFeedback}`}
+          <StaticTile
+            key={i}
             letter={letter}
             feedback={tileFeedback}
             index={i}
-            isRevealing={isRevealing}
             tileSize={tileSize}
           />
         );

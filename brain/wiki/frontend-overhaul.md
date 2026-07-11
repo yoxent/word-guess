@@ -1,5 +1,5 @@
 # frontend-overhaul
-updated: 2026-07-11 (MarqueeBackground, HardModePill icon change, back button UX)
+updated: 2026-07-11 (HomeBackground UV-scroll, HardModePill icon change, back button UX)
 tags: [ui, redesign, visual, palette, font, animation, phase-7, complete]
 related: [design-tokens, theme-system, tech-stack, architecture, animation-system]
 
@@ -129,7 +129,7 @@ Keep both themes. Light default. Dark opt-in via Settings → Theme.
 - `src/components/ui/ProgressRing.tsx`
 
 ## Files modified (Phases 3-7)
-- `src/screens/HomeScreen.tsx` — complete rewrite, MarqueeBackground integration
+- `src/screens/HomeScreen.tsx` — complete rewrite, HomeBackground integration
 - `src/screens/GameScreen.tsx` — header, toast, back button
 - `src/screens/StatsScreen.tsx` — ProgressRing, streak badges, chart, FAB
 - `src/screens/LeaderboardScreen.tsx` — pill tabs, rounded rows, medals
@@ -139,8 +139,8 @@ Keep both themes. Light default. Dark opt-in via Settings → Theme.
 - `src/components/game/LengthPickerModal.tsx` — scale+fade open animation
 - `src/components/ui/Button.tsx` — haptic feedback, mixed-driver fix
 - `src/components/ui/HowToPlayModal.tsx` — scale+fade open animation
-- `src/components/ui/MarqueeBackground.tsx` — slow-moving icon grid background (2026-07-11)
-- `src/components/ui/index.ts` — ProgressRing, MarqueeBackground barrel exports
+- `src/components/ui/HomeBackground.tsx` — UV-scroll tiled icon texture (2026-07-11; replaced MarqueeBackground)
+- `src/components/ui/index.ts` — ProgressRing, HomeBackground barrel exports
 - `src/constants/animations.ts` — TILE_BOUNCE_MAX 1.15→1.2
 - `package.json` — expo-linear-gradient added
 

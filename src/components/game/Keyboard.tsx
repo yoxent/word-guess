@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
@@ -15,20 +15,24 @@ const ROWS = [
   ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
 ];
 
+const HINT_PULSE_MS = 500;
+
 function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
 }
 
-/** Individual key with spring press animation. */
+/** Individual key with spring press animation (transform only — no opacity blink). */
 function KeyboardKey({
   label,
   displayText,
   fontSize,
   backgroundColor,
   textColor,
+  hintActive,
+  hintBright,
+  hintDim,
   wide,
   disabled,
-  isHinted,
   onPress,
 }: {
   label: string;
@@ -36,37 +40,33 @@ function KeyboardKey({
   fontSize: number;
   backgroundColor: string;
   textColor: string;
+  hintActive?: boolean;
+  hintBright?: string;
+  hintDim?: string;
   wide?: boolean;
   disabled: boolean;
-  isHinted?: boolean;
   onPress: () => void;
 }) {
+  const [hintPulseBright, setHintPulseBright] = useState(true);
   const scale = useRef(new Animated.Value(1)).current;
-  const blinkAnim = useRef(new Animated.Value(1)).current;
 
-  // Blinking animation for hinted letter
   useEffect(() => {
-    if (isHinted) {
-      const blink = Animated.loop(
-        Animated.sequence([
-          Animated.timing(blinkAnim, {
-            toValue: 0.3,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(blinkAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      blink.start();
-      return () => blink.stop();
-    } else {
-      blinkAnim.setValue(1);
+    if (!hintActive) {
+      setHintPulseBright(true);
+      return;
     }
-  }, [isHinted, blinkAnim]);
+    const id = setInterval(() => {
+      setHintPulseBright((prev) => !prev);
+    }, HINT_PULSE_MS);
+    return () => clearInterval(id);
+  }, [hintActive]);
+
+  const resolvedBackground =
+    hintActive && hintBright && hintDim
+      ? hintPulseBright
+        ? hintBright
+        : hintDim
+      : backgroundColor;
 
   const onPressIn = () => {
     Animated.spring(scale, {
@@ -87,11 +87,11 @@ function KeyboardKey({
   };
 
   return (
-    <Animated.View style={[{ transform: [{ scale }], flex: wide ? 1.5 : 1 }, isHinted && { opacity: blinkAnim }]}>
+    <Animated.View style={{ transform: [{ scale }], flex: wide ? 1.5 : 1 }}>
       <TouchableOpacity
         style={[
           keyStyles.key,
-          { backgroundColor },
+          { backgroundColor: resolvedBackground },
           wide && keyStyles.wideKey,
           disabled && keyStyles.keyDisabled,
         ]}
@@ -157,7 +157,6 @@ function KeyboardComponent() {
     [],
   );
 
-  // Build feedback → color map from active theme
   const keyColorMap = useMemo<Record<string, string>>(
     () => ({
       correct: theme.colors.key.correct,
@@ -206,17 +205,30 @@ function KeyboardComponent() {
     [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter, hapticEnabled],
   );
 
+  const getKeyFeedback = useCallback(
+    (key: string): TileFeedback | undefined =>
+      session?.keyColors?.[key] ?? session?.pendingKeyColors?.[key],
+    [session?.keyColors, session?.pendingKeyColors],
+  );
+
+  const isHintedKey = useCallback(
+    (key: string): boolean => {
+      if (!hintLetter || hintLetter !== key) return false;
+      return !getKeyFeedback(key);
+    },
+    [hintLetter, getKeyFeedback],
+  );
+
   const getKeyBackground = useCallback(
     (key: string): string => {
       if (isActionKey(key)) {
-        // Action keys: slightly darker shade to distinguish from letter keys
         return theme.colors.key.special;
       }
-      const feedback = session?.keyColors?.[key];
+      const feedback = getKeyFeedback(key);
       const status: TileFeedback | 'unused' = feedback ?? 'unused';
       return keyColorMap[status] || theme.colors.key.unused;
     },
-    [session?.keyColors, keyColorMap, theme],
+    [getKeyFeedback, keyColorMap, theme],
   );
 
   const getKeyTextColor = useCallback(
@@ -224,12 +236,15 @@ function KeyboardComponent() {
       if (isActionKey(key)) {
         return theme.colors.key.text;
       }
-      const feedback = session?.keyColors?.[key];
+      if (isHintedKey(key)) {
+        return theme.colors.key.hintText;
+      }
+      const feedback = getKeyFeedback(key);
       if (!feedback) return theme.colors.key.text;
       if (feedback === 'present') return theme.colors.text.onPresent;
       return theme.colors.text.inverse;
     },
-    [session?.keyColors, theme],
+    [getKeyFeedback, isHintedKey, theme],
   );
 
   const isKeyDisabled = useCallback(
@@ -258,7 +273,7 @@ function KeyboardComponent() {
             }
             const { text, fontSize, label } = getKeyDisplay(key);
             const disabled = isKeyDisabled(key);
-            const isHinted = hintLetter === key && !session?.keyColors?.[key];
+            const hinted = isHintedKey(key);
             return (
               <KeyboardKey
                 key={key}
@@ -267,9 +282,11 @@ function KeyboardComponent() {
                 fontSize={fontSize}
                 backgroundColor={getKeyBackground(key)}
                 textColor={getKeyTextColor(key)}
+                hintActive={hinted}
+                hintBright={theme.colors.key.hint}
+                hintDim={theme.colors.key.hintDim}
                 wide={isActionKey(key)}
                 disabled={disabled}
-                isHinted={isHinted}
                 onPress={() => handlePress(key)}
               />
             );

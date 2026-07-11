@@ -24,6 +24,7 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedStyle: (styleFunc: any) => styleFunc(),
     withTiming: (value: any) => value,
     withSequence: (...args: any[]) => args[args.length - 1],
+    withRepeat: (animation: any) => animation,
     withDelay: (delay: any, animation: any) => animation,
     interpolate: (value: any, inputRange: any, outputRange: any) => outputRange[0],
     interpolateColor: (value: any, inputRange: any, outputRange: any) => outputRange[0],
@@ -33,6 +34,7 @@ jest.mock('react-native-reanimated', () => {
     },
     runOnJS: (fn: any) => fn,
     runOnUI: (fn: any) => fn,
+    cancelAnimation: jest.fn(),
   };
 });
 
