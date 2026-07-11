@@ -39,7 +39,7 @@ import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
 import type { GameMode } from '../types';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';import { GRADIENTS } from '../components/home/ModeCard';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 
@@ -70,7 +70,6 @@ export function GameScreen({ route }: Props) {
         },
         // ── Header — sky blue background (Phase 4A) ──
         header: {
-          backgroundColor: theme.colors.brand.primary,
           paddingLeft: layout.screenPadding,
           paddingRight: layout.screenPadding,
         },
@@ -80,17 +79,29 @@ export function GameScreen({ route }: Props) {
           height: 52,
         },
         backButton: {
-          width: 38,
-          height: 38,
-          borderRadius: 19,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: 'rgba(255,255,255,0.2)',
+          padding: 8,
         },
         headerTitle: {
           ...typography.cardTitle,
           color: '#FFFFFF',
           marginLeft: 8,
+        },
+        hardModeBadge: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          backgroundColor: '#FFA726', // orange
+          borderRadius: 10,
+          paddingVertical: 2,
+          paddingHorizontal: 8,
+          marginLeft: 8,
+        },
+        hardModeBadgeText: {
+          fontSize: 11,
+          fontWeight: '700',
+          color: '#FFFFFF',
         },
         // ── Board & Keyboard ──
         keyboardArea: {
@@ -99,12 +110,12 @@ export function GameScreen({ route }: Props) {
         boardArea: {
           flex: 1,
           justifyContent: 'center',
+          position: 'relative',
         },
-        // ── Error Toast — coral bg, rounded, slide-in (Phase 4D) ──
+        // ── Error Toast — coral bg, rounded, slide-in, overlaid over board ──
         errorToast: {
           position: 'absolute',
-          bottom: '100%',
-          marginBottom: 6,
+          bottom: 0,
           alignSelf: 'center',
           backgroundColor: theme.colors.status.danger,
           borderRadius: 12,
@@ -169,8 +180,17 @@ export function GameScreen({ route }: Props) {
     [theme],
   );
 
+  // Mode-based header color (matches ModeCard gradients)
+  const MODE_HEADER_COLORS: Record<GameMode, string> = {
+    daily: '#42A5F5',
+    endless: '#66BB6A',
+    random: '#FFA726',
+    free: '#42A5F5',
+  };
+
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { mode, letterCount } = route.params;
+  const headerColor = MODE_HEADER_COLORS[mode];
   const session = useGameStore((s) => s.session);
   const startGame = useGameStore((s) => s.startGame);
   const restoreSession = useGameStore((s) => s.restoreSession);
@@ -204,8 +224,9 @@ export function GameScreen({ route }: Props) {
 
   // ── Game initialization ──
   useEffect(() => {
-    const saved = getActiveGame();
-    if (saved && saved.mode === mode) {
+    const hardMode = useSettingsStore.getState().hardModeEnabled;
+    const saved = getActiveGame(hardMode);
+    if (saved && saved.mode === mode && saved.letterCount === letterCount && saved.hardMode === hardMode) {
       restoreSession(saved);
       setInitializing(false);
       return;
@@ -213,7 +234,6 @@ export function GameScreen({ route }: Props) {
 
     const dictStore = useDictionaryStore.getState();
     const len = letterCount ?? randomLength();
-    const hardMode = false;
 
     let word: string;
 
@@ -246,7 +266,8 @@ export function GameScreen({ route }: Props) {
       if (nextState === 'active' && appState.current.match(/inactive|background/)) {
         const currentSession = useGameStore.getState().session;
         if (!currentSession || currentSession.status !== 'playing') {
-          const saved = getActiveGame();
+          const hardMode = useSettingsStore.getState().hardModeEnabled;
+          const saved = getActiveGame(hardMode);
           if (saved && saved.status === 'playing') {
             useGameStore.getState().restoreSession(saved);
           }
@@ -287,7 +308,7 @@ export function GameScreen({ route }: Props) {
 
         const currentSession = useGameStore.getState().session;
         if (currentSession && (currentSession.status === 'won' || currentSession.status === 'lost')) {
-          clearActiveGame();
+          clearActiveGame(currentSession.hardMode);
 
           if (currentSession.mode === 'daily') {
             markDailyCompleted(getDailyDateString(), currentSession.letterCount);
@@ -331,13 +352,14 @@ export function GameScreen({ route }: Props) {
           };
 
           if (currentSession.mode === 'daily' && currentSession.status === 'won' && stats) {
-            const baseStreak = stats.perModeStreaks?.daily?.current ?? 0;
+            const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
+            const baseStreak = stats.perModeStreaks?.[dailyKey]?.current ?? 0;
             leaderboardParams.dailyStreak = baseStreak + 1;
           }
 
           if (currentSession.mode === 'endless') {
             const { getEndlessStreak, getEndlessTotalWords } = require('../services/storage');
-            leaderboardParams.endlessStreak = getEndlessStreak();
+            leaderboardParams.endlessStreak = getEndlessStreak(currentSession.hardMode);
             leaderboardParams.endlessTotalWords = getEndlessTotalWords();
           }
 
@@ -416,6 +438,9 @@ export function GameScreen({ route }: Props) {
     }).start();
   };
 
+  // Hard mode indicator
+  const hardModeEnabled = useSettingsStore((s) => s.hardModeEnabled);
+
   // Hint buttons: watch ad for extra row or letter hint
   const isPro = useSettingsStore((s) => s.isPro);
   const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
@@ -452,8 +477,8 @@ export function GameScreen({ route }: Props) {
         { paddingBottom: insets.bottom, paddingHorizontal: layout.screenPadding },
       ]}
     >
-      {/* ── Header — sky blue bg, Nunito font, circular back button ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 6, marginHorizontal: -layout.screenPadding }]}>
+      {/* ── Header — mode-colored bg, plain back icon ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 6, marginHorizontal: -layout.screenPadding, backgroundColor: headerColor }]}>
         <View style={styles.headerRow}>
           <Animated.View style={{ transform: [{ scale: backScale }] }}>
             <TouchableOpacity
@@ -466,18 +491,49 @@ export function GameScreen({ route }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <MaterialIcons name="arrow-back-ios" size={20} color="#FFFFFF" />
+              <MaterialIcons name="arrow-back-ios" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </Animated.View>
           <Text style={styles.headerTitle}>
             {modeLabel} · {session.letterCount} Letters
           </Text>
+          {hardModeEnabled && session.status === 'playing' && (
+            <View style={styles.hardModeBadge}>
+              <Text style={styles.hardModeBadgeText}>🔥 Hard</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* ── Board area ── */}
+      {/* ── Board area + error toast overlay ── */}
       <View style={styles.boardArea}>
         <GameBoard />
+        {error !== null && (
+          <Animated.View
+            style={[
+              styles.errorToast,
+              {
+                opacity: toastSlide,
+                transform: [
+                  {
+                    translateY: toastSlide.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [8, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <MaterialIcons
+              name="warning"
+              size={18}
+              color="#FFFFFF"
+              style={styles.errorIcon}
+            />
+            <Text style={styles.errorText}>{error}</Text>
+          </Animated.View>
+        )}
       </View>
 
       {/* ── Hint Buttons ── */}
@@ -527,34 +583,8 @@ export function GameScreen({ route }: Props) {
         </View>
       )}
 
-      {/* ── Keyboard + error toast overlay ── */}
+      {/* ── Keyboard ── */}
       <View style={styles.keyboardArea}>
-        {error !== null && (
-          <Animated.View
-            style={[
-              styles.errorToast,
-              {
-                opacity: toastSlide,
-                transform: [
-                  {
-                    translateY: toastSlide.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-16, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <MaterialIcons
-              name="warning"
-              size={18}
-              color="#FFFFFF"
-              style={styles.errorIcon}
-            />
-            <Text style={styles.errorText}>{error}</Text>
-          </Animated.View>
-        )}
         <Keyboard />
       </View>
 

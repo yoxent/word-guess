@@ -114,7 +114,6 @@ export function LengthPickerModal({
           elevation: 1,
         },
         lengthButtonCompleted: {
-          backgroundColor: `${theme.colors.status.success}20`, // green at 12% opacity
           borderColor: `${theme.colors.status.success}60`, // green at 40% opacity
         },
         lengthButtonContent: {

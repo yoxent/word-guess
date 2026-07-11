@@ -248,7 +248,9 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
       ? theme.colors.text.onPresent
       : feedback === 'absent'
         ? theme.colors.text.primary
-        : theme.colors.text.inverse;
+        : feedback === 'empty'
+          ? theme.colors.text.primary // active/typing: dark in light, light in dark
+          : theme.colors.text.inverse; // 'correct' feedback
 
   // Dynamic tile dimensions derived from tileSize
   const tileStyle: ViewStyle = {

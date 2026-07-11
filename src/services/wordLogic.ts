@@ -80,12 +80,16 @@ export function evaluateGuess(target: string, guess: string): GuessFeedback[] {
  * Rules:
  *   1. All green (correct) tiles from the **most recent** guess must
  *      appear in the same positions in the new guess.
- *   2. All yellow (present) tiles from **all** previous guesses must
- *      appear somewhere in the new guess.
- *   3. Duplicate letter edge cases: if a letter was marked yellow once,
- *      it must appear at least once in the new guess. If a letter was
- *      green in one position and yellow in another from the same
- *      previous guess, both constraints apply independently.
+ *   2. All confirmed letters from **all** previous guesses must appear
+ *      in the new guess. The required count per letter is the **maximum**
+ *      number of times it was revealed as 'present' or 'correct' in any
+ *      single feedback row. This is NOT a cumulative sum across rows —
+ *      re-confirming the same letter across multiple guesses does not
+ *      increase the required count.
+ *   3. Duplicate letter edge cases: if a letter was marked correct in
+ *      one position and present in another from the SAME guess, the
+ *      user must provide that many instances (the row maximum captures
+ *      this correctly).
  *
  * @param previousFeedback - Array of feedback arrays from all previous guesses
  * @param newGuess         - The player's new guess (uppercase)
@@ -114,28 +118,36 @@ export function validateHardMode(
     }
   }
 
-  // Rule 2: Yellow tiles from ALL previous guesses must appear somewhere
-  // Build a set of required letters from yellow feedback
-  const requiredYellowLetters: string[] = [];
+  // Rule 2: Confirmed letters (present + correct) from ALL previous guesses
+  // must appear in the new guess. The required count per letter is the
+  // MAXIMUM number of times it appears as 'present' or 'correct' in any
+  // SINGLE feedback row (NYT Wordle behavior).
+  //
+  // Previously this was a cumulative sum across all rows, which incorrectly
+  // over-counted letters that appeared yellow in multiple separate guesses
+  // (e.g., S[yellow] in guess 2 AND guess 3 would require S×2, when the
+  // word only has one S — the user already satisfied the constraint in
+  // guess 2, guess 3 just rediscovered it).
+  const requiredCounts: Record<string, number> = {};
   for (const feedbackRow of previousFeedback) {
+    const rowCounts: Record<string, number> = {};
     for (const fb of feedbackRow) {
-      if (fb.feedback === 'present') {
-        requiredYellowLetters.push(fb.letter);
+      if (fb.feedback === 'present' || fb.feedback === 'correct') {
+        rowCounts[fb.letter] = (rowCounts[fb.letter] || 0) + 1;
+      }
+    }
+    // Take the max for each letter across all rows
+    for (const [letter, count] of Object.entries(rowCounts)) {
+      if (count > (requiredCounts[letter] || 0)) {
+        requiredCounts[letter] = count;
       }
     }
   }
 
-  // For each yellow letter, check it appears at least once in new guess
-  // Track which letters we've already satisfied
+  // Count how many times each letter appears in the new guess
   const guessLetterCounts: Record<string, number> = {};
   for (const ch of upperGuess) {
     guessLetterCounts[ch] = (guessLetterCounts[ch] || 0) + 1;
-  }
-
-  // Count how many times each letter is required as yellow
-  const requiredCounts: Record<string, number> = {};
-  for (const letter of requiredYellowLetters) {
-    requiredCounts[letter] = (requiredCounts[letter] || 0) + 1;
   }
 
   for (const [letter, count] of Object.entries(requiredCounts)) {

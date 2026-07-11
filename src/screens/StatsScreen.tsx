@@ -443,11 +443,12 @@ export function StatsScreen() {
               {Object.entries(stats.perModeStreaks).map(([mode, streak]) => (
                 <View key={mode} style={styles.perModeItem}>
                   <Text style={styles.perModeLabel}>
-                    {mode === 'daily'
-                      ? 'Daily'
-                      : mode === 'endless'
-                        ? 'Endless'
-                        : 'Free/Random'}
+                    {(() => {
+                      const isHard = mode.endsWith('_hard');
+                      const base = mode.replace(/_normal$|_hard$/, '');
+                      const label = base === 'non-daily' ? 'Free/Random' : base.charAt(0).toUpperCase() + base.slice(1);
+                      return isHard ? label + ' 🔥' : label;
+                    })()}
                   </Text>
                   <Text style={styles.perModeValue}>
                     {streak.current} streak

@@ -35,6 +35,23 @@ stats (computed from queries, cached):
   games_by_length{5..10: {played, won}}
 ```
 
+## Active game keys (hard-mode-aware, 2026-07-11)
+- Hard and normal mode games stored under separate MMKV keys:
+  - `wordguess.activeGame_normal` — hardMode=false
+  - `wordguess.activeGame_hard` — hardMode=true
+- `getActiveGame(hardMode)`, `clearActiveGame(hardMode)` require the flag
+- `saveActiveGame(game)` derives key from `game.hardMode`
+
+## Endless streak keys (hard-mode-aware, 2026-07-11)
+- `endless_streak_normal` / `endless_streak_hard` — separate streak counters per difficulty
+- `getEndlessStreak(hardMode)`, `setEndlessStreak(streak, hardMode)`
+
+## Stats per-mode streaks split (2026-07-11)
+- `computePerModeStreaks()` now splits each mode into `_normal` and `_hard` sub-groups
+- 6 groups: `daily_normal`, `daily_hard`, `endless_normal`, `endless_hard`, `non-daily_normal`, `non-daily_hard`
+- `getStats()` last-game detection reads `hard_mode` column from SQLite
+- `game_history` table always had `hard_mode` column; queries now use it
+
 ## Access pattern
 ```
 services/storage.ts — typed accessors

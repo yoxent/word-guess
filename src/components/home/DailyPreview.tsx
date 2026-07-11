@@ -57,9 +57,9 @@ export function DailyPreview({ completedLengths }: DailyPreviewProps) {
           backgroundColor: theme.colors.status.success,
         },
         pillIncomplete: {
-          backgroundColor: 'transparent',
+          backgroundColor: theme.colors.surface.card,
           borderWidth: 1.5,
-          borderColor: theme.colors.text.secondary + '60', // 37% opacity
+          borderColor: theme.colors.text.secondary + '60',
         },
         pillText: {
           ...typography.small,

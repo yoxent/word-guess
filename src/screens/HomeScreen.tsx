@@ -22,7 +22,7 @@ import {
 } from '../constants/animations';
 import { layout } from '../constants/layout';
 import { typography } from '../constants/typography';
-import { HowToPlayModal } from '../components/ui';
+import { HowToPlayModal, MarqueeBackground } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { ModeCard, DailyPreview, HardModePill } from '../components/home';
 import { useSettingsStore } from '../stores';
@@ -146,8 +146,10 @@ export function HomeScreen() {
         modalButtonContinue: {
           backgroundColor: theme.colors.button.primary.bg,
           borderRadius: layout.buttonBorderRadius,
-          paddingVertical: 14,
+          paddingVertical: 16,
+          paddingHorizontal: 24,
           alignItems: 'center',
+          minHeight: 54,
         },
         modalButtonContinueText: {
           ...typography.button,
@@ -155,8 +157,10 @@ export function HomeScreen() {
         },
         modalButtonNew: {
           borderRadius: layout.buttonBorderRadius,
-          paddingVertical: 14,
+          paddingVertical: 16,
+          paddingHorizontal: 24,
           alignItems: 'center',
+          minHeight: 54,
           borderWidth: 1.5,
           borderColor: theme.colors.status.danger,
         },
@@ -264,11 +268,13 @@ export function HomeScreen() {
 
   // ── Navigation with continue check ──
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
-    const saved = getActiveGame();
+    const hardMode = useSettingsStore.getState().hardModeEnabled;
+    const saved = getActiveGame(hardMode);
     const hasProgress =
       saved &&
       saved.mode === mode &&
       saved.letterCount === length &&
+      saved.hardMode === hardMode &&
       saved.status === 'playing' &&
       saved.guesses.length > 0;
     if (hasProgress) {
@@ -293,7 +299,7 @@ export function HomeScreen() {
 
   const handleNewGame = () => {
     if (!continueModal) return;
-    clearActiveGame();
+    clearActiveGame(useSettingsStore.getState().hardModeEnabled);
     navigation.navigate('Game', {
       mode: continueModal.mode,
       letterCount: continueModal.length,
@@ -334,6 +340,9 @@ export function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Marquee background — slow-moving game icons ── */}
+      <MarqueeBackground />
+
       {/* ── Top Bar ── */}
       <Animated.View
         style={[

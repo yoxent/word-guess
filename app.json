@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wordguess.app"
+      "bundleIdentifier": "com.vorithstudio.wordguess"
     },
     "android": {
       "adaptiveIcon": {

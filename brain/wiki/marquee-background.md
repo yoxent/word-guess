@@ -4,35 +4,37 @@ tags: [ui, animation, background, homepage]
 related: [frontend-overhaul, design-tokens, architecture]
 
 ## Purpose
-Slow-moving decorative icon grid behind home screen content to add visual liveliness without distracting from gameplay options.
+Subtle diagonal-scrolling game icon grid behind home screen content. Adds background texture without competing with foreground.
 
 ## Component: `MarqueeBackground`
 - **File:** `src/components/ui/MarqueeBackground.tsx`
-- **Rendered in:** HomeScreen, before all other content (behind top bar + scroll content)
-- **Touch-through:** `pointerEvents="none"` — does not block interactions
+- **Rendered in:** HomeScreen, before all content (z-index lowest sibling)
+- **Pointer events:** `pointerEvents="none"` — does not block interactions
+- **Icons:** MaterialIcons (30 unique game-themed, single brand color)
 
 ## Grid config
 | Parameter | Value | Detail |
 |-----------|-------|--------|
-| Icons | 15 game-themed MaterialIcons | `abc`, `spellcheck`, `text-fields`, `keyboard`, `grid-view`, `auto-awesome`, `star`, `diamond`, `casino`, `translate`, `extension`, `psychology`, `lightbulb`, `school`, `emoji-events` |
-| Columns | 5 | Evenly spaced across screen width |
+| Columns | 5 | Evenly spread across full width |
 | Spacing X | SCREEN_WIDTH / 5 | ~72dp on 360dp screen |
-| Spacing Y | 58dp | Row height |
-| Icon size | 16-24px | Random jitter for organic feel |
-| Opacity | 0.04 (light) / 0.06 (dark) | Very subtle — adds texture, not noise |
+| Spacing Y | 80dp | Row height |
+| Icon size | 22px | Uniform across all icons |
+| Opacity | 0.2 (light) / 0.15 (dark) | Subtle background layer |
+| Icon color | `theme.colors.brand.primary` | Single plain color (#42A5F5 sky blue) |
+| Grid size | 2× loop size (W+H) | Seamless repeat in both axes |
 
 ## Animation
-- **Direction:** Upward drift (icons float up)
-- **Duration:** 120 seconds per full cycle — slow and gentle, no distraction
-- **Driver:** `Animated.loop` with `Animated.timing`, `Easing.linear`
-- **Native driver:** `true` — no JS thread impact
-- **Seamless loop:** Icon pattern repeats every VISIBLE_ROWS. Grid height = 2× screen height. Loop translates from 0 to -LOOP_HEIGHT and resets — repeated pattern makes reset imperceptible.
+- **Direction:** Diagonal south-east (icons drift toward bottom-right)
+- **Mechanism:** Single `Animated.loop(Animated.parallel([...]))` — both translateX and translateY locked together in one shared loop cycle so they never desync
+- **Duration:** ~60s per full cycle
+- **Driver:** `Animated.timing` with `Easing.linear`, native driver ON
+- **Seamless loop:** Pattern repeats every `COLS`×`ROWS`. Grid is 2× that in each dimension. When translation completes one loop distance, the identical adjacent pattern is in view — reset is imperceptible.
 
 ## Design decisions
 | Decision | Rationale |
 |----------|-----------|
-| Game-themed icons (not generic) | Reinforces brand identity, feels intentional |
-| Very low opacity | Adds depth without competing with content or harming contrast |
-| Upward drift | Gentle, natural feeling — like bubbles rising |
-| Slow speed (2min cycle) | Perceptible but not attention-grabbing |
-| Random size jitter | Organic feel vs rigid grid — avoids looking like a tiled texture |
+| Single brand color (#42A5F5) | Unified, clean look — not a confetti of random colors |
+| Uniform icon size | Consistent grid rhythm, less visual noise |
+| Low opacity (0.15-0.2) | Background texture that doesn't distract from gameplay |
+| Diagonal SE motion | More dynamic than vertical drift; mimics falling confetti or scrolling game board |
+| MaterialIcons (not emoji) | Take brand color prop, consistent with rest of app's icon system |

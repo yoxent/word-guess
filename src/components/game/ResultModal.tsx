@@ -150,15 +150,16 @@ export function ResultModal() {
       }
 
       if (session.mode === 'endless') {
+        const hard = session.hardMode;
         if (session.status === 'won') {
-          const prev = getEndlessStreak();
+          const prev = getEndlessStreak(hard);
           const next = prev + 1;
-          persistEndlessStreak(next);
+          persistEndlessStreak(next, hard);
           setEndlessStreakState(next);
         } else {
-          const finalStreak = getEndlessStreak();
+          const finalStreak = getEndlessStreak(hard);
           setEndlessStreakState(finalStreak);
-          persistEndlessStreak(0);
+          persistEndlessStreak(0, hard);
         }
         incrementEndlessTotalWords();
       }
@@ -169,7 +170,7 @@ export function ResultModal() {
         sound.playLoss();
       }
 
-      clearActiveGame();
+      clearActiveGame(session.hardMode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status]);
@@ -190,7 +191,7 @@ export function ResultModal() {
       : allTargets;
     const nextWord = pool[Math.floor(Math.random() * pool.length)];
 
-    clearActiveGame();
+    clearActiveGame(session?.hardMode ?? false);
     useGameStore.getState().startGame('endless', nextWord, length, hardMode);
   };
 

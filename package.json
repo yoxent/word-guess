@@ -13,7 +13,15 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "preprocess-dictionary": "node scripts/preprocess-dictionary.mjs",
-    "postinstall": "node scripts/patch-kotlin-version.mjs"
+    "postinstall": "node scripts/patch-kotlin-version.mjs",
+    "e2e": "scripts\\run-e2e.bat",
+    "e2e:setup": "node scripts/compute-test-words.mjs --fixture",
+    "e2e:gameplay": "scripts\\run-e2e.bat gameplay",
+    "e2e:settings": "scripts\\run-e2e.bat settings",
+    "e2e:daily": "scripts\\run-e2e.bat daily-challenge",
+    "e2e:daily-loss": "scripts\\run-e2e.bat daily-loss",
+    "e2e:endless": "scripts\\run-e2e.bat endless-mode",
+    "e2e:record": "scripts\\run-e2e.bat gameplay --record"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",

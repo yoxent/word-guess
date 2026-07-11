@@ -145,6 +145,12 @@ store.submitGuess(guess):
   → Other: "Back to Menu" → HomeScreen
 ```
 
+## Foreground elements: opaque backgrounds required
+- Any interactive foreground element (pills, badges, buttons) behind a decorative background layer (e.g., MarqueeBackground) MUST have an opaque background
+- `transparent` or semi-transparent backgrounds let decorative layers bleed through, making text/icons hard to read
+- Pattern applied to: HardModePill (both active + inactive), DailyPreview pills (incomplete state)
+- Active state can use a tinted opaque color (e.g., `#FFF3E0` for orange brand, `#2A1F12` for dark)
+
 ## Error toast (overlay pattern)
 - "Not in word list" etc. overlaid as absolutely-positioned view at bottom of board area
 - `position: 'absolute', bottom: 0` inside `position: 'relative'` board container

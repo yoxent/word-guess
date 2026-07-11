@@ -48,6 +48,16 @@ assets/dictionary/*.json
 .DS_Store
 Thumbs.db
 
+# ── Maestro E2E ────────────────────────────────────────────
+.maestro/
+maestro/
+maestro/artifacts/
+maestro/reports/
+maestro/flows/.generated/
+
+# ── Dev scripts (not needed in release builds) ──────────────
+scripts/
+
 # ── Temp / junk files ───────────────────────────────────────
 nul
 *.log

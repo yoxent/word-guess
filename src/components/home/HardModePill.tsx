@@ -29,11 +29,12 @@ export function HardModePill({ enabled, onToggle }: HardModePillProps) {
           borderWidth: 1.5,
         },
         pillActive: {
-          backgroundColor: theme.colors.brand.secondary + '20', // 12% opacity orange
+          backgroundColor: theme.colors.mode === 'dark' ? '#2A1F12' : '#FFF3E0',
           borderColor: theme.colors.brand.secondary,
+          borderWidth: 2,
         },
         pillInactive: {
-          backgroundColor: 'transparent',
+          backgroundColor: theme.colors.surface.card,
           borderColor: theme.colors.text.secondary + '40', // 25% opacity
         },
         icon: {
@@ -63,7 +64,7 @@ export function HardModePill({ enabled, onToggle }: HardModePillProps) {
       accessibilityState={{ checked: enabled }}
       accessibilityLabel={`Hard mode ${enabled ? 'on' : 'off'}`}
     >
-      <Text style={styles.icon}>{enabled ? '🔥' : '⚡'}</Text>
+      <Text style={styles.icon}>{enabled ? '🔥' : '🧘'}</Text>
       <Text
         style={[
           styles.label,

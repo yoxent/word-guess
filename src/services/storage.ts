@@ -27,17 +27,21 @@ export function saveSettings(settings: AppSettings): void {
   mmkv.set(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-export function getActiveGame(): GameSession | null {
-  const raw = mmkv.getString(ACTIVE_GAME_KEY);
+function activeGameKey(hardMode: boolean): string {
+  return `${ACTIVE_GAME_KEY}_${hardMode ? 'hard' : 'normal'}`;
+}
+
+export function getActiveGame(hardMode: boolean): GameSession | null {
+  const raw = mmkv.getString(activeGameKey(hardMode));
   return raw ? JSON.parse(raw) : null;
 }
 
 export function saveActiveGame(game: GameSession): void {
-  mmkv.set(ACTIVE_GAME_KEY, JSON.stringify(game));
+  mmkv.set(activeGameKey(game.hardMode), JSON.stringify(game));
 }
 
-export function clearActiveGame(): void {
-  mmkv.remove(ACTIVE_GAME_KEY);
+export function clearActiveGame(hardMode: boolean): void {
+  mmkv.remove(activeGameKey(hardMode));
 }
 
 // ── SQLite: game history / stats (D-22) ──
@@ -63,19 +67,21 @@ export async function initDatabase(): Promise<void> {
 }
 
 async function computePerModeStreaks(db: SQLite.SQLiteDatabase): Promise<Record<string, { current: number; max: number }>> {
-  const groups = ['daily', 'endless', 'non-daily'];
+  // Each mode splits into normal (0) and hard (1) sub-groups
+  const groups = [
+    { key: 'daily_normal', sql: "mode = 'daily' AND hard_mode = 0" },
+    { key: 'daily_hard', sql: "mode = 'daily' AND hard_mode = 1" },
+    { key: 'endless_normal', sql: "mode = 'endless' AND hard_mode = 0" },
+    { key: 'endless_hard', sql: "mode = 'endless' AND hard_mode = 1" },
+    { key: 'non-daily_normal', sql: "mode IN ('free', 'random') AND hard_mode = 0" },
+    { key: 'non-daily_hard', sql: "mode IN ('free', 'random') AND hard_mode = 1" },
+  ];
+
   const result: Record<string, { current: number; max: number }> = {};
 
   for (const group of groups) {
-    let modeFilter: string;
-    if (group === 'non-daily') {
-      modeFilter = "mode IN ('free', 'random')";
-    } else {
-      modeFilter = `mode = '${group}'`;
-    }
-
     const rows = await db.getAllAsync<{ won: number; completed_at: string }>(
-      `SELECT won, completed_at FROM game_history WHERE ${modeFilter} ORDER BY completed_at DESC`
+      `SELECT won, completed_at FROM game_history WHERE ${group.sql} ORDER BY completed_at DESC`
     );
 
     // Max streak: longest consecutive win run across all rows
@@ -100,7 +106,7 @@ async function computePerModeStreaks(db: SQLite.SQLiteDatabase): Promise<Record<
       }
     }
 
-    result[group] = { current: currentStreak, max: maxStreak };
+    result[group.key] = { current: currentStreak, max: maxStreak };
   }
 
   return result;
@@ -154,18 +160,23 @@ export async function getStats(): Promise<PlayerStats | null> {
     computeGamesByLength(db),
   ]);
 
-  // Determine last-played mode for currentStreak (D-76)
-  const lastGameRow = await db.getFirstAsync<{ mode: string }>(
-    `SELECT mode FROM game_history ORDER BY completed_at DESC LIMIT 1`
+  // Determine last-played mode+hardship for currentStreak
+  const lastGameRow = await db.getFirstAsync<{ mode: string; hard_mode: number }>(
+    `SELECT mode, hard_mode FROM game_history ORDER BY completed_at DESC LIMIT 1`
   );
-  let lastMode = 'non-daily';
+  let lastModeKey = 'non-daily_normal';
   if (lastGameRow) {
-    if (lastGameRow.mode === 'daily' || lastGameRow.mode === 'endless') {
-      lastMode = lastGameRow.mode;
+    const suffix = lastGameRow.hard_mode === 1 ? '_hard' : '_normal';
+    if (lastGameRow.mode === 'daily') {
+      lastModeKey = 'daily' + suffix;
+    } else if (lastGameRow.mode === 'endless') {
+      lastModeKey = 'endless' + suffix;
+    } else {
+      lastModeKey = 'non-daily' + suffix;
     }
   }
 
-  const currentStreak = perModeStreaks[lastMode]?.current ?? 0;
+  const currentStreak = perModeStreaks[lastModeKey]?.current ?? 0;
   const maxStreak = Math.max(
     ...Object.values(perModeStreaks).map(s => s.max),
     0
@@ -226,12 +237,14 @@ export function markDailyCompleted(dateStr: string, length: number): void {
 }
 
 // ── Endless mode streak (D-47) ──
-export function getEndlessStreak(): number {
-  return mmkv.getNumber('endless_streak') ?? 0;
+export function getEndlessStreak(hardMode: boolean): number {
+  const key = hardMode ? 'endless_streak_hard' : 'endless_streak_normal';
+  return mmkv.getNumber(key) ?? 0;
 }
 
-export function setEndlessStreak(streak: number): void {
-  mmkv.set('endless_streak', streak);
+export function setEndlessStreak(streak: number, hardMode: boolean): void {
+  const key = hardMode ? 'endless_streak_hard' : 'endless_streak_normal';
+  mmkv.set(key, streak);
 }
 
 // ── Endless total words counter (D-145) ──

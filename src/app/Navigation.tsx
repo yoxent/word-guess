@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import {
   useFocusEffect,
   NavigationContainer,
@@ -69,6 +70,14 @@ export function Navigation() {
           headerStyle: { backgroundColor: theme.colors.surface.header },
           contentStyle: { backgroundColor: theme.colors.surface.background },
           animationTypeForReplace: 'push',
+          headerBackImage: ({ tintColor }) => (
+            <MaterialIcons
+              name="arrow-back-ios"
+              size={22}
+              color={tintColor}
+              style={{ marginLeft: Platform.OS === 'android' ? 4 : 0 }}
+            />
+          ),
         }}
       >
         <Stack.Screen

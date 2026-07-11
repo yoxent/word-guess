@@ -131,6 +131,45 @@ describe('wordLogic', () => {
       expect(validateHardMode(previousFeedback, 'CRXXX').valid).toBe(true);
     });
 
+    it('requires 2 instances when same letter appears as correct AND present in one row (duplicates)', () => {
+      const previousFeedback = [
+        [
+          { letter: 'P', feedback: 'correct' as const },
+          { letter: 'A', feedback: 'absent' as const },
+          { letter: 'P', feedback: 'present' as const },
+          { letter: 'E', feedback: 'absent' as const },
+          { letter: 'R', feedback: 'absent' as const },
+        ],
+      ];
+      // P appears TWICE in this row (correct at 0 + present at 2).
+      // The target word has 2 P's — next guess must have at least 2
+      // AND must keep P at position 0 (green constraint from last row).
+      expect(validateHardMode(previousFeedback, 'PAPER').valid).toBe(true);   // 2 P's ✓, P at pos 0 ✓
+      expect(validateHardMode(previousFeedback, 'PXXXX').valid).toBe(false);  // only 1 P
+      expect(validateHardMode(previousFeedback, 'PEPPY').valid).toBe(true);   // 2 P's ✓, P at pos 0 ✓
+    });
+
+    it('does not accumulate yellow count across rows (same letter, multiple guesses)', () => {
+      const previousFeedback = [
+        [
+          { letter: 'S', feedback: 'present' as const },
+          { letter: 'P', feedback: 'absent' as const },
+          { letter: 'O', feedback: 'correct' as const },
+          { letter: 'R', feedback: 'absent' as const },
+          { letter: 'T', feedback: 'absent' as const },
+        ],
+        [
+          { letter: 'B', feedback: 'absent' as const },
+          { letter: 'L', feedback: 'correct' as const },
+          { letter: 'O', feedback: 'correct' as const },
+          { letter: 'W', feedback: 'absent' as const },
+          { letter: 'S', feedback: 'present' as const },
+        ],
+      ];
+      // S appears yellow in BOTH rows — should only need S once
+      expect(validateHardMode(previousFeedback, 'CLOSE').valid).toBe(true);
+    });
+
     it('handles combined green and yellow constraints', () => {
       const previousFeedback = [
         [
