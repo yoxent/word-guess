@@ -156,21 +156,35 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
   showRewarded: async (onRewarded: () => void) => {
     if (!get().rewardedLoaded || !rewardedAd) return false;
 
-    // Attach the EARNED_REWARD listener just before showing
-    const earnedUnsubscribe = rewardedAd.addAdEventListener(
+    const ad = rewardedAd;
+    let rewardEarned = false;
+
+    // Attach EARNED_REWARD listener
+    const earnedUnsubscribe = ad.addAdEventListener(
       RewardedAdEventType.EARNED_REWARD,
       () => {
+        rewardEarned = true;
         onRewarded();
       },
     );
 
+    // Attach CLOSED listener for cleanup
+    const closedUnsubscribe = ad.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        earnedUnsubscribe();
+        closedUnsubscribe();
+        set({ rewardedLoaded: false });
+        get().preloadRewarded();
+      },
+    );
+
     try {
-      await rewardedAd.show();
-      // Clean up the one-shot EARNED_REWARD listener after showing
-      earnedUnsubscribe();
+      await ad.show();
       return true;
     } catch {
       earnedUnsubscribe();
+      closedUnsubscribe();
       set({ rewardedLoaded: false });
       return false;
     }

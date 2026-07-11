@@ -8,6 +8,7 @@ import { loadFonts } from '../utils/fonts';
 import { configureGoogleSignIn } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useAdStore } from '../stores/adStore';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
 import * as sound from '../services/sound';
@@ -64,6 +65,10 @@ export default function App() {
 
       // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
       fetchAdUnitIds();
+
+      // Preload ads early so they're ready by the time user reaches game screen
+      useAdStore.getState().preloadInterstitial();
+      useAdStore.getState().preloadRewarded();
 
       // Initialize sound system (loads BGM + SFX players) — fire-and-forget
       sound.init();

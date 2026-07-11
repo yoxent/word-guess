@@ -1,40 +1,46 @@
 # marquee-background
 updated: 2026-07-11
-tags: [ui, animation, background, homepage]
-related: [frontend-overhaul, design-tokens, architecture]
+tags: [ui, animation, background, homepage, rain-effect, reanimated]
+related: [frontend-overhaul, design-tokens, architecture, fabric-crash-patterns]
 
 ## Purpose
-Subtle diagonal-scrolling game icon grid behind home screen content. Adds background texture without competing with foreground.
+Subtle diagonal rain of game icons behind home screen content. Adds background texture without competing with foreground.
 
 ## Component: `MarqueeBackground`
 - **File:** `src/components/ui/MarqueeBackground.tsx`
 - **Rendered in:** HomeScreen, before all content (z-index lowest sibling)
 - **Pointer events:** `pointerEvents="none"` — does not block interactions
-- **Icons:** MaterialIcons (30 unique game-themed, single brand color)
+- **Icons:** MaterialIcons (26 unique game-themed, single brand color)
 
-## Grid config
+## Rain config
 | Parameter | Value | Detail |
 |-----------|-------|--------|
-| Columns | 5 | Evenly spread across full width |
-| Spacing X | SCREEN_WIDTH / 5 | ~72dp on 360dp screen |
-| Spacing Y | 80dp | Row height |
+| Columns | 6 | Evenly spread across full width |
+| Column spacing | SCREEN_WIDTH / 6 | ~60dp on 360dp screen |
+| Icons per column | 3 | Staggered vertically |
 | Icon size | 22px | Uniform across all icons |
-| Opacity | 0.2 (light) / 0.15 (dark) | Subtle background layer |
+| Opacity | 0.18 (light) / 0.12 (dark) | Subtle background layer |
 | Icon color | `theme.colors.brand.primary` | Single plain color (#42A5F5 sky blue) |
-| Grid size | 2× loop size (W+H) | Seamless repeat in both axes |
+| Fall duration | 12s | Full screen traversal |
+| East drift | 80px | Horizontal movement during fall |
 
 ## Animation
-- **Direction:** Diagonal south-east (icons drift toward bottom-right)
-- **Mechanism:** Single `Animated.loop(Animated.parallel([...]))` — both translateX and translateY locked together in one shared loop cycle so they never desync
-- **Duration:** ~60s per full cycle
-- **Driver:** `Animated.timing` with `Easing.linear`, native driver ON
-- **Seamless loop:** Pattern repeats every `COLS`×`ROWS`. Grid is 2× that in each dimension. When translation completes one loop distance, the identical adjacent pattern is in view — reset is imperceptible.
+- **Direction:** Diagonal south-east (icons rain down + drift right)
+- **Mechanism:** Individual `useSharedValue` per icon — `withRepeat(withTiming(...))` on UI thread
+- **Driver:** Reanimated (100% UI-thread, zero JS bridge frame drops)
+- **Seamless loop:** Each icon animates from initial Y to SCREEN_HEIGHT, then snaps back to start
+- **Stagger:** Columns start at 2s intervals, rows within column at 800ms intervals
 
 ## Design decisions
 | Decision | Rationale |
 |----------|-----------|
-| Single brand color (#42A5F5) | Unified, clean look — not a confetti of random colors |
-| Uniform icon size | Consistent grid rhythm, less visual noise |
-| Low opacity (0.15-0.2) | Background texture that doesn't distract from gameplay |
-| Diagonal SE motion | More dynamic than vertical drift; mimics falling confetti or scrolling game board |
-| MaterialIcons (not emoji) | Take brand color prop, consistent with rest of app's icon system |
+| Rain effect over grid marquee | Grid approach caused Fabric crash from too many simultaneous view updates |
+| Reanimated over RN Animated | UI-thread animations avoid Fabric mounting bottleneck |
+| Individual shared values | Each icon animates independently — no parallel/sync issues |
+| Checkerboard pattern | `(col + row) % 2 !== 0` — reduces visual density while maintaining rhythm |
+| Icons pre-fill screen | `initialY` computed to distribute icons across full height on mount |
+
+## Fabric crash history
+- Grid-based approach with 100+ animated views crashed Fabric's `SurfaceMountingManager`
+- Switched to rain effect with ~12 animated views — stable
+- See `fabric-crash-patterns.md` for mitigation patterns

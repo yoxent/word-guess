@@ -34,4 +34,6 @@ related: []
 | hooks-order-discipline | ALL hooks must be called before any conditional returns — prevents "Rendered more hooks" crash | react, hooks, gotcha, rules-of-hooks |
 | testing-skill | Global testing skill — 4-layer strategy, project profiling, layer gates, state tracking | testing, skill, qa, automation |
 | testing-decisions | Layer coverage decisions, component testing challenges, Maestro vs Detox, architecture tradeoffs | testing, architecture, decisions, tradeoffs |
-| marquee-background | Diagonal SE-scrolling game icon grid behind home screen — single brand color, uniform size, low opacity | ui, animation, background, homepage |
+| marquee-background | Diagonal rain of game icons behind home screen — Reanimated, checkerboard, single brand color | ui, animation, background, homepage, rain-effect, reanimated |
+| fabric-crash-patterns | Fabric SurfaceMountingManager crash mitigation — deferred callbacks, reduced views, Reanimated | fabric, crash, animation, gotcha |
+| ad-system-patterns | Ad preloading, rewarded callback gotcha, deferral pattern, store structure | ads, monetization, rewarded, preloading, gotcha |

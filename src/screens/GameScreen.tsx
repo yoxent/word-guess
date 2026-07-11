@@ -249,6 +249,7 @@ export function GameScreen({ route }: Props) {
 
     startGame(mode, word, len, hardMode);
     useAdStore.getState().preloadInterstitial();
+    useAdStore.getState().preloadRewarded();
     setInitializing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -449,14 +450,20 @@ export function GameScreen({ route }: Props) {
   const handleWatchAd = useCallback(async () => {
     const adStore = useAdStore.getState();
     await adStore.showRewarded(() => {
-      useGameStore.getState().addExtraGuess();
+      // Defer state update to avoid Fabric crash from rapid view updates
+      setTimeout(() => {
+        useGameStore.getState().addExtraGuess();
+      }, 100);
     });
   }, []);
 
   const handleLetterHint = useCallback(async () => {
     const adStore = useAdStore.getState();
     await adStore.showRewarded(() => {
-      useGameStore.getState().useLetterHint();
+      // Defer state update to avoid Fabric crash from rapid view updates
+      setTimeout(() => {
+        useGameStore.getState().useLetterHint();
+      }, 100);
     });
   }, []);
 

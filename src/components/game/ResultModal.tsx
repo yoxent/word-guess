@@ -242,6 +242,7 @@ export function ResultModal() {
   // ── Card scale bounce animation (Phase 7E) ──
   const cardScale = useRef(new Animated.Value(0.8)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -256,8 +257,13 @@ export function ResultModal() {
         duration: 200,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [cardScale, cardOpacity]);
+    ]).start(() => {
+      // Delay confetti until modal animation completes to avoid Fabric crash
+      if (isWin) {
+        setTimeout(() => setShowConfetti(true), 100);
+      }
+    });
+  }, [cardScale, cardOpacity, isWin]);
 
   if (!session || session.status === 'playing') {
     return null;
@@ -268,7 +274,7 @@ export function ResultModal() {
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.overlay}>
-        {isWin && <Confetti />}
+        {isWin && showConfetti && <Confetti />}
         <Animated.View
           style={[
             styles.card,
