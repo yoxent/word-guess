@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, AppStateStatus, useColorScheme } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
+import { useSystemColorScheme } from '../hooks/useSystemColorScheme';
 import { StatusBar } from 'expo-status-bar';
 import { Navigation } from './Navigation';
 import { LoadingScreen } from '../screens/LoadingScreen';
@@ -17,7 +18,7 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
 
   // D-190: StatusBar style based on active theme
-  const systemScheme = useColorScheme();
+  const systemScheme = useSystemColorScheme();
   const themeMode = useSettingsStore((s) => s.themeMode);
   const activeTheme: 'light' | 'dark' =
     themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;

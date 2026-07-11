@@ -1,7 +1,7 @@
 # Theme System
 
-updated: 2026-07-10 (Phase 6: WCAG dark theme audit — all combos pass AA, both themes kept)
-tags: [theme, colors, useTheme, semantic, design-system, architecture]
+updated: 2026-07-11 (system theme via Appearance API, userInterfaceStyle automatic)
+tags: [theme, colors, useTheme, semantic, design-system, architecture, system-theme]
 related: [tech-stack, architecture, design-tokens, ui-config-registry, frontend-overhaul]
 
 ## Purpose
@@ -17,6 +17,7 @@ Updated 2026-07-10: expanded with `brand`, `surface.elevated`, `surface.muted`, 
 | `src/constants/colors.ts` | Raw flat palettes: `lightColors` and `darkColors` |
 | `src/types/theme.ts` | `ThemeColors` and `Theme` type definitions |
 | `src/hooks/useTheme.ts` | `useTheme()` hook + `buildSemantic()` builder |
+| `src/hooks/useSystemColorScheme.ts` | OS light/dark via `Appearance` API + change listener |
 | `src/utils/fonts.ts` | Nunito font loading utility |
 
 **Deleted:** `src/hooks/useColors.ts` — removed in frontend overhaul (was deprecated).
@@ -67,6 +68,16 @@ const theme = useTheme();
   <Button title="Play" onPress={...} />  {/* uses theme.colors.button.primary */}
 </View>
 ```
+
+## System theme (Settings → System)
+
+`settingsStore.themeMode === 'system'` resolves via `useSystemColorScheme()` → `useTheme()` / `App.tsx` StatusBar.
+
+**Native config (requires EAS rebuild):**
+- `app.config.ts`: `userInterfaceStyle: 'automatic'` (was `'light'`, which forced light and broke system mode)
+- `expo-system-ui` installed — required on Android for `userInterfaceStyle` to work in dev/production builds
+
+**JS hook:** Prefer `Appearance.getColorScheme()` + `Appearance.addChangeListener` over `useColorScheme()` alone — more reliable on Android dev-client builds where `AppearanceModule.colorScheme` reflection can fail (see logcat `NoSuchFieldException: colorScheme`).
 
 ## History
 

@@ -1,7 +1,7 @@
 # dev-workflow
-updated: 2026-07-11 (EAS cloud build upload rules, app.config.ts)
+updated: 2026-07-11 (system theme, splash screen, volume slider, app icon)
 tags: [workflow, android-studio, metro, emulator, dev-loop, eas-build]
-related: [tech-stack, android-build-setup]
+related: [tech-stack, android-build-setup, theme-system]
 
 ## Daily dev loop
 ```bash
@@ -103,7 +103,7 @@ Before EAS production build:
 - [ ] Real AdMob app ID in `app.config.ts` (replace `ca-app-pub-3940256099942544~3347511713`)
 - [ ] Real Firebase Remote Config keys set
 - [ ] Privacy policy hosted on GitHub Pages (covers AdMob data collection)
-- [x] Branded assets: icon.png, splash.png, adaptive-icon.png, favicon.png (1254×1254 logo, 2026-07-11)
+- [x] Branded assets: icon.png, splash.png, adaptive-icon.png, favicon.png (1024×1024 logo, 2026-07-11)
 - [ ] google-services.json with real Firebase project config at project root (uploaded via `.easignore` or EAS file secret)
 - [ ] App version bumped in `app.config.ts`
 - [ ] EAS Build: `eas build --platform android --profile production`
@@ -113,12 +113,29 @@ Before EAS production build:
 2. Closed testing (Play Console — limited testers)
 3. Production release (Play Store)
 
+## Dev client on physical device
+1. Install EAS `development` profile APK once
+2. Each session: `npx expo start --dev-client --clear` on PC (same Wi‑Fi or `--tunnel`)
+3. Open dev client app → scan QR / pick dev server
+4. Native dep or plugin changes → new `eas build` required
+
+### Common dev-client failures
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `SplashScreenManager` ClassNotFoundException | `expo-splash-screen` missing from native build | `npx expo install expo-splash-screen`, add plugin to `app.config.ts`, rebuild APK |
+| Worklets version mismatch / `libworklets.so` SIGABRT | APK native worklets ≠ Metro JS worklets | Align `react-native-worklets` in lockfile, `npm ci`, `--clear`, rebuild APK if needed |
+| `adb` not found | SDK platform-tools not on PATH | Use `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` |
+
 ## Privacy policy
 - Hosted on GitHub Pages (docs/privacy.md or separate repo)
 - Content must cover: AdMob data collection, Google Sign-In data, standard Play Store privacy requirements
 
 ## Asset icons
-Branded PNGs in `assets/` (icon, splash, adaptive-icon, favicon) — 1254×1254 logo. `app.config.ts` references `./assets/icon.png` and `./assets/splash.png` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after asset changes.
+Launcher icons: `assets/icon.png` + `assets/adaptive-icon.png` (1024×1024, updated 2026-07-11). Splash: `assets/splash.png` via `expo-splash-screen` plugin in `app.config.ts` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after icon/splash asset changes.
+
+## Settings UI gotchas
+- **Volume slider:** PanResponder must use `gestureState.dx` from grant — `locationX` on move can jump to 0 on Android and flash 0% (see `VolumeSlider` in `SettingsRow.tsx`).
+- **System theme:** JS hook alone is not enough — `userInterfaceStyle: 'automatic'` + `expo-system-ui` + EAS rebuild required on device.
 
 ## Android Studio standalone run (alternative)
 Workaround to run everything from AS without a separate terminal:

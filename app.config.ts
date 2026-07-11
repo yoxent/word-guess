@@ -6,12 +6,7 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'light',
-  splash: {
-    image: './assets/splash.png',
-    resizeMode: 'contain',
-    backgroundColor: '#f5f5f0',
-  },
+  userInterfaceStyle: 'automatic',
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
@@ -28,6 +23,14 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-dev-client',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#f5f5f0',
+      },
+    ],
     'expo-sqlite',
     'react-native-iap',
     '@react-native-firebase/app',

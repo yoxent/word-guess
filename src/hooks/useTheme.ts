@@ -1,5 +1,5 @@
-import { useColorScheme } from 'react-native';
 import { lightColors, darkColors } from '../constants/colors';
+import { useSystemColorScheme } from './useSystemColorScheme';
 import { useSettingsStore } from '../stores/settingsStore';
 import type { Theme, ThemeColors } from '../types/theme';
 
@@ -100,7 +100,7 @@ function buildSemantic(
  */
 export function useTheme(): Theme {
   const themeMode = useSettingsStore((s) => s.themeMode);
-  const systemScheme = useColorScheme();
+  const systemScheme = useSystemColorScheme();
   const isDark =
     themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
   const raw = isDark ? darkColors : lightColors;

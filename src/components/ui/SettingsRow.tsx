@@ -323,11 +323,11 @@ function VolumeSlider({
   const theme = useTheme();
   const styles = useStyles(theme);
   const widthRef = useRef(INITIAL_WIDTH_ESTIMATE);
+  const valueRef = useRef(value);
+  const grantValueRef = useRef(value);
+  valueRef.current = value;
 
-  const updateFromX = (x: number) => {
-    const w = widthRef.current;
-    if (w <= 0 || !Number.isFinite(w)) return;
-    const ratio = x / w;
+  const updateFromRatio = (ratio: number) => {
     if (!Number.isFinite(ratio)) return;
     const clamped = Math.max(0, Math.min(1, ratio));
     onChange(snapVolume(clamped));
@@ -339,10 +339,20 @@ function VolumeSlider({
       onMoveShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (e) => {
-        updateFromX(e.nativeEvent.locationX);
+        const w = widthRef.current;
+        if (w > 0) {
+          const snapped = snapVolume(e.nativeEvent.locationX / w);
+          grantValueRef.current = snapped;
+          onChange(snapped);
+        } else {
+          grantValueRef.current = valueRef.current;
+        }
       },
-      onPanResponderMove: (e) => {
-        updateFromX(e.nativeEvent.locationX);
+      onPanResponderMove: (_e, gestureState) => {
+        const w = widthRef.current;
+        if (w <= 0) return;
+        // Use dx from grant — locationX can jump to 0 mid-drag on Android.
+        updateFromRatio(grantValueRef.current + gestureState.dx / w);
       },
     })
   ).current;

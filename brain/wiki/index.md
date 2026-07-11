@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-11 (EAS cloud build upload rules, app.config.ts)
+updated: 2026-07-11 (system theme, splash screen, settings fixes)
 tags: [index, mvp, phase-6-executed]
 related: []
 
@@ -26,7 +26,7 @@ related: []
 | monetization | Phase 4 execution — ad manager (Zustand + google-mobile-ads), interstitial timing, rewarded ads, Pro IAP, restore, Remote Config, app.json plugins | ads, iap, monetization, phase-4, complete |
 | cloud-sync | Phase 5 cloud architecture — Firestore data model, offline sync queue, leaderboard design, score submission pipeline, auth flow | cloud, firebase, firestore, sync, leaderboard, auth, phase-5 |
 | accessibility | Phase 6 — TalkBack, color blindness textures, reduce motion, PixelRatio font scaling | accessibility, talkback, color-blindness, reduce-motion, pixelratio |
-| theme-system | Semantic useTheme() hook, light/dark palettes, button/toggle/icon color slots | theme, colors, semantic, design-system |
+| theme-system | Semantic useTheme() hook, light/dark palettes, system theme via Appearance API | theme, colors, semantic, design-system |
 | toggle-side-effects | Pattern: Zustand toggles need explicit side-effect wiring (sound, haptics). Bug fix 2026-07-09 | pattern, settings, zustand, side-effect, audio |
 | frontend-overhaul | 7-phase bright playful redesign — COMPLETE. Palette, Nunito, mode cards, gradient bg, spring press, keyboard haptic, modal scale, ProgressRing, dark WCAG audit | ui, redesign, visual, palette, font, animation, complete |
 | agent-skills-setup | Matt Pocock skills installed, per-repo config in docs/agents/, AGENTS.md block | skills, setup, agent-config |
