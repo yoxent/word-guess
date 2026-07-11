@@ -1,0 +1,70 @@
+# EAS upload rules — based on .gitignore with build-required exceptions at the bottom.
+# See https://docs.expo.dev/build-reference/easignore/
+
+# ── Expo / React Native ──────────────────────────────────────
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Generated native projects (regenerated via npx expo prebuild)
+/android
+/ios
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ── EAS Build ────────────────────────────────────────────────
+*.apk
+*.aab
+eas-build-node-*.tgz
+
+# ── Environment & Secrets (never commit) ────────────────────
+.env
+.env.local
+.env.production
+.env.development
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# ── Dictionary source (generated assets uploaded via ! rules below) ─
+dictionary.full.enriched.json
+
+# ── Agent artifacts (pi-subagents session data) ──────────────
+.pi-subagents/
+
+# ── Machine-specific agent config (regenerated on clone) ────
+.claude/
+
+# ── IDE / Editor ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Maestro E2E ────────────────────────────────────────────
+.maestro/
+maestro/
+maestro/artifacts/
+maestro/reports/
+maestro/flows/.generated/
+
+# ── Temp / junk files ───────────────────────────────────────
+nul
+*.log
+*.tmp
+*.temp
+
+# ── EAS Build: include gitignored files required for cloud builds ──
+# Must be last — ! rules override prior ignore patterns.
+!scripts/
+!assets/dictionary/
+!google-services.json

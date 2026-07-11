@@ -1,6 +1,6 @@
 # dev-workflow
-updated: 2026-07-08 (postinstall Kotlin patch script)
-tags: [workflow, android-studio, metro, emulator, dev-loop]
+updated: 2026-07-11 (EAS cloud build upload rules, app.config.ts)
+tags: [workflow, android-studio, metro, emulator, dev-loop, eas-build]
 related: [tech-stack, android-build-setup]
 
 ## Daily dev loop
@@ -42,9 +42,40 @@ Both Android Studio's emulator and `npx expo run:android` use the **same** runni
 | Terminal (root) | Metro bundler + JS hot reload | `npx expo run:android` |
 | Android Studio (`android/`) | Emulator, Logcat, native build inspection | Open android/ folder |
 
+## EAS cloud builds (dev client APK)
+Use when you need a distributable dev build (not daily JS work — that's `npx expo run:android`).
+
+```bash
+eas build --platform android --profile development
+```
+
+**Windows:** `--local` is not supported (macOS/Linux/WSL only). Use cloud builds or `npx expo run:android`.
+
+### Upload rules (`.easignore`)
+EAS uses `.gitignore` by default and **excludes gitignored files** from the upload archive — even if tracked in git. A dedicated `.easignore` re-includes build-required files via `!` rules at the bottom:
+- `scripts/` — `postinstall` Kotlin patch (`patch-kotlin-version.mjs`)
+- `assets/dictionary/` — Metro-bundled dictionary JSONs
+- `google-services.json` — Firebase config (gitignored, uploaded from local machine)
+
+Without `.easignore`, `npm ci` on EAS fails with `Cannot find module scripts/patch-kotlin-version.mjs`.
+
+### Expo config
+Static `app.json` replaced by `app.config.ts`. Firebase path:
+```ts
+googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+```
+Optional: store file on EAS via `eas env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --environment development --visibility secret`.
+
+### eas.json profiles
+| Profile | Use |
+|---------|-----|
+| `development` | Dev client, internal distribution |
+| `preview` | APK for testers |
+| `production` | Play Store AAB (`autoIncrement: true`, `appVersionSource: remote`) |
+
 ## Native edits & prebuild
 - Direct edits to `android/` files are **overwritten** on next `npx expo prebuild`
-- For permanent native changes: use Expo config plugins in `app.json` instead
+- For permanent native changes: use Expo config plugins in `app.config.ts` instead
 - After adding a new Expo plugin: `npx expo prebuild` re-generates android/ with plugin applied
 - **`npx expo prebuild --clean` wipes `local.properties`** — must recreate after each clean prebuild (see android-build-setup.md)
 
@@ -69,12 +100,12 @@ The `android/` dir is regenerated on prebuild — the Kotlin pin would be lost w
 
 ## Production build checklist (Phase 6)
 Before EAS production build:
-- [ ] Real AdMob app ID in app.json (replace `ca-app-pub-3940256099942544~3347511713`)
+- [ ] Real AdMob app ID in `app.config.ts` (replace `ca-app-pub-3940256099942544~3347511713`)
 - [ ] Real Firebase Remote Config keys set
 - [ ] Privacy policy hosted on GitHub Pages (covers AdMob data collection)
 - [x] Branded assets: icon.png, splash.png, adaptive-icon.png, favicon.png (1254×1254 logo, 2026-07-11)
-- [ ] google-services.json with real Firebase project config at project root
-- [ ] App version bumped in app.json
+- [ ] google-services.json with real Firebase project config at project root (uploaded via `.easignore` or EAS file secret)
+- [ ] App version bumped in `app.config.ts`
 - [ ] EAS Build: `eas build --platform android --profile production`
 
 ### Testing track order
@@ -87,7 +118,7 @@ Before EAS production build:
 - Content must cover: AdMob data collection, Google Sign-In data, standard Play Store privacy requirements
 
 ## Asset icons
-Branded PNGs in `assets/` (icon, splash, adaptive-icon, favicon) — 1254×1254 logo. `app.json` references `./assets/icon.png` and `./assets/splash.png` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after asset changes.
+Branded PNGs in `assets/` (icon, splash, adaptive-icon, favicon) — 1254×1254 logo. `app.config.ts` references `./assets/icon.png` and `./assets/splash.png` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after asset changes.
 
 ## Android Studio standalone run (alternative)
 Workaround to run everything from AS without a separate terminal:

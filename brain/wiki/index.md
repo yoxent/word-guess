@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-11 (gameplay polish, settings UX, branded assets)
+updated: 2026-07-11 (EAS cloud build upload rules, app.config.ts)
 tags: [index, mvp, phase-6-executed]
 related: []
 
@@ -19,7 +19,7 @@ related: []
 | google-signin | Google Sign-In setup, SHA-1 triple registration, known pain points | auth, firebase, google |
 | animation-system | Reanimated tile flip animations, confetti, timing constants, keyboard delay, input queuing | animation, reanimated, tile-flip |
 | git-conventions | Gitignore design, tracked vs ignored files, brain vs CLAUDE.md | git, workflow, conventions |
-| dev-workflow | Android Studio setup, Metro dev loop, dual-tool coexistence, standalone run config | workflow, android-studio, metro, dev-loop |
+| dev-workflow | Android Studio setup, Metro dev loop, EAS cloud builds, .easignore upload rules, dual-tool coexistence | workflow, android-studio, metro, dev-loop, eas-build |
 | android-build-setup | AGP version pinning, react-native-nitro-modules, local.properties, SDK versions, build-tools | android, build, gradle, sdk, config |
 | ui-config-registry | UI Configuration Registry — data-driven composable UI via src/config/ui.ts | architecture, patterns, ui, config-driven |
 | design-tokens | Spacing scale, typography, color conventions — design system tokens defined by Phase 3 UI-SPEC | design, tokens, spacing, typography, colors, ui |

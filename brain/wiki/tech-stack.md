@@ -63,8 +63,10 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 ## Build
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Build | EAS CLI (dev/preview/production profiles) | |
+| Expo config | `app.config.ts` | Dynamic config; replaced `app.json` 2026-07-11 |
+| Build | EAS CLI (dev/preview/production profiles) | Cloud builds on Windows; `--local` requires macOS/Linux/WSL |
 | Dev builds | npx expo prebuild + npx expo run:android | Prebuild from day one (Phase 1) |
+| EAS upload | `.easignore` | Re-includes gitignored `scripts/`, `assets/dictionary/`, `google-services.json` |
 | Build properties | expo-build-properties | ~57.0.3 | Config plugin for android.kotlinVersion, googleServicesFile |
 | Prototyping | Expo Go | Limited native modules |
 
@@ -190,20 +192,28 @@ Run `npx expo install --check` to verify all native module versions align with i
 If `android/` directory or files inside are locked by another process (Android Studio, file explorer, stale Gradle daemon), `prebuild --clean` fails with `EBUSY`. Fix: close Android Studio, close file explorer windows on `android/`, kill java/node/gradle processes. Workaround: use `npx expo prebuild` (without `--clean`) — updates in-place without deleting directory.
 
 ### @react-native-firebase/firestore has no app.plugin.js
-Only `@react-native-firebase/app` has a config plugin (`app.plugin.js`), which covers all Firebase sub-modules (auth, firestore, remote-config). Do NOT add `@react-native-firebase/firestore` to `app.json plugins` — it will error `PluginError: Unexpected token 'typeof'`. Fix: add `@react-native-firebase/app` to plugins instead.
+Only `@react-native-firebase/app` has a config plugin (`app.plugin.js`), which covers all Firebase sub-modules (auth, firestore, remote-config). Do NOT add `@react-native-firebase/firestore` to `app.config.ts` plugins — it will error `PluginError: Unexpected token 'typeof'`. Fix: add `@react-native-firebase/app` to plugins instead.
 
 ### google-services.json placement for Firebase
-Must be at project root (not `android/app/`). Add `expo.android.googleServicesFile: "./google-services.json"` to `app.json`. The `@react-native-firebase/app` config plugin copies it from source to `android/app/` during prebuild. If already placed at `android/app/`, move to project root before prebuild.
+Must be at project root (not `android/app/`). In `app.config.ts`:
+```ts
+googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+```
+The `@react-native-firebase/app` config plugin copies it from source to `android/app/` during prebuild. If already placed at `android/app/`, move to project root before prebuild.
 
 ### google-services.json not tracked in git
 `google-services.json` contains Firebase API keys and client config (project_number, mobilesdk_app_id, api_key). Not committed to git — listed in `.gitignore`. Each dev/CI env places its own copy at project root.
 
+### EAS cloud build — gitignored files excluded from upload
+EAS uses `.gitignore` (or `.easignore` if present) to filter the upload archive. Gitignored-but-tracked files (e.g. `scripts/`) are still excluded. Symptom: `npm ci` fails on EAS with `Cannot find module scripts/patch-kotlin-version.mjs`.
+**Fix:** `.easignore` copies `.gitignore` rules but adds `!scripts/`, `!assets/dictionary/`, `!google-services.json` at the bottom. See [dev-workflow](dev-workflow.md#eas-cloud-builds-dev-client-apk).
+
 ### Package name must match google-services.json
-`app.json android.package` must match `package_name` in `google-services.json`. Mismatch causes Gradle failure:
+`app.config.ts android.package` must match `package_name` in `google-services.json`. Mismatch causes Gradle failure:
 ```
 No matching client found for package name 'com.wordguess.app' in google-services.json
 ```
-Fix: align `android.package` in `app.json` with Firebase project's registered package name.
+Fix: align `android.package` in `app.config.ts` with Firebase project's registered package name.
 In this project: `com.vorithstudio.wordguess` (also matches IAP product ID `com.vorithstudio.wordguess.pro`).
 
 ### Kotlin metadata version — play-services-ads 25.4.0 needs Kotlin 2.3.0
