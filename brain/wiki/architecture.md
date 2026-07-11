@@ -91,7 +91,7 @@ src/
 | Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
 | Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
 | Stats | /stats | StatsCard, GuessDistribution |
-| Settings | /settings | ToggleRow, AccountSection, RestoreButton, theme selector, colorBlindMode toggle, reduceMotion toggle |
+| Settings | /settings | ToggleRow, volume sliders (10% steps), theme selector, Simpler Animations toggle, haptic toggle with (?) help |
 | Leaderboard | /leaderboard | LeaderboardRow[], AuthPrompt |
 | Result | (removed Phase 6) | Deleted — replaced by ResultModal overlay in Phase 2. Route removed from Navigation.tsx |
 
@@ -102,7 +102,7 @@ src/
 | GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. |
 | Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX. Uses `tileSize` prop for width/height + font size. |
 | Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
-| ResultModal | Post-game overlay | Shows win/loss, target word, definition, emoji grid; Endless "Play Next"; daily completion tracking. Phase 4: rewarded ad button on loss state (addExtraGuess); interstitial before playNext/backToMenu navigation |
+| ResultModal | Post-game overlay | Win/loss, word, definition, emoji grid. Endless: centered Play Next + Back to Menu. Confetti in front of card on win. Interstitial before navigation |
 | LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
 | Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |
 
@@ -139,10 +139,9 @@ store.submitGuess(guess):
   → (after last tile) → Keyboard color update
   → Win/loss check
   → If game over: ResultModal overlay with definition
-  → Loss state: rewarded ad button (addExtraGuess → status back to 'playing', maxAttempts++)
-  → Before navigation: interstitial ad (gated by isPro + frequency cap)
-  → Endless: "Play Next" → next word (same length)
+  → Endless: "Play Next" (centered) or "Back to Menu"
   → Other: "Back to Menu" → HomeScreen
+  → Rewarded hints (+1 attempt, letter hint) on GameScreen during play — not on ResultModal
 ```
 
 ## Foreground elements: opaque backgrounds required
@@ -157,11 +156,19 @@ store.submitGuess(guess):
 - Does NOT participate in flex layout — grid does not shift when toast appears/disappears
 - Previously was in normal flow between board and hint buttons, causing grid to shrink on every toast
 
-## Game restoration guard (letterCount check)
-- GameScreen init: `saved.mode === mode && saved.letterCount === letterCount`
-- Previously only checked mode, which caused wrong game restoration: going from 5-letter endless back to home then picking 6-letter endless would restore the 5-letter session (both were `endless`)
-- Random mode: `handleRandom()` generates new length; if it happened to match saved game's length (e.g., both 10), the continue modal would not show and the old game would silently restore
-- Fix: added `letterCount` comparison to both the GameScreen init AND the home screen's `navigateWithContinueCheck`
+## Game restoration (`src/utils/activeGame.ts`)
+- `shouldOfferContinue()` — Home continue modal gate; random mode uses single slot (ignores newly rolled length)
+- `shouldRestoreActiveGame()` — GameScreen init; random restores without `letterCount` match
+- `hasActiveProgress()` — guesses or rewarded hint usage
+- Endless/Daily still require matching `letterCount`
+- Fresh navigation clears MMKV via `clearActiveGame()` before `startGame()` so rewarded state does not leak
+
+## Keyboard absent keys (2026-07-11)
+- Keys with `absent` feedback render at **55% opacity** — de-emphasizes ruled-out letters without hiding them
+
+## Hard Mode pill (Home)
+- Default **off** each launch; toggle state not persisted (settingsStore v3 `partialize` excludes `hardModeEnabled`)
+- Fixed `borderWidth: 2` both states — prevents layout shift when toggling
 
 ## Animation architecture
 - All tile animations on UI thread via Reanimated worklets

@@ -33,6 +33,7 @@ function KeyboardKey({
   hintDim,
   wide,
   disabled,
+  dimmed,
   onPress,
 }: {
   label: string;
@@ -45,6 +46,7 @@ function KeyboardKey({
   hintDim?: string;
   wide?: boolean;
   disabled: boolean;
+  dimmed?: boolean;
   onPress: () => void;
 }) {
   const [hintPulseBright, setHintPulseBright] = useState(true);
@@ -87,7 +89,13 @@ function KeyboardKey({
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale }], flex: wide ? 1.5 : 1 }}>
+    <Animated.View
+      style={{
+        transform: [{ scale }],
+        flex: wide ? 1.5 : 1,
+        opacity: dimmed ? 0.55 : 1,
+      }}
+    >
       <TouchableOpacity
         style={[
           keyStyles.key,
@@ -274,6 +282,7 @@ function KeyboardComponent() {
             const { text, fontSize, label } = getKeyDisplay(key);
             const disabled = isKeyDisabled(key);
             const hinted = isHintedKey(key);
+            const feedback = getKeyFeedback(key);
             return (
               <KeyboardKey
                 key={key}
@@ -287,6 +296,7 @@ function KeyboardComponent() {
                 hintDim={theme.colors.key.hintDim}
                 wide={isActionKey(key)}
                 disabled={disabled}
+                dimmed={feedback === 'absent'}
                 onPress={() => handlePress(key)}
               />
             );

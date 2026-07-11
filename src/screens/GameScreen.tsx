@@ -39,6 +39,7 @@ import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
 import type { GameMode, GameSession } from '../types';
+import { shouldRestoreActiveGame } from '../utils/activeGame';
 import { useNavigation } from '@react-navigation/native';import { GRADIENTS } from '../components/home/ModeCard';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -52,6 +53,13 @@ function capitalize(s: string): string {
 function randomLength(): number {
   return 5 + Math.floor(Math.random() * 6);
 }
+
+function formatExtraAttemptLabel(remaining: number): string {
+  const base = 'Watch Ad · +1 Attempt';
+  return remaining > 1 ? `${base} (${remaining} left)` : base;
+}
+
+const LETTER_HINT_AD_LABEL = 'Watch Ad · Letter Hint';
 
 /** Wait for current frame + paint so Fabric can finish Animated tile → StaticTile swap. */
 function runAfterUiSettle(callback: () => void): void {
@@ -226,12 +234,14 @@ export function GameScreen({ route }: Props) {
         // ── Hint Buttons ──
         hintButtonsContainer: {
           flexDirection: 'row',
-          justifyContent: 'center',
+          alignSelf: 'stretch',
           gap: 10,
-          marginHorizontal: 16,
-          marginVertical: 10,
+          marginTop: 8,
+          marginBottom: 10,
         },
         hintButton: {
+          flex: 1,
+          minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -239,7 +249,7 @@ export function GameScreen({ route }: Props) {
           backgroundColor: theme.colors.brand.primary,
           borderRadius: 20,
           paddingVertical: 10,
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           // Soft shadow
           shadowColor: theme.colors.brand.primary,
           shadowOffset: { width: 0, height: 4 },
@@ -258,6 +268,8 @@ export function GameScreen({ route }: Props) {
           ...typography.button,
           fontSize: 13,
           color: '#FFFFFF',
+          flexShrink: 1,
+          textAlign: 'center',
         },
       }),
     [theme],
@@ -310,14 +322,18 @@ export function GameScreen({ route }: Props) {
   useEffect(() => {
     const hardMode = useSettingsStore.getState().hardModeEnabled;
     const saved = getActiveGame(hardMode);
-    if (saved && saved.mode === mode && saved.letterCount === letterCount && saved.hardMode === hardMode) {
+    const len = letterCount ?? randomLength();
+    const shouldRestoreSaved = shouldRestoreActiveGame(saved, mode, len, hardMode);
+
+    if (shouldRestoreSaved) {
       restoreSession(saved);
       setInitializing(false);
       return;
     }
 
+    clearActiveGame(hardMode);
+
     const dictStore = useDictionaryStore.getState();
-    const len = letterCount ?? randomLength();
 
     let word: string;
 
@@ -465,10 +481,11 @@ export function GameScreen({ route }: Props) {
   // Hard mode indicator
   const hardModeEnabled = useSettingsStore((s) => s.hardModeEnabled);
 
-  // Hint buttons: watch ad for extra row or letter hint
+  // Hint buttons: watch ad for extra attempt or letter hint
   const isPro = useSettingsStore((s) => s.isPro);
   const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
   const rewardedLoaded = useAdStore((s) => s.rewardedLoaded);
+  const extraAttemptsRemaining = session ? maxExtra - session.extraGuessesUsed : 0;
 
   const handleWatchAd = useCallback(async () => {
     const adStore = useAdStore.getState();
@@ -569,7 +586,7 @@ export function GameScreen({ route }: Props) {
       {/* ── Hint Buttons ── */}
       {session.status === 'playing' && (
         <View style={styles.hintButtonsContainer}>
-          {/* Watch Ad for +1 Row */}
+          {/* Rewarded ad: extra attempt */}
           {session.extraGuessesUsed < maxExtra && (
             <TouchableOpacity
               style={[styles.hintButton, !rewardedLoaded && styles.hintButtonDisabled]}
@@ -578,20 +595,25 @@ export function GameScreen({ route }: Props) {
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
-              accessibilityLabel="Watch ad to add extra row"
+              accessibilityLabel="Watch ad for an extra attempt"
             >
               <MaterialIcons
                 name="play-circle-outline"
                 size={20}
                 color="#FFFFFF"
               />
-              <Text style={styles.hintButtonText}>
-                +1 Row{maxExtra - session.extraGuessesUsed > 1 ? ` (${maxExtra - session.extraGuessesUsed} left)` : ''}
+              <Text
+                style={styles.hintButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {formatExtraAttemptLabel(extraAttemptsRemaining)}
               </Text>
             </TouchableOpacity>
           )}
 
-          {/* Watch Ad for Letter Hint */}
+          {/* Rewarded ad: letter hint */}
           {!session.letterHintUsed && (
             <TouchableOpacity
               style={[styles.hintButton, styles.letterHintButton, !rewardedLoaded && styles.hintButtonDisabled]}
@@ -600,14 +622,21 @@ export function GameScreen({ route }: Props) {
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
-              accessibilityLabel="Watch ad to reveal a letter"
+              accessibilityLabel="Watch ad for a letter hint"
             >
               <MaterialIcons
                 name="lightbulb-outline"
                 size={20}
                 color="#FFFFFF"
               />
-              <Text style={styles.hintButtonText}>Letter Hint</Text>
+              <Text
+                style={styles.hintButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {LETTER_HINT_AD_LABEL}
+              </Text>
             </TouchableOpacity>
           )}
         </View>

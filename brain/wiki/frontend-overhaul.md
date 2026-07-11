@@ -1,5 +1,5 @@
 # frontend-overhaul
-updated: 2026-07-11 (HomeBackground UV-scroll, HardModePill icon change, back button UX)
+updated: 2026-07-11 (home top spacing, result modal endless actions, keyboard absent dim)
 tags: [ui, redesign, visual, palette, font, animation, phase-7, complete]
 related: [design-tokens, theme-system, tech-stack, architecture, animation-system]
 
@@ -44,6 +44,7 @@ Transform from "Wordle clone with muted earth tones" to "bright, playful, family
 - Daily preview below cards
 - Hard mode pill toggle below cards
 - Top bar: 44×44 circular icon buttons with shadow
+- Scroll content top padding: `safeAreaTop + 8 + 44 + 36` — clears icon bar without crowding title
 - Stagger entrance: title → subtitle+icons → cards → preview → hard mode
 
 ### Dependency added

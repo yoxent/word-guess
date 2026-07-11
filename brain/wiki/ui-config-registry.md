@@ -1,5 +1,5 @@
 # ui-config-registry
-updated: 2026-07-09 (hardMode removed from settings — redundant with Home)
+updated: 2026-07-11 (settings layout, help tooltips, simpler animations in Appearance)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110, accessibility]
 related: [architecture, phase-structure, storage-strategy, monetization, accessibility]
 
@@ -38,7 +38,7 @@ const statsConfig: StatsCardConfig[] = [
 ## Settings config (D-79, extended in UI-SPEC)
 ```typescript
 type SettingsRowConfig =
-  | { type: 'toggle'; id: string; label: string; description?: string; storeKey: keyof AppSettings }
+  | { type: 'toggle'; id: string; label: string; description?: string; helpText?: string; storeKey: keyof AppSettings }
   | { type: 'placeholder'; id: string; label: string; description: string }
   | { type: 'info'; id: string; label: string; value: string }
   | { type: 'restore'; id: string; label: string; description?: string }  // Phase 4 addition (D-110)
@@ -57,12 +57,13 @@ type SettingsRowConfig =
 ### Phase 4 sections (from config, Account)
 | Section | Rows |
 |---------|------|
-| Audio & Haptics | `sound` (toggle), `haptic` (toggle) |
-| Account | `signIn` (placeholder) + `proStatus` (info) + `removeAds` (purchase) + `restorePurchases` (restore) — D-110, D-111 |
-| Accessibility (Phase 6) | `colorBlind` (toggle), `reduceMotion` (toggle) |
-| Appearance (Phase 6) | `theme` (themeSelector) |
+| Audio & Haptics | BGM + SFX volume sliders (10% steps, label shows `· N%`), `haptic` toggle with optional `helpText` (?) |
+| Account | `signIn` + `proStatus` + `removeAds` + `restorePurchases` |
+| Appearance | `theme` selector + **Simpler Animations** toggle (`reduceMotion`, with `helpText`) |
 
-**Removed 2026-07-09:** Gameplay section's `hardMode` toggle (was redundant — Home screen has it inline). Defaults on Home now control Hard Mode; Settings removed for UX clarity.
+**Removed from Settings UI (2026-07-11):** Color Blind Mode toggle (texture code remains in Tile.tsx if store flag set). Accessibility section removed — Simpler Animations moved under Appearance.
+
+**Hard Mode:** Home screen pill only — default off, not persisted across app restarts (see storage-strategy).
 
 Rows separated by hairline divider: `1px solid tileEmpty`, 4px vertical margin.
 
@@ -94,7 +95,7 @@ Reusable card container for stat sections. Driven by config array.
 Vis: surface bg (#fff), borderRadius 12, shadow `{elevation:3, opacity:0.08}`, padding 24px, marginBottom 16px. Title: 18px bold textPrimary.
 
 ### SettingsRow (`src/components/ui/SettingsRow.tsx`)
-Generic row renderer dispatching on `SettingsRowConfig.type`. Single file switch/if-else. Renders toggle, placeholder, info, restore, or purchase (Phase 4).
+Generic row renderer dispatching on `SettingsRowConfig.type`. Toggle rows may show `help-outline` (?) when `helpText` is set — opens `Alert` with explanation (Haptic Feedback, Simpler Animations). Volume sliders use percentage-based thumb positioning (no layout jump on drag).
 
 ### Share utility (`src/utils/share.ts`)
 Pure function `generateShareText(gameResult)` → emoji grid string. Input: GameResult with mode, word, attempts, won, guesses[][], date. Output: Wordle-style emoji grid with header + date + rows + footer.

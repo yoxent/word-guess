@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   PanResponder,
   LayoutChangeEvent,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
-import { useSettingsStore } from '../../stores/settingsStore';
+import { useSettingsStore, snapVolume } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
 
 interface SettingsRowProps {
@@ -65,6 +66,21 @@ export function SettingsRow({
   }
 }
 
+function SettingsHelpButton({ label, helpText }: { label: string; helpText: string }) {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={() => Alert.alert(label, helpText)}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`About ${label}`}
+    >
+      <MaterialIcons name="help-outline" size={18} color={theme.colors.icon.muted} />
+    </TouchableOpacity>
+  );
+}
+
 function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } }) {
   const theme = useTheme();
   const styles = useStyles(theme);
@@ -81,7 +97,12 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
 
   return (
     <View style={styles.row}>
-      <Text style={styles.label}>{config.label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{config.label}</Text>
+        {config.helpText ? (
+          <SettingsHelpButton label={config.label} helpText={config.helpText} />
+        ) : null}
+      </View>
       <Switch
         value={!!value}
         onValueChange={toggleAction}
@@ -266,8 +287,9 @@ function VolumeSliderRow({
   return (
     <View style={styles.volumeRow}>
       <View style={styles.volumeHeader}>
-        <Text style={styles.label}>{config.label}</Text>
-        <Text style={styles.volumePercent}>{percent}%</Text>
+        <Text style={styles.label}>
+          {config.label} · {percent}%
+        </Text>
       </View>
       {config.description && (
         <Text style={styles.volumeDescription}>{config.description}</Text>
@@ -300,7 +322,6 @@ function VolumeSlider({
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
-  const [width, setWidth] = useState(INITIAL_WIDTH_ESTIMATE);
   const widthRef = useRef(INITIAL_WIDTH_ESTIMATE);
 
   const updateFromX = (x: number) => {
@@ -309,7 +330,7 @@ function VolumeSlider({
     const ratio = x / w;
     if (!Number.isFinite(ratio)) return;
     const clamped = Math.max(0, Math.min(1, ratio));
-    onChange(Math.round(clamped * 100) / 100);
+    onChange(snapVolume(clamped));
   };
 
   const panResponder = useRef(
@@ -330,14 +351,11 @@ function VolumeSlider({
     const w = e.nativeEvent.layout.width;
     if (w > 0 && Number.isFinite(w)) {
       widthRef.current = w;
-      if (Math.abs(w - width) > 0.5) {
-        setWidth(w);
-      }
     }
   };
 
-  const thumbLeft = value * width - THUMB_SIZE / 2;
-  const fillWidth = value * width;
+  const fillPercent = `${value * 100}%`;
+  const thumbPercent = `${value * 100}%`;
 
   return (
     <View
@@ -350,9 +368,17 @@ function VolumeSlider({
       accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
     >
       <View style={styles.sliderTrack}>
-        <View style={[styles.sliderFill, { width: fillWidth }]} />
+        <View style={[styles.sliderFill, { width: fillPercent }]} />
       </View>
-      <View style={[styles.sliderThumb, { left: thumbLeft }]} />
+      <View
+        style={[
+          styles.sliderThumb,
+          {
+            left: thumbPercent,
+            transform: [{ translateX: -THUMB_SIZE / 2 }],
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -376,6 +402,13 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           ...typography.settingsRow,
           color: c.text.primary,
           flex: 1,
+        },
+        labelRow: {
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          marginRight: 12,
         },
         comingSoon: {
           ...typography.small,
@@ -460,14 +493,7 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
         },
         volumeHeader: {
           flexDirection: 'row',
-          justifyContent: 'space-between',
           alignItems: 'baseline',
-        },
-        volumePercent: {
-          ...typography.small,
-          color: c.text.secondary,
-          fontVariant: ['tabular-nums'],
-          marginLeft: 12,
         },
         volumeDescription: {
           ...typography.small,

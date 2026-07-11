@@ -1,5 +1,5 @@
 # accessibility
-updated: 2026-07-08
+updated: 2026-07-11 (Simpler Animations in Appearance, settings help tooltips)
 tags: [accessibility, talkback, color-blindness, reduce-motion, pixelratio]
 related: [architecture, design-tokens, animation-system, ui-config-registry, key-risks]
 
@@ -27,12 +27,13 @@ All implemented in Phase 6 (Pre-Launch & Polish). Controlled via Settings toggle
 - Overlay rendered on top of Tile (absolute inset 0) — visual addition, not color replacement
 - Toggle in settingsStore persisted via MMKV
 
-## Reduce motion (LAUNCH-04)
+## Simpler Animations (LAUNCH-04, formerly "Reduce Motion")
 
-- Settings toggle `reduceMotion`, OFF by default — user-controlled, NOT system-detected
-- When ON: skip ALL animations immediately — tile flip, confetti, stat card entrance, home page stagger
-- Game shows instant results (no animation delay)
-- Separate from system `AccessibilityInfo.isReduceMotionEnabled()` — user chose manual toggle
+- Settings toggle `reduceMotion`, label **Simpler Animations** — under **Appearance** (not a separate Accessibility section)
+- OFF by default — user-controlled, NOT system-detected
+- `helpText` on toggle; (?) opens Alert with explanation
+- When ON: skip tile flip, confetti, stat entrance, home stagger — instant results
+- Separate from system `AccessibilityInfo.isReduceMotionEnabled()`
 
 ## PixelRatio font scaling (LAUNCH-03)
 

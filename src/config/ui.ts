@@ -18,7 +18,7 @@ export interface SettingsSectionConfig {
 }
 
 export type SettingsRowConfig =
-  | { type: 'toggle'; id: string; label: string; description?: string; storeKey: keyof AppSettings }
+  | { type: 'toggle'; id: string; label: string; description?: string; helpText?: string; storeKey: keyof AppSettings }
   | { type: 'placeholder'; id: string; label: string; description: string }
   | { type: 'info'; id: string; label: string; value: string }
   | { type: 'restore'; id: string; label: string; description?: string }
@@ -57,7 +57,13 @@ export const settingsConfig: SettingsSectionConfig[] = [
     rows: [
       { type: 'volumeSlider', id: 'bgm', label: 'Background Music', storeKey: 'bgmVolume' },
       { type: 'volumeSlider', id: 'sfx', label: 'Sound Effects', storeKey: 'sfxVolume' },
-      { type: 'toggle', id: 'haptic', label: 'Haptic Feedback', storeKey: 'hapticEnabled' },
+      {
+        type: 'toggle',
+        id: 'haptic',
+        label: 'Haptic Feedback',
+        storeKey: 'hapticEnabled',
+        helpText: 'A short vibration when you tap keys or submit a guess.',
+      },
     ],
   },
   {
@@ -65,14 +71,15 @@ export const settingsConfig: SettingsSectionConfig[] = [
     title: 'Appearance',
     rows: [
       { type: 'themeSelector', id: 'theme', label: 'Theme' },
-    ],
-  },
-  {
-    id: 'accessibility',
-    title: 'Accessibility',
-    rows: [
-      { type: 'toggle', id: 'colorBlind', label: 'Color Blind Mode', description: 'Shows patterns on tiles', storeKey: 'colorBlindMode' },
-      { type: 'toggle', id: 'reduceMotion', label: 'Reduce Motion', description: 'Skip all animations', storeKey: 'reduceMotion' },
+      {
+        type: 'toggle',
+        id: 'reduceMotion',
+        label: 'Simpler Animations',
+        description: 'Skip tile flips, confetti, and other effects',
+        helpText:
+          'Turns off tile flip animations, confetti, and other motion effects for a calmer experience.',
+        storeKey: 'reduceMotion',
+      },
     ],
   },
 ];
@@ -81,7 +88,7 @@ export const settingsConfig: SettingsSectionConfig[] = [
 // Phase 4 (04-01): Added maxExtraGuessesFree/maxExtraGuessesPro split
 // Phase 4 (04-02): Added restore, purchase row types and Account section rows
 // Phase 5: Swap placeholder → signInButton row in account section
-// Phase 6 (06-01): Added Accessibility section (colorBlind toggle, reduceMotion toggle) + Appearance section (themeSelector)
+// Phase 6 (06-01): Added Appearance section (themeSelector, simpler animations toggle)
 // 2026-07-09: Added volumeSlider row type (continuous slider). Replaced
 // the prior soundEnabled toggle AND the 3-position segmented control with
 // a real slider. The persisted state schema didn't need a version bump —

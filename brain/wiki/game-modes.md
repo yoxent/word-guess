@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-11 (hard mode counting fix: cumulative→max-per-row)
+updated: 2026-07-11 (random single-slot continue, hard mode session-only, rewarded hint scoping)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup]
 
@@ -8,9 +8,10 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 **Free Play removed (2026-07-05):** Functionally identical to Endless (pick length, unlimited plays). Merged into Endless mode.
 
 ### Random
-- Auto-assigned random letter count (5-10) each game
+- Auto-assigned random letter count (5-10) each **new** game
 - Target word from enriched dictionary
 - Discovery mechanic — player tries lengths they wouldn't pick
+- **Single active slot:** any in-progress random game counts as one instance — letter count is ignored for continue/resume (see `src/utils/activeGame.ts`)
 
 ### Daily Challenge
 - **6 puzzles per day** (one per word length 5-10)
@@ -21,19 +22,25 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Resets at UTC midnight
 
 ### Endless
-- After win/loss, result modal with "Play Next" → immediately starts new word
+- After win/loss, result modal with centered **Play Next** + full-width **Back to Menu**
+- **Play Next** → immediately starts new word (same length)
+- **Back to Menu** → Home (interstitial gated like other exits)
 - Tracks consecutive correct streak (displayed in header)
 - Target word pool = full dictionary words **minus today's daily words** (1-6 words)
 - Same-day exclusion only — daily words return to pool next UTC day
 - Player guesses validated against full dictionary (no exclusions)
 
 ## Continue game prompt
-When selecting a game mode from Home, if a saved in-progress game exists with matching `mode` + `letterCount`:
-- **Daily mode:** auto-continues without prompt — daily puzzle slot is consumed for the day, starting fresh would waste the day's attempt
-- **Non-daily (Endless/Random):** custom `<Modal>` overlay with Continue / New Game options. Tap outside to dismiss (cancel). Implemented via `navigateWithContinueCheck()` in HomeScreen.tsx
-- **Continue:** navigates to Game → init code detects saved game via `getActiveGame()` and restores it
-- **New Game:** `clearActiveGame()` then navigates fresh
-- Saved on back nav (GameScreen `handleBack`), unmount cleanup, and AppState background
+When selecting a game mode from Home, if a saved in-progress game exists:
+- **Daily mode:** auto-continues without prompt when `mode` + `letterCount` + progress match — daily puzzle slot is consumed for the day
+- **Random mode:** show Continue / New Game modal when **any** saved random game has progress (`guesses`, rewarded hints, or extra attempts used) — **not** keyed by newly rolled letter count. Continue uses saved `letterCount`; New Game clears save and rolls fresh length
+- **Endless mode:** Continue / New Game when `mode` + `letterCount` match
+- Tap outside modal dismisses (cancel)
+- Implemented via `navigateWithContinueCheck()` + `shouldOfferContinue()` in `src/utils/activeGame.ts`
+- **Continue:** navigates to Game → `shouldRestoreActiveGame()` restores MMKV session
+- **New Game:** `clearActiveGame()` then navigates; `startGame()` also clears persisted slot
+- Saved on back nav, unmount cleanup, and AppState background
+- Starting fresh without continue always calls `clearActiveGame()` first so rewarded hints (`extraGuessesUsed`, `letterHintUsed`, boosted `maxAttempts`) do not leak into a new instance
 
 ## Streak tracking (per-mode, Phase 3)
 - **Per-mode:** Daily Challenge streak tracked separately from non-daily modes (Random + Free Play share a streak). Endless has its own streak (existing MMKV key, Phase 2).
@@ -43,7 +50,9 @@ When selecting a game mode from Home, if a saved in-progress game exists with ma
 - **SQLite storage:** Game history table records won/lost per game. Streak computed by SQL aggregation queries ordering by `completed_at DESC` and grouping consecutive wins.
 
 ## Universal toggle: Hard Mode
-- Applies to ANY mode (per-game toggle)
+- Home screen **Hard Mode** pill toggle — applies to the current session's games
+- **Default: OFF (normal mode)** on every app launch
+- **Not persisted** — excluded from settingsStore MMKV `partialize` (v3); resets when app quits
 - Enforced at submit time (not input time) — shake + toast on violation
 - Must reuse green tiles in same position (most recent guess only — earlier greens are implicitly carried forward)
 - Must include yellow tiles somewhere in guess
@@ -63,14 +72,15 @@ Bug fixed 2026-07-11: Previous implementation counted yellow letters cumulativel
 ## Result flow (all modes — Phase 2 change)
 - Result displayed as **modal overlay** (not navigation to ResultScreen)
 - Shows: win/loss state, target word, word definition, emoji grid
-- Endless: "Play Next" button → next word (same length)
-- Other modes: "Back to Menu" → HomeScreen
+- Win confetti renders **in front of** the modal card (`zIndex` above card)
+- Endless: centered **Play Next** + **Back to Menu** (secondary)
+- Other modes: **Back to Menu** only
 
 ## Attempt system
 | Factor | Value |
 |--------|-------|
 | Base attempts | letterCount + 1 |
-| Rewarded ad bonus | +1 per ad, max 2/game (Phase 4) |
+| Rewarded ad bonus | +1 attempt per ad, max 2/game free / 3 pro (during gameplay via GameScreen hint row) |
 | Total max (10 letters) | 11 + 2 = 13 |
 
 ## Tile feedback rules (Wordle)

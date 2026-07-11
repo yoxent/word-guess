@@ -51,6 +51,13 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().bgmVolume).toBe(0.5);
     });
 
+    it('snaps to nearest 10%', () => {
+      useSettingsStore.getState().setBgmVolume(0.54);
+      expect(useSettingsStore.getState().bgmVolume).toBe(0.5);
+      useSettingsStore.getState().setBgmVolume(0.56);
+      expect(useSettingsStore.getState().bgmVolume).toBe(0.6);
+    });
+
     it('clamps to 0-1 range', () => {
       useSettingsStore.getState().setBgmVolume(-0.5);
       expect(useSettingsStore.getState().bgmVolume).toBe(0);
@@ -67,8 +74,8 @@ describe('settingsStore', () => {
 
   describe('setSfxVolume', () => {
     it('sets volume', () => {
-      useSettingsStore.getState().setSfxVolume(0.25);
-      expect(useSettingsStore.getState().sfxVolume).toBe(0.25);
+      useSettingsStore.getState().setSfxVolume(0.3);
+      expect(useSettingsStore.getState().sfxVolume).toBe(0.3);
     });
 
     it('clamps to 0-1 range', () => {

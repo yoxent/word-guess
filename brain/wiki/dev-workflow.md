@@ -72,7 +72,7 @@ Before EAS production build:
 - [ ] Real AdMob app ID in app.json (replace `ca-app-pub-3940256099942544~3347511713`)
 - [ ] Real Firebase Remote Config keys set
 - [ ] Privacy policy hosted on GitHub Pages (covers AdMob data collection)
-- [ ] Branded assets: icon.png, splash.png, adaptive-icon.png (replace 1×1 placeholders)
+- [x] Branded assets: icon.png, splash.png, adaptive-icon.png, favicon.png (1254×1254 logo, 2026-07-11)
 - [ ] google-services.json with real Firebase project config at project root
 - [ ] App version bumped in app.json
 - [ ] EAS Build: `eas build --platform android --profile production`
@@ -87,7 +87,7 @@ Before EAS production build:
 - Content must cover: AdMob data collection, Google Sign-In data, standard Play Store privacy requirements
 
 ## Asset icons
-Placeholder 1×1 PNGs in `assets/` (icon.png, splash.png, etc.) satisfy prebuild requirements. Replace with real branded assets before Phase 6 production build.
+Branded PNGs in `assets/` (icon, splash, adaptive-icon, favicon) — 1254×1254 logo. `app.json` references `./assets/icon.png` and `./assets/splash.png` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after asset changes.
 
 ## Android Studio standalone run (alternative)
 Workaround to run everything from AS without a separate terminal:

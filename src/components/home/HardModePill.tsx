@@ -26,12 +26,11 @@ export function HardModePill({ enabled, onToggle }: HardModePillProps) {
           paddingVertical: 10,
           paddingHorizontal: 18,
           borderRadius: 20,
-          borderWidth: 1.5,
+          borderWidth: 2,
         },
         pillActive: {
           backgroundColor: theme.colors.mode === 'dark' ? '#2A1F12' : '#FFF3E0',
           borderColor: theme.colors.brand.secondary,
-          borderWidth: 2,
         },
         pillInactive: {
           backgroundColor: theme.colors.surface.card,

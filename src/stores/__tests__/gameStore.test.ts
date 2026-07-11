@@ -81,6 +81,37 @@ describe('gameStore', () => {
       useGameStore.getState().startGame('random', 'APPLE', 5, false);
       expect(useGameStore.getState().session?.maxAttempts).toBe(6);
     });
+
+    it('resets rewarded hints when starting a new game', () => {
+      const { clearActiveGame } = require('../../services/storage');
+      useGameStore.setState({
+        session: {
+          id: 'old',
+          mode: 'random',
+          word: 'APPLE',
+          letterCount: 5,
+          guesses: [],
+          feedback: [],
+          keyColors: {},
+          status: 'playing',
+          hardMode: false,
+          extraGuessesUsed: 2,
+          letterHintUsed: true,
+          maxAttempts: 8,
+          startedAt: new Date().toISOString(),
+        },
+        hintLetter: 'P',
+      });
+
+      useGameStore.getState().startGame('random', 'CRANE', 5, false);
+      const session = useGameStore.getState().session;
+
+      expect(clearActiveGame).toHaveBeenCalledWith(false);
+      expect(session?.extraGuessesUsed).toBe(0);
+      expect(session?.letterHintUsed).toBe(false);
+      expect(session?.maxAttempts).toBe(6);
+      expect(useGameStore.getState().hintLetter).toBeNull();
+    });
   });
 
   describe('addLetter', () => {

@@ -32,8 +32,18 @@ import {
   getActiveGame,
   clearActiveGame,
 } from '../services';
+import { shouldOfferContinue } from '../utils/activeGame';
 
 type HomeNav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+const HOME_TOP_BAR_INSET = 8;
+const HOME_TOP_ICON_SIZE = 44;
+/** Space between the icon row and the title block. */
+const HOME_CONTENT_TOP_GAP = 36;
+
+function homeScrollPaddingTop(insetTop: number): number {
+  return insetTop + HOME_TOP_BAR_INSET + HOME_TOP_ICON_SIZE + HOME_CONTENT_TOP_GAP;
+}
 
 export function HomeScreen() {
   const theme = useTheme();
@@ -55,7 +65,6 @@ export function HomeScreen() {
           flexGrow: 1,
           alignItems: 'center',
           paddingHorizontal: layout.screenPadding,
-          paddingTop: 100, // space for absolute top bar
           paddingBottom: layout.screenPadding + 40,
         },
         // ── Top Bar ──
@@ -90,7 +99,7 @@ export function HomeScreen() {
         // ── Title & Branding ──
         titleSection: {
           alignItems: 'center',
-          marginBottom: 32,
+          marginBottom: 36,
         },
         title: {
           ...typography.display,
@@ -277,20 +286,16 @@ export function HomeScreen() {
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
     const hardMode = useSettingsStore.getState().hardModeEnabled;
     const saved = getActiveGame(hardMode);
-    const hasProgress =
-      saved &&
-      saved.mode === mode &&
-      saved.letterCount === length &&
-      saved.hardMode === hardMode &&
-      saved.status === 'playing' &&
-      saved.guesses.length > 0;
+    const hasProgress = shouldOfferContinue(saved, mode, length, hardMode);
     if (hasProgress) {
       if (mode === 'daily') {
         navigation.navigate('Game', { mode, letterCount: length });
         return;
       }
-      setContinueModal({ mode, length });
+      const continueLength = mode === 'random' ? saved.letterCount : length;
+      setContinueModal({ mode, length: continueLength });
     } else {
+      clearActiveGame(hardMode);
       navigation.navigate('Game', { mode, letterCount: length });
     }
   };
@@ -307,9 +312,13 @@ export function HomeScreen() {
   const handleNewGame = () => {
     if (!continueModal) return;
     clearActiveGame(useSettingsStore.getState().hardModeEnabled);
+    const length =
+      continueModal.mode === 'random'
+        ? Math.floor(Math.random() * 6) + 5
+        : continueModal.length;
     navigation.navigate('Game', {
       mode: continueModal.mode,
-      letterCount: continueModal.length,
+      letterCount: length,
     });
     setContinueModal(null);
   };
@@ -425,7 +434,10 @@ export function HomeScreen() {
       {/* ── Scrollable Content ── */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: homeScrollPaddingTop(insets.top) },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >

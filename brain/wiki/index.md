@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-11
+updated: 2026-07-11 (gameplay polish, settings UX, branded assets)
 tags: [index, mvp, phase-6-executed]
 related: []
 

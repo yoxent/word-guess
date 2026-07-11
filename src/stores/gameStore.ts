@@ -3,6 +3,7 @@ import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../type
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { useDictionaryStore } from './dictionaryStore';
 import { config } from '../constants/config';
+import { clearActiveGame } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
 interface GameState {
@@ -47,6 +48,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
   hintLetter: null,
 
   startGame: (mode, word, letterCount, hardMode) => {
+    clearActiveGame(hardMode);
+
     const session: GameSession = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
       mode,
@@ -62,7 +65,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       maxAttempts: letterCount + 1,
       startedAt: new Date().toISOString(),
     };
-    set({ session, currentGuess: '', error: null, pendingInputs: [] });
+    set({ session, currentGuess: '', error: null, pendingInputs: [], hintLetter: null });
   },
 
   addLetter: (letter) => {

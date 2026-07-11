@@ -119,6 +119,11 @@ export function ResultModal() {
         playNextButton: {
           width: '100%',
         },
+        endlessPrimaryButton: {
+          alignSelf: 'center',
+          width: 'auto',
+          minWidth: 220,
+        },
       }),
     [theme],
   );
@@ -289,7 +294,6 @@ export function ResultModal() {
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.overlay}>
-        {isWin && showConfetti && <Confetti />}
         <Animated.View
           style={[
             styles.card,
@@ -351,16 +355,25 @@ export function ResultModal() {
           {/* Buttons */}
           <View style={styles.buttonContainer}>
             {session.mode === 'endless' ? (
-              <Button
-                title="Play Next"
-                onPress={handlePlayNextWithAd}
-                style={styles.playNextButton}
-              />
+              <>
+                <Button
+                  title="Play Next"
+                  onPress={handlePlayNextWithAd}
+                  style={[styles.playNextButton, styles.endlessPrimaryButton]}
+                />
+                <Button
+                  title="Back to Menu"
+                  variant="secondary"
+                  onPress={handleBackToMenuWithAd}
+                  style={styles.playNextButton}
+                />
+              </>
             ) : (
               <Button title="Back to Menu" onPress={handleBackToMenuWithAd} />
             )}
           </View>
         </Animated.View>
+        {isWin && showConfetti && <Confetti />}
       </View>
     </Modal>
   );

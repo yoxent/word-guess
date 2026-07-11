@@ -1,5 +1,5 @@
 # Storage Strategy
-updated: 2026-07-08 (continue-game prompt: Alert→Modal, daily auto-continues)
+updated: 2026-07-11 (active-game resume helpers, rewarded hint scoping, hard mode not in settings persist)
 tags: [storage, persistence, sqlite, mmkv]
 related: [architecture, tech-stack, phase-structure, game-modes]
 
@@ -79,7 +79,7 @@ Settings store uses persist middleware with this adapter. Game store is session-
 ## 5 stores persistence strategy
 | Store | Persist | Backend |
 |-------|---------|--------|
-| settingsStore | Yes — MMKV (sync) | MMKV via Zustand adapter |
+| settingsStore | Yes — MMKV (sync), **partial** | MMKV via Zustand adapter. `hardModeEnabled` **excluded** from persist (v3) — session-only on Home pill |
 | statsStore | No — SQLite-backed (async) | expo-sqlite via storage service |
 | authStore | Yes — AsyncStorage (async) | AsyncStorage via Zustand adapter |
 | gameStore | No — session only | MMKV (active game save/restore via AppState listener) |
@@ -129,15 +129,17 @@ SELECT letter_count, COUNT(*) as played, SUM(won) as won FROM game_history GROUP
 | Back navigation | `saveActiveGame()` | User taps back arrow from GameScreen (via `handleBack`) |
 | Component unmount | `saveActiveGame()` | Android hardware back, swipe gesture, or screen unmount |
 
-Restore: GameScreen init checks `getActiveGame()` for saved session matching `mode`. If found, restores via `restoreSession()`.
+Restore: GameScreen init uses `shouldRestoreActiveGame()` from `src/utils/activeGame.ts` — random mode ignores route `letterCount`; other modes require match.
 
-Clear: `clearActiveGame()` called on game completion (win/loss) or explicit "New Game" from Home prompt.
+Clear: `clearActiveGame()` on game completion, explicit "New Game", or `startGame()` for a fresh instance.
+
+### Rewarded hint fields (session-scoped)
+`extraGuessesUsed`, `letterHintUsed`, and boosted `maxAttempts` live on `GameSession` in MMKV while `status === 'playing'`. They restore only when continuing the **same** in-progress game — never when starting a new instance (Home clears save or `startGame()` clears first).
 
 ### Continue game prompt
-Home screen checks for saved game when user selects a mode+length. If saved game exists with matching `mode` + `letterCount` + `status === 'playing'`:
-- **Daily mode:** auto-continues — navigates directly, no prompt (daily puzzle slot is consumed for the day, no reason to start fresh)
-- **Non-daily (Endless/Random):** shows a custom React Native `<Modal>` overlay with two options:
-  - **Continue** → navigates, GameScreen restores saved session
-  - **New Game** → `clearActiveGame()` then navigates fresh
-- Tapping outside the modal dismisses (acts as cancel)
+Home screen uses `shouldOfferContinue()` when user selects a mode:
+- **Daily:** `mode` + `letterCount` + progress → auto-continue (no modal)
+- **Random:** any saved random game with progress → modal; letter count of new roll ignored
+- **Endless:** `mode` + `letterCount` + progress → modal
+- Progress = guesses submitted, or rewarded hints used (`extraGuessesUsed` / `letterHintUsed`)
 - Uses `navigateWithContinueCheck()` in HomeScreen.tsx

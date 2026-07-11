@@ -11,6 +11,18 @@ import type { AppSettings } from '../types';
 export const MIN_VOLUME = 0;
 export const MAX_VOLUME = 1;
 
+/** Snap volume to nearest 10% step (0, 0.1, …, 1). */
+export function snapVolume(v: number): number {
+  if (Number.isNaN(v)) return 0;
+  const clamped = Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, v));
+  return Math.round(clamped * 10) / 10;
+}
+
+type PersistedSettings = Omit<
+  AppSettings,
+  'hardModeEnabled'
+>;
+
 interface SettingsState extends AppSettings {
   toggleHardMode: () => void;
   setBgmVolume: (v: number) => void;
@@ -25,7 +37,7 @@ interface SettingsState extends AppSettings {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      hardModeEnabled: true,
+      hardModeEnabled: false,
       bgmVolume: 0.75,
       sfxVolume: 0.75,
       hapticEnabled: true,
@@ -34,8 +46,8 @@ export const useSettingsStore = create<SettingsState>()(
       reduceMotion: false,
       themeMode: 'system',
       toggleHardMode: () => set((s) => ({ hardModeEnabled: !s.hardModeEnabled })),
-      setBgmVolume: (v) => set({ bgmVolume: clamp(v) }),
-      setSfxVolume: (v) => set({ sfxVolume: clamp(v) }),
+      setBgmVolume: (v) => set({ bgmVolume: snapVolume(v) }),
+      setSfxVolume: (v) => set({ sfxVolume: snapVolume(v) }),
       toggleHaptic: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
       setPro: (value) => set({ isPro: value }),
       toggleColorBlindMode: () => set((s) => ({ colorBlindMode: !s.colorBlindMode })),
@@ -45,29 +57,48 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       storage: createJSONStorage(() => mmkvZustandStorage),
-      // 2026-07-09: bumped from 1 to 2. v1 had `soundEnabled: boolean`;
-      // v2 had `bgmVolume` and `sfxVolume` as 3-position values (0 | 0.75 | 1).
-      // 2026-07-09: NOT bumped again for the slider change — old values
-      // (0, 0.75, 1) are still valid numbers in the continuous [0, 1] range.
-      version: 2,
+      // v3: hardModeEnabled is session-only (not persisted); volumes snap to 10%.
+      version: 3,
+      partialize: (state): PersistedSettings => ({
+        bgmVolume: state.bgmVolume,
+        sfxVolume: state.sfxVolume,
+        hapticEnabled: state.hapticEnabled,
+        isPro: state.isPro,
+        colorBlindMode: state.colorBlindMode,
+        reduceMotion: state.reduceMotion,
+        themeMode: state.themeMode,
+      }),
       migrate: (persistedState, version) => {
+        let state = persistedState as Record<string, unknown> & {
+          soundEnabled?: boolean;
+          hardModeEnabled?: boolean;
+          bgmVolume?: number;
+          sfxVolume?: number;
+        };
+
         if (version < 2) {
-          const old = persistedState as { soundEnabled?: boolean } & Record<string, unknown>;
-          const wasEnabled = old.soundEnabled !== false; // default true
-          const { soundEnabled: _omit, ...rest } = old;
-          return {
+          const wasEnabled = state.soundEnabled !== false;
+          const { soundEnabled: _omit, ...rest } = state;
+          state = {
             ...rest,
             bgmVolume: wasEnabled ? 0.75 : 0,
             sfxVolume: wasEnabled ? 0.75 : 0,
-          } as typeof persistedState;
+          };
         }
-        return persistedState;
+
+        if (version < 3) {
+          const { hardModeEnabled: _hard, ...rest } = state;
+          state = { ...rest };
+          if (typeof state.bgmVolume === 'number') {
+            state.bgmVolume = snapVolume(state.bgmVolume);
+          }
+          if (typeof state.sfxVolume === 'number') {
+            state.sfxVolume = snapVolume(state.sfxVolume);
+          }
+        }
+
+        return state as typeof persistedState;
       },
     }
   )
 );
-
-function clamp(v: number): number {
-  if (Number.isNaN(v)) return 0;
-  return Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, v));
-}

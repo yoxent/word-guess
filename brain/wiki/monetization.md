@@ -1,5 +1,5 @@
 # monetization
-updated: 2026-07-10
+updated: 2026-07-11 (GameScreen hint buttons, session-scoped rewards)
 tags: [ads, iap, monetization, phase-4, remote-config, ad-hints]
 related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns, hooks-order-discipline]
 
@@ -80,31 +80,34 @@ Shows at **transition from ResultModal to next screen** (Back to Menu / Play Nex
 
 **Strategy:** Watch ad → get gameplay advantage during active game. Two hint types:
 
-### Hint 1: +1 Row
+### Hint 1: +1 Attempt
 | Aspect | Detail |
 |--------|--------|
-| Button | "Watch Ad · +1 Row" (sky blue, primary color) |
-| Location | Between GameBoard and Keyboard |
+| Button | `Watch Ad · +1 Attempt` (+ `(N left)` when multiple remain) |
+| Location | Full-width row between GameBoard and Keyboard (`layout.screenPadding` aligned) |
 | Visibility | `session.status === 'playing' && extraGuessesUsed < maxExtra` |
-| Effect | `maxAttempts++`, `extraGuessesUsed++` — adds new empty row |
-| Max uses | 2 (free) / 3 (pro) per game |
-| Code | `gameStore.addExtraGuess()` — works during 'playing' status |
+| Effect | `maxAttempts++`, `extraGuessesUsed++` |
+| Max uses | 2 (free) / 3 (pro) per **game instance** |
+| Code | `gameStore.addExtraGuess()` — during `'playing'` or `'lost'` |
 
 ### Hint 2: Letter Hint
 | Aspect | Detail |
 |--------|--------|
-| Button | "Letter Hint" (orange, secondary color, lightbulb icon) |
-| Location | Next to +1 Row button |
+| Button | `Watch Ad · Letter Hint` (orange secondary, lightbulb icon) |
+| Location | Beside +1 Attempt in same row |
 | Visibility | `session.status === 'playing' && !session.letterHintUsed` |
-| Effect | Highlights random unguessed letter on keyboard (blinking animation) |
-| Max uses | 1 per game |
-| Code | `gameStore.useLetterHint()` — sets `hintLetter` state + `letterHintUsed: true` |
+| Effect | Highlights one unguessed letter on keyboard (color pulse, no opacity animation) |
+| Max uses | 1 per **game instance** |
+| Code | `gameStore.useLetterHint()` |
 
 ### Letter hint mechanics
-- Picks random letter from word that hasn't been guessed correctly yet
-- If all letters guessed, picks any letter from word
-- Keyboard key blinks via opacity animation (1→0.3→1, 500ms loop)
-- Hint stops blinking once key gets color feedback (correct/present/absent)
+- Picks random letter from word not yet present in submitted guesses
+- Keyboard key pulses via alternating `key.hint` / `key.hintDim` colors (Fabric-safe)
+- Clears `hintLetter` when player types that letter
+- Reward state resets on new game (`startGame` clears slot + `hintLetter`)
+
+### Session boundary (2026-07-11)
+Rewarded fields do **not** carry to a new game instance. `startGame()` calls `clearActiveGame()`; Home navigates fresh only after `clearActiveGame()` when not continuing.
 
 ### GameSession fields
 | Field | Type | Purpose |
@@ -124,10 +127,10 @@ Shows at **transition from ResultModal to next screen** (Back to Menu / Play Nex
 - Reset to `null` on `resetGame()` and `restoreSession()`
 
 ### Button styling
-- Both buttons in horizontal row: `[+1 Row] [💡 Letter Hint]`
+- Row uses `alignSelf: 'stretch'` within screen horizontal padding; each button `flex: 1`
+- Labels share `Watch Ad ·` prefix; play icon on attempt, lightbulb on hint
 - Disabled/dimmed when ad not loaded (`!rewardedLoaded`)
-- `+1 Row` shows remaining count: "(+2 left)" → "(+1 left)"
-- `Letter Hint` hidden after use (not just disabled)
+- Letter Hint row hidden after use
 
 Pro users can still watch rewarded ads (D-93). The Pro purchase removes interstitials only — rewarded ads are a gameplay mechanic, not an annoyance.
 
