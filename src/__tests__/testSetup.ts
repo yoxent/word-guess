@@ -108,11 +108,17 @@ jest.mock('expo-font', () => ({
   useFonts: jest.fn().mockReturnValue([true, null]),
 }));
 
-// Mock @expo-google-fonts/nunito
-jest.mock('@expo-google-fonts/nunito', () => ({
-  Nunito_400Regular: 'Nunito_400Regular',
-  Nunito_700Bold: 'Nunito_700Bold',
-  Nunito_800ExtraBold: 'Nunito_800ExtraBold',
+// Mock active Google font packages used by src/utils/fonts.ts
+jest.mock('@expo-google-fonts/fraunces', () => ({
+  Fraunces_700Bold: 'Fraunces_700Bold',
+  Fraunces_800ExtraBold: 'Fraunces_800ExtraBold',
+}));
+
+jest.mock('@expo-google-fonts/dm-sans', () => ({
+  DMSans_400Regular: 'DMSans_400Regular',
+  DMSans_500Medium: 'DMSans_500Medium',
+  DMSans_600SemiBold: 'DMSans_600SemiBold',
+  DMSans_700Bold: 'DMSans_700Bold',
 }));
 
 // Mock expo-sqlite

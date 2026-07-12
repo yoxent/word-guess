@@ -1,7 +1,7 @@
 # Tech Stack
-updated: 2026-07-10 (font packages — expo-font, @expo-google-fonts/nunito)
+updated: 2026-07-12 (guess distribution custom bars; chart-kit unused in UI)
 tags: [stack, dependencies, versions, compat]
-related: [architecture, storage-strategy, project-overview, android-build-setup, dev-workflow]
+related: [architecture, storage-strategy, project-overview, android-build-setup, dev-workflow, stats-and-share]
 
 ## Core
 | Layer | Choice | Version | Why |
@@ -27,7 +27,8 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 | Haptics | expo-haptics | SDK 57 | |
 | Clipboard | expo-clipboard | SDK 57 | Copy share text to clipboard (Phase 3, STAT-04) |
 | Fonts | expo-font | SDK 57 | Font loading for custom fonts |
-| Display font | @expo-google-fonts/nunito | latest | Nunito 700 + 800 — headings, titles, buttons (frontend overhaul) |
+| Display font | @expo-google-fonts/fraunces | latest | Fraunces 700 + 800 — titles, headings, stat values |
+| UI font | @expo-google-fonts/dm-sans | latest | DM Sans 400–700 — body, buttons, labels |
 
 ## State & Storage
 | Layer | Choice | Version | Use |
@@ -40,8 +41,9 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 ## Charts & UI
 | Layer | Choice | Version | Notes |
 |-------|--------|---------|-------|
-| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram (Phase 3, STAT-02) |
-| SVG | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit (Phase 3) |
+| Guess distribution | Custom RN Views | — | Wordle-style horizontal bars in StatsScreen (bins 1–14). Prefer this over chart libs. |
+| Bar chart (legacy dep) | react-native-chart-kit | ^7.0.1 | Still in package.json from Phase 3; **not used** by current Stats UI |
+| SVG | react-native-svg | ^13.9.0 | May remain as peer/transitive; not required for custom bars |
 
 ## Cloud & Auth
 | Layer | Choice | Version | Notes |
@@ -146,9 +148,8 @@ Run `npx expo install --check` to verify all native module versions align with i
 ## Phase 3 additions (UI)
 | Layer | Choice | Version | Notes |
 |-------|--------|---------|-------|
-| Bar chart | react-native-chart-kit | ^6.12.0 | Guess distribution histogram for stats screen |
-| SVG renderer | react-native-svg | ^13.9.0 | Peer dep of react-native-chart-kit |
-| Clipboard | expo-clipboard | SDK 57 | Copy share text (emoji grid) to clipboard |
+| Guess distribution | Custom Views | — | Horizontal bars; chart-kit unused in UI as of 2026-07-12 |
+| Clipboard | expo-clipboard | SDK 57 | Copy share text (emoji grid) from ResultModal |
 
 **Phase 3 source files (constants layer):**
 | File | Purpose |

@@ -1,7 +1,7 @@
 # Key Risks
-updated: 2026-07-08 (Phase 6 — P15/P16/P17 fixed, P19 resolved with stagger animation)
+updated: 2026-07-12 (P4 SHA + accessToken credential failures)
 tags: [risks, pitfalls, critical]
-related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync]
+related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-preprocessing, cloud-sync, audio-system]
 
 ## Critical risks (rewrite / store rejection / abandonment)
 
@@ -25,11 +25,13 @@ related: [daily-seed, google-signin, phase-structure, tech-stack, dictionary-pre
 - Mitigation: Declare ads in Play Console. Privacy policy URL. Test ads FIRST. Match product IDs exactly.
 - Phase: 4 (Monetization), 6 (Pre-Launch)
 
-### P4: Google Sign-In DEVELOPER_ERROR
-- Cause: SHA-1 fingerprint mismatch between debug/upload/Play App Signing keys
-- Mitigation: Register ALL 3 fingerprints in Firebase. Use Web client ID in GoogleSignin.configure(). Test release builds on real device.
+### P4: Google Sign-In DEVELOPER_ERROR / credential failures
+- Cause A: SHA-1 fingerprint mismatch — **use the keystore that actually signs the APK** (`android/app/debug.keystore` for local Expo/Gradle debug, not only `~/.android/debug.keystore`)
+- Cause B: Web client ID missing / Android client ID passed to `GoogleSignin.configure()`
+- Cause C (2026-07-12): `GoogleAuthProvider.credential(idToken)` without `accessToken` → `auth/unknown: accessToken cannot be empty`
+- Mitigation: Register every signing SHA-1 in Firebase; pass Web client ID; always `getTokens()` then `credential(idToken, accessToken)`. Enable Google provider + Branding support email in console.
 - Phase: 5 (Cloud)
-- Ref: @react-native-google-signin docs — this is the #1 reported issue
+- Ref: [google-signin](google-signin.md), `@react-native-google-signin` docs
 
 ### P5: Offline data corruption (race condition)
 - Cause: Multiple offline games → naive last-write-wins sync corrupts aggregated stats
@@ -156,6 +158,21 @@ The following attributionTag entry was appended to P37 but is a separate issue:
 - Lesson: When patching the AndroidManifest, always `npx expo run:android` to verify the build still compiles. AAPT2 attribute recognition is sensitive to toolchain version, and an attribute that's valid in API 31+ can still be rejected by an older AAPT2. Better to add a build-test step to the postinstall flow.
 - Phase: 6 (Post-launch)
 
+### P37: Button `style` width does not size the visible pill (FIXED 2026-07-12)
+- Cause: `Button` applies caller `style` (e.g. `width: '100%'`) to the outer `Animated.View` wrapper only. The visible `TouchableOpacity` shrink-wrapped to label length ("Play Next" vs "Back to Menu").
+- Symptom: Endless ResultModal — Play Next narrower than Back to Menu; stack looked misaligned.
+- Fix: `TouchableOpacity` gets `alignSelf: 'stretch'` so it fills the wrapper. ResultModal `buttonContainer` uses `alignItems: 'stretch'`; both actions share `actionButton: { alignSelf: 'stretch' }`.
+- Lesson: When wrapping a pressable in an Animated/shadow container, width/`alignSelf` on the wrapper alone is invisible — the painted child must stretch too. Audit rule: if `style` is meant to control hit-target size, the inner pressable must inherit it.
+- Phase: 6 (Post-launch)
+
+### P36: BGM stops while idling on Home (OPEN 2026-07-12)
+- Cause: Unknown. Not an intentional idle timeout — BGM is designed to loop for the session while foregrounded (`loop = true`, ~32s `bgm.wav`). Only intentional stops: AppState `background`/`inactive`, or `bgmVolume → 0` (`pause()`).
+- Symptom: User idles on homepage for a while; BGM stops; no JS errors.
+- Likely suspects: silent loop failure after track end; brief `inactive` without solid resume; Android audio focus / `duckOthers`.
+- Next: playback-status / ended listener to auto-restart; log AppState transitions around the stop.
+- See: [audio-system](./audio-system.md)
+- Phase: 6 (Post-launch)
+
 ### P35: Slider "blink from 0%" on mount + stale closure + BGM static from volume clipping (FIXED 2026-07-09)
 - Cause (slider blink): the VolumeSlider started with `useState(0)` for width, so the first render had `fillWidth = 0` (invisible fill) and the thumb hidden behind `{width > 0 && ...}`. The visible slider was empty until `onLayout` fired and set the actual width — a single-frame 'pop in' from 0% to the real value.
 - Cause (stale closure): the PanResponder was created once via `useRef` and captured the first render's `updateFromX`, which closed over the first render's `handleChange` (and its `config.storeKey`). If anything changed the closure identity later, the slider would call the wrong action.
@@ -192,8 +209,8 @@ The following attributionTag entry was appended to P37 but is a separate issue:
   - `setBgmVolume(v)` and `setSfxVolume(v)` apply volumes reactively — idempotent
   - `pauseBgm()` / `resumeBgm()` called from `AppState` listener in `App.tsx`
   - Reactive `useEffect` in `App.tsx` watches `bgmVolume` / `sfxVolume` and applies changes — this is the toggle-side-effects pattern generalized to numeric values
-- Lesson: BGM is a long-lived audio resource, different from SFX. Treat it as a singleton (one player for the whole app), control via volume rather than play/pause, and tie lifecycle to AppState. The `loop = true` flag means the player can be paused/resumed without re-seeking.
-- Phase: 6 (Post-launch) — see [toggle-side-effects](./toggle-side-effects.md) for the pattern.
+- Lesson: BGM is a long-lived audio resource, different from SFX. Treat it as a singleton (one player for the whole app), control via volume rather than play/pause, and tie lifecycle to AppState. The `loop = true` flag means the player can be paused/resumed without re-seeking. Volume 0 = `pause()` / SFX skip — not silent playback (see [audio-system](./audio-system.md)).
+- Phase: 6 (Post-launch) — see [toggle-side-effects](./toggle-side-effects.md) and [audio-system](./audio-system.md).
 
 ### P31: Flat useColors() API produces "wrong key for context" bugs (FIXED 2026-07-09)
 - Cause: The pre-refactor `useColors()` hook returned a flat object (`{ accent, textPrimary, tileCorrect, ... }`). Components picked colors by key name, with no semantic distinction between "button background" and "toggle track" and "icon color" — all three used `colors.accent`. When a component wanted the wrong color (or missed setting any color, as in P30), nothing in the type system caught it.

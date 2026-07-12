@@ -47,7 +47,7 @@ Phase 1 (Foundation)
 - **Key decisions:** D-67–D-86 + UI design contract (03-UI-SPEC.md)
   - Stats screen: scrolling card sections driven by UI config registry
   - Stats card entrance: fade-in + slide-up (opacity 0→1, translateY 10→0, 300ms, 80ms stagger per card) (D-82)
-  - Guess distribution: react-native-chart-kit bar chart
+  - Guess distribution: custom Wordle-style horizontal bars (chart-kit was original D-69; unused in UI as of 2026-07-12)
   - Share: floating action button (fixed bottom, absolute position) copies emoji grid + mode + attempts + date to clipboard (D-83)
   - Per-mode streaks: computed AND displayed in Phase 3 (daily/endless/free+random separate); data collection wire (gameStore→statsStore.recordGame) added in Phase 3 (D-85)
   - Pull-to-refresh: always enabled on Stats screen (D-86)

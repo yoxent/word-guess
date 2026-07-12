@@ -4,6 +4,11 @@ import type { StateStorage } from 'zustand/middleware';
 import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AppSettings, GameSession, PlayerStats } from '../types';
+import { config } from '../constants/config';
+
+/** Max possible win attempt count: 10-letter base (11) + Pro rewarded extras (3) = 14 */
+const MAX_GUESS_DISTRIBUTION_BIN =
+  config.baseAttempts(config.maxWordLength) + config.maxExtraGuessesPro;
 
 // ── MMKV: synchronous KV for settings + active game state (D-21) ──
 const mmkv: MMKV = createMMKV({ id: 'app-settings' });
@@ -46,24 +51,45 @@ export function clearActiveGame(hardMode: boolean): void {
 
 // ── SQLite: game history / stats (D-22) ──
 let db: SQLite.SQLiteDatabase | null = null;
+/** Singleflight — concurrent callers share one open+migrate promise. */
+let dbInitPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function initDatabase(): Promise<void> {
-  db = await SQLite.openDatabaseAsync('wordguess.db');
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS game_history (
-      id TEXT PRIMARY KEY,
-      mode TEXT NOT NULL,
-      word TEXT NOT NULL,
-      letter_count INTEGER NOT NULL,
-      guesses INTEGER NOT NULL,
-      won INTEGER NOT NULL DEFAULT 0,
-      hard_mode INTEGER NOT NULL DEFAULT 0,
-      extra_guesses_used INTEGER NOT NULL DEFAULT 0,
-      completed_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_game_history_completed_at ON game_history(completed_at);
-    CREATE INDEX IF NOT EXISTS idx_game_history_mode ON game_history(mode);
-  `);
+export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
+
+  dbInitPromise = (async () => {
+    const database = await SQLite.openDatabaseAsync('wordguess.db');
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS game_history (
+        id TEXT PRIMARY KEY,
+        mode TEXT NOT NULL,
+        word TEXT NOT NULL,
+        letter_count INTEGER NOT NULL,
+        guesses INTEGER NOT NULL,
+        won INTEGER NOT NULL DEFAULT 0,
+        hard_mode INTEGER NOT NULL DEFAULT 0,
+        extra_guesses_used INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_game_history_completed_at ON game_history(completed_at);
+      CREATE INDEX IF NOT EXISTS idx_game_history_mode ON game_history(mode);
+    `);
+    db = database;
+    return database;
+  })();
+
+  try {
+    return await dbInitPromise;
+  } catch (err) {
+    db = null;
+    dbInitPromise = null;
+    throw err;
+  }
+}
+
+async function ensureDb(): Promise<SQLite.SQLiteDatabase> {
+  return db ?? (await initDatabase());
 }
 
 async function computePerModeStreaks(db: SQLite.SQLiteDatabase): Promise<Record<string, { current: number; max: number }>> {
@@ -73,8 +99,9 @@ async function computePerModeStreaks(db: SQLite.SQLiteDatabase): Promise<Record<
     { key: 'daily_hard', sql: "mode = 'daily' AND hard_mode = 1" },
     { key: 'endless_normal', sql: "mode = 'endless' AND hard_mode = 0" },
     { key: 'endless_hard', sql: "mode = 'endless' AND hard_mode = 1" },
-    { key: 'non-daily_normal', sql: "mode IN ('free', 'random') AND hard_mode = 0" },
-    { key: 'non-daily_hard', sql: "mode IN ('free', 'random') AND hard_mode = 1" },
+    // Free Play was merged into Endless; keep 'free' in SQL for legacy rows
+    { key: 'random_normal', sql: "mode IN ('free', 'random') AND hard_mode = 0" },
+    { key: 'random_hard', sql: "mode IN ('free', 'random') AND hard_mode = 1" },
   ];
 
   const result: Record<string, { current: number; max: number }> = {};
@@ -118,10 +145,12 @@ async function computeGuessDistribution(db: SQLite.SQLiteDatabase): Promise<numb
   );
   if (rows.length === 0) return [];
 
-  const maxGuesses = Math.max(...rows.map(r => r.guesses));
-  const distribution = new Array(maxGuesses + 1).fill(0);
+  // Fixed bins 1..MAX covering longest mode + rewarded extras:
+  // maxWordLength(10) + 1 base + maxExtraGuessesPro(3) = 14
+  const distribution = new Array(MAX_GUESS_DISTRIBUTION_BIN + 1).fill(0);
   for (const row of rows) {
-    distribution[row.guesses] = row.count;
+    const bin = Math.min(Math.max(row.guesses, 1), MAX_GUESS_DISTRIBUTION_BIN);
+    distribution[bin] += row.count;
   }
   return distribution;
 }
@@ -138,9 +167,9 @@ async function computeGamesByLength(db: SQLite.SQLiteDatabase): Promise<Record<n
 }
 
 export async function getStats(): Promise<PlayerStats | null> {
-  if (!db) return null;
+  const database = await ensureDb();
 
-  const row = await db.getFirstAsync<{
+  const row = await database.getFirstAsync<{
     total_games: number;
     total_wins: number;
     last_date: string | null;
@@ -155,16 +184,16 @@ export async function getStats(): Promise<PlayerStats | null> {
   if (!row || row.total_games === 0) return null;
 
   const [perModeStreaks, guessDistribution, gamesByLength] = await Promise.all([
-    computePerModeStreaks(db),
-    computeGuessDistribution(db),
-    computeGamesByLength(db),
+    computePerModeStreaks(database),
+    computeGuessDistribution(database),
+    computeGamesByLength(database),
   ]);
 
   // Determine last-played mode+hardship for currentStreak
-  const lastGameRow = await db.getFirstAsync<{ mode: string; hard_mode: number }>(
+  const lastGameRow = await database.getFirstAsync<{ mode: string; hard_mode: number }>(
     `SELECT mode, hard_mode FROM game_history ORDER BY completed_at DESC LIMIT 1`
   );
-  let lastModeKey = 'non-daily_normal';
+  let lastModeKey = 'random_normal';
   if (lastGameRow) {
     const suffix = lastGameRow.hard_mode === 1 ? '_hard' : '_normal';
     if (lastGameRow.mode === 'daily') {
@@ -172,7 +201,7 @@ export async function getStats(): Promise<PlayerStats | null> {
     } else if (lastGameRow.mode === 'endless') {
       lastModeKey = 'endless' + suffix;
     } else {
-      lastModeKey = 'non-daily' + suffix;
+      lastModeKey = 'random' + suffix;
     }
   }
 
@@ -206,9 +235,9 @@ export async function saveGameResult(result: {
   extraGuessesUsed: number;
   completedAt: string;
 }): Promise<void> {
-  if (!db) return;
-  await db.runAsync(
-    `INSERT INTO game_history (id, mode, word, letter_count, guesses, won, hard_mode, extra_guesses_used, completed_at)
+  const database = await ensureDb();
+  await database.runAsync(
+    `INSERT OR REPLACE INTO game_history (id, mode, word, letter_count, guesses, won, hard_mode, extra_guesses_used, completed_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     result.id,
     result.mode,

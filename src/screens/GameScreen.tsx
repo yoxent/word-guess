@@ -75,73 +75,92 @@ function recordEndGameSideEffects(currentSession: GameSession): void {
     markDailyCompleted(getDailyDateString(), currentSession.letterCount);
   }
 
-  if (__DEV__) {
-    console.time('stats-write');
-  }
-  useStatsStore.getState().recordGame({
-    id: currentSession.id,
-    mode: currentSession.mode,
-    word: currentSession.word,
-    letterCount: currentSession.letterCount,
-    guesses: currentSession.guesses.length,
-    won: currentSession.status === 'won',
-    hardMode: currentSession.hardMode,
-    extraGuessesUsed: currentSession.extraGuessesUsed,
-    completedAt: currentSession.completedAt || new Date().toISOString(),
-    feedback: currentSession.feedback,
-  });
-  if (__DEV__) {
-    console.timeEnd('stats-write');
-  }
+  const persistAndSync = async () => {
+    if (__DEV__) {
+      console.time('stats-write');
+    }
+    try {
+      await useStatsStore.getState().recordGameIfNeeded({
+        id: currentSession.id,
+        mode: currentSession.mode,
+        word: currentSession.word,
+        letterCount: currentSession.letterCount,
+        guesses: currentSession.guesses.length,
+        won: currentSession.status === 'won',
+        hardMode: currentSession.hardMode,
+        extraGuessesUsed: currentSession.extraGuessesUsed,
+        completedAt: currentSession.completedAt || new Date().toISOString(),
+        feedback: currentSession.feedback,
+      });
+    } catch (err) {
+      if (__DEV__) {
+        console.warn('[stats] recordGame failed', err);
+      }
+    } finally {
+      if (__DEV__) {
+        console.timeEnd('stats-write');
+      }
+    }
 
-  useAdStore.getState().incrementGamesSinceLastAd();
-  useAdStore.getState().preloadInterstitial();
+    useAdStore.getState().incrementGamesSinceLastAd();
+    useAdStore.getState().preloadInterstitial();
 
-  const statsStore = useStatsStore.getState();
-  const stats = statsStore.stats;
+    const stats = useStatsStore.getState().stats;
 
-  const leaderboardParams: {
-    mode: string;
-    won: boolean;
-    dailyStreak?: number;
-    endlessStreak?: number;
-    endlessTotalWords?: number;
-  } = {
-    mode: currentSession.mode,
-    won: currentSession.status === 'won',
+    const leaderboardParams: {
+      mode: string;
+      won: boolean;
+      dailyStreak?: number;
+      endlessStreak?: number;
+      endlessTotalWords?: number;
+    } = {
+      mode: currentSession.mode,
+      won: currentSession.status === 'won',
+    };
+
+    if (currentSession.mode === 'daily' && currentSession.status === 'won') {
+      const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
+      const { resolveDailyLeaderboardScore } = require('../services/endlessLeaderboardCounters');
+      // recordGameIfNeeded awaits in-flight writes so this streak is fresh
+      leaderboardParams.dailyStreak = resolveDailyLeaderboardScore(
+        true,
+        stats?.perModeStreaks?.[dailyKey]?.current,
+      );
+    }
+
+    if (currentSession.mode === 'endless') {
+      const { applyEndlessEndCounters } = require('../services/endlessLeaderboardCounters');
+      const endless = applyEndlessEndCounters({
+        sessionId: currentSession.id,
+        won: currentSession.status === 'won',
+        hardMode: currentSession.hardMode,
+      });
+      leaderboardParams.endlessStreak = endless.endlessStreak;
+      leaderboardParams.endlessTotalWords = endless.endlessTotalWords;
+    }
+
+    import('../services/leaderboardService').then(({ updateLeaderboardAfterGame }) => {
+      updateLeaderboardAfterGame(leaderboardParams);
+    });
+
+    import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
+      const authState = authStoreRef.getState();
+      if (authState.isLoggedIn && stats) {
+        import('../services/firestoreService').then(({ updatePlayerStats }) => {
+          updatePlayerStats(authState.playerId!, authState.playerName ?? 'Player', stats);
+        });
+      } else if (stats) {
+        import('../services/syncQueue').then(({ enqueueEvent }) => {
+          enqueueEvent('game_result', {
+            playerName: 'Player',
+            stats,
+          });
+        });
+      }
+    });
   };
 
-  if (currentSession.mode === 'daily' && currentSession.status === 'won' && stats) {
-    const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
-    const baseStreak = stats.perModeStreaks?.[dailyKey]?.current ?? 0;
-    leaderboardParams.dailyStreak = baseStreak + 1;
-  }
-
-  if (currentSession.mode === 'endless') {
-    const { getEndlessStreak, getEndlessTotalWords } = require('../services/storage');
-    leaderboardParams.endlessStreak = getEndlessStreak(currentSession.hardMode);
-    leaderboardParams.endlessTotalWords = getEndlessTotalWords();
-  }
-
-  import('../services/leaderboardService').then(({ updateLeaderboardAfterGame }) => {
-    updateLeaderboardAfterGame(leaderboardParams);
-  });
-
-  import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
-    const authState = authStoreRef.getState();
-    if (authState.isLoggedIn && stats) {
-      import('../services/firestoreService').then(({ updatePlayerStats }) => {
-        updatePlayerStats(authState.playerId!, authState.playerName ?? 'Player', stats);
-      });
-    } else if (stats) {
-      import('../services/syncQueue').then(({ enqueueEvent }) => {
-        enqueueEvent('game_result', {
-          playerName: 'Player',
-          stats,
-        });
-      });
-    }
-  });
+  void persistAndSync();
 }
 
 export function GameScreen({ route }: Props) {
@@ -381,6 +400,13 @@ export function GameScreen({ route }: Props) {
     return () => subscription.remove();
   }, []);
 
+  // ── Persist stats when game ends (backup — ResultModal is primary for all modes) ──
+  useEffect(() => {
+    if (!session || isRevealing) return;
+    if (session.status !== 'won' && session.status !== 'lost') return;
+    recordEndGameSideEffects(session);
+  }, [session?.id, session?.status, isRevealing]);
+
   // ── Animation completion callback (D-28, D-62) ──
   useEffect(() => {
     if (session && session.guesses.length > 0 && isRevealing) {
@@ -421,17 +447,6 @@ export function GameScreen({ route }: Props) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
             }
           }, 50);
-
-          // Phase 4 (+100ms): stats, ads, leaderboard — heavy JS off critical path.
-          setTimeout(() => {
-            const currentSession = useGameStore.getState().session;
-            if (
-              currentSession &&
-              (currentSession.status === 'won' || currentSession.status === 'lost')
-            ) {
-              recordEndGameSideEffects(currentSession);
-            }
-          }, 100);
         });
       }, totalAnimationTime);
 

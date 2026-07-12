@@ -1,7 +1,7 @@
 # Storage Strategy
-updated: 2026-07-11 (active-game resume helpers, rewarded hint scoping, hard mode not in settings persist)
+updated: 2026-07-12 (SQLite singleflight, random_* streaks, guess dist bins 1–14)
 tags: [storage, persistence, sqlite, mmkv]
-related: [architecture, tech-stack, phase-structure, game-modes]
+related: [architecture, tech-stack, phase-structure, game-modes, stats-and-share]
 
 ## Three-tier split
 | Store | Technology | Why |
@@ -31,9 +31,18 @@ game_history:
 stats (computed from queries, cached):
   total_games, wins, win_pct
   current_streak, max_streak
-  guess_distribution[1..11]  # per-number-of-attempts
+  guess_distribution[1..14]  # fixed bins: max length 10 + 1 base + Pro extras
   games_by_length{5..10: {played, won}}
+  perModeStreaks: daily_*/endless_*/random_* × normal|hard
 ```
+
+## SQLite init (singleflight — 2026-07-12)
+- `initDatabase()` opens once; concurrent callers await shared `dbInitPromise`
+- `ensureDb()` = `db ?? initDatabase()` — used by reads/writes
+- App startup also calls `initDatabase()` so first `saveGameResult` is not a no-op
+- **Do not** re-open the DB on every write — caused `NativeDatabase.execAsync` NPE races
+- On init failure: clear `db` + `dbInitPromise` so a later call can retry
+- Stats write path / dedupe: [stats-and-share](stats-and-share.md)
 
 ## Active game keys (hard-mode-aware, 2026-07-11)
 - Hard and normal mode games stored under separate MMKV keys:
@@ -46,9 +55,11 @@ stats (computed from queries, cached):
 - `endless_streak_normal` / `endless_streak_hard` — separate streak counters per difficulty
 - `getEndlessStreak(hardMode)`, `setEndlessStreak(streak, hardMode)`
 
-## Stats per-mode streaks split (2026-07-11)
-- `computePerModeStreaks()` now splits each mode into `_normal` and `_hard` sub-groups
-- 6 groups: `daily_normal`, `daily_hard`, `endless_normal`, `endless_hard`, `non-daily_normal`, `non-daily_hard`
+## Stats per-mode streaks split (2026-07-11 / UI labels 2026-07-12)
+- `computePerModeStreaks()` splits each mode into `_normal` and `_hard` sub-groups
+- 6 groups: `daily_normal`, `daily_hard`, `endless_normal`, `endless_hard`, `random_normal`, `random_hard`
+- SQL for random: `mode IN ('free', 'random')` — legacy Free Play rows roll into Random
+- Stats Overview UI columns: Daily / Endless / **Random** (not “Free”)
 - `getStats()` last-game detection reads `hard_mode` column from SQLite
 - `game_history` table always had `hard_mode` column; queries now use it
 
@@ -116,10 +127,9 @@ SELECT letter_count, COUNT(*) as played, SUM(won) as won FROM game_history GROUP
 ```
 
 ### Per-mode streak computation
-- Query `completed_at DESC`, group by `mode`
-- Daily Challenge: filter `mode = 'daily'`, count consecutive wins
-- Non-daily (Random + Free Play — Free Play removed from UI but type preserved): filter `mode IN ('free', 'random')`, count consecutive wins
-- Endless: uses separate MMKV `endless_streak` key (not SQLite)
+- Query `completed_at DESC`, group by mode + hard_mode (see keys above)
+- Daily / Endless / Random (incl. legacy `free`) each have normal + hard current/max
+- Endless play-session streak also uses MMKV `endless_streak_*` keys for in-run display
 - Streak resets to 0 on first `won = 0` row in the consecutive chain
 
 ### Game persistence (3 triggers)

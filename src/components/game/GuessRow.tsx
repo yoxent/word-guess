@@ -7,6 +7,7 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 import type { GuessFeedback } from '../../types';
+import type { HintTile } from '../../stores/gameStore';
 import { layout } from '../../constants/layout';
 import { Tile } from './Tile';
 import { StaticTile } from './StaticTile';
@@ -21,6 +22,8 @@ interface GuessRowProps {
   wordLength: number;
   tileSize: number;
   error?: string | null;
+  /** Ghost letter hint for the active row only. */
+  hintTile?: HintTile | null;
 }
 
 export function GuessRow({
@@ -32,6 +35,7 @@ export function GuessRow({
   wordLength,
   tileSize,
   error,
+  hintTile = null,
 }: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
@@ -77,6 +81,13 @@ export function GuessRow({
     <Animated.View style={[styles.row, animatedRowStyle]}>
       {letters.map((letter, i) => {
         const tileFeedback = feedback ? feedback[i].feedback : 'empty';
+        const cellEmpty = letter === ' ' || letter === '';
+        const showHintGhost =
+          isActive &&
+          !feedback &&
+          cellEmpty &&
+          hintTile != null &&
+          hintTile.index === i;
 
         // Only the row actively revealing uses Reanimated Tile (~7 worklets).
         // All other rows use StaticTile so a large board (e.g. after ad rows)
@@ -98,10 +109,11 @@ export function GuessRow({
         return (
           <StaticTile
             key={i}
-            letter={letter}
+            letter={showHintGhost ? hintTile.letter : letter}
             feedback={tileFeedback}
             index={i}
             tileSize={tileSize}
+            isHintGhost={showHintGhost}
           />
         );
       })}

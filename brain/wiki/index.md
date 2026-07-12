@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-11 (system theme, splash screen, settings fixes)
+updated: 2026-07-12 (Google Sign-In SHA/accessToken; Settings row/slider layout)
 tags: [index, mvp, phase-6-executed]
 related: []
 
@@ -9,6 +9,7 @@ related: []
 | tech-stack | Full technology stack with versions and rationale | stack, dependencies, versions |
 | architecture | Layer architecture, project structure, key patterns, data flow | architecture, patterns |
 | storage-strategy | MMKV/SQLite/AsyncStorage three-tier split and why | storage, persistence |
+| stats-and-share | Stats write path, SQLite singleflight, ResultModal share+toast, Settings help tooltips | stats, share, toast, sqlite |
 | dictionary-preprocessing | Build-time script, clean filter, Metro-safe requires, per-length files | dictionary, preprocessing, metro |
 | navigation-setup | React Navigation 7.x native-stack, NavMenuButton, screen flow | navigation, screens, stack |
 | planning-patterns | Plan structure, decision coverage, checker lessons, nyquist | planning, gsd, plans, checker |
@@ -16,19 +17,20 @@ related: []
 | game-modes | Free Play, Random, Daily, Endless, Hard Mode rules | gameplay, modes, game-design |
 | key-risks | Critical and moderate risks with mitigations and phase mapping | risks, pitfalls |
 | phase-structure | 6-phase roadmap, dependencies, dev workflow | roadmap, phases, planning |
-| google-signin | Google Sign-In setup, SHA-1 triple registration, known pain points | auth, firebase, google |
+| google-signin | Google Sign-In — Web client ID, android/app debug.keystore SHA, accessToken+idToken credential, OAuth branding | auth, firebase, google |
 | animation-system | Reanimated tile flip animations, confetti, timing constants, keyboard delay, input queuing | animation, reanimated, tile-flip |
 | git-conventions | Gitignore design, tracked vs ignored files, brain vs CLAUDE.md | git, workflow, conventions |
 | dev-workflow | Android Studio setup, Metro dev loop, EAS cloud builds, .easignore upload rules, dual-tool coexistence | workflow, android-studio, metro, dev-loop, eas-build |
 | android-build-setup | AGP version pinning, react-native-nitro-modules, local.properties, SDK versions, build-tools | android, build, gradle, sdk, config |
-| ui-config-registry | UI Configuration Registry — data-driven composable UI via src/config/ui.ts | architecture, patterns, ui, config-driven |
+| ui-config-registry | UI Configuration Registry — data-driven composable UI; Settings row layout / slider hit targets | architecture, patterns, ui, config-driven |
 | design-tokens | Spacing scale, typography, color conventions — design system tokens defined by Phase 3 UI-SPEC | design, tokens, spacing, typography, colors, ui |
 | monetization | Phase 4 execution — ad manager (Zustand + google-mobile-ads), interstitial timing, rewarded ads, Pro IAP, restore, Remote Config, app.json plugins | ads, iap, monetization, phase-4, complete |
 | cloud-sync | Phase 5 cloud architecture — Firestore data model, offline sync queue, leaderboard design, score submission pipeline, auth flow | cloud, firebase, firestore, sync, leaderboard, auth, phase-5 |
 | accessibility | Phase 6 — TalkBack, color blindness textures, reduce motion, PixelRatio font scaling | accessibility, talkback, color-blindness, reduce-motion, pixelratio |
 | theme-system | Semantic useTheme() hook, light/dark palettes, system theme via Appearance API | theme, colors, semantic, design-system |
 | toggle-side-effects | Pattern: Zustand toggles need explicit side-effect wiring (sound, haptics). Bug fix 2026-07-09 | pattern, settings, zustand, side-effect, audio |
-| frontend-overhaul | 7-phase bright playful redesign — COMPLETE. Palette, Nunito, mode cards, gradient bg, spring press, keyboard haptic, modal scale, ProgressRing, dark WCAG audit | ui, redesign, visual, palette, font, animation, complete |
+| audio-system | BGM/SFX architecture, volume sliders (hit target vs visual thumb), 0%=pause/skip, AppState lifecycle | audio, bgm, sfx, expo-audio, lifecycle |
+| frontend-overhaul | 7-phase bright playful redesign — COMPLETE. Palette, Fraunces+DM Sans typography, mode cards, gradient bg, spring press, keyboard haptic, modal scale, ProgressRing, dark WCAG audit | ui, redesign, visual, palette, font, animation, complete |
 | agent-skills-setup | Matt Pocock skills installed, per-repo config in docs/agents/, AGENTS.md block | skills, setup, agent-config |
 | mixed-driver-animation-crash | Animated.parallel with mixed useNativeDriver crashes on remount — fix: overlay opacity (preferred) or independent .start() calls | animation, bug, gotcha, anti-pattern |
 | hooks-order-discipline | ALL hooks must be called before any conditional returns — prevents "Rendered more hooks" crash | react, hooks, gotcha, rules-of-hooks |

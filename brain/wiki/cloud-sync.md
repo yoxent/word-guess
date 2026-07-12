@@ -1,5 +1,5 @@
 # cloud-sync
-updated: 2026-07-08 (auth API: namespaced→modular)
+updated: 2026-07-12 (getTokens + accessToken credential; debug.keystore SHA)
 tags: [cloud, firebase, firestore, sync, leaderboard, auth, phase-5]
 related: [google-signin, phase-structure, architecture, tech-stack, key-risks]
 
@@ -15,6 +15,8 @@ Optional Google Sign-In enabling cloud-synced stats and competitive leaderboards
 User taps "Sign in with Google" button
   → authService.signInWithGoogle()
     → GoogleSignin.signIn() → idToken
+    → GoogleSignin.getTokens() → { idToken, accessToken }
+    → GoogleAuthProvider.credential(idToken, accessToken)
     → signInWithCredential(firebaseAuth, credential)  // modular API
     → authStore.setPlayer(firebaseUser)
     → drain syncQueue (deferred scores)
@@ -22,10 +24,12 @@ User taps "Sign in with Google" button
 
 ### Key rules (D-113-D-118)
 - **Web client ID** passed to `GoogleSignin.configure()`, NOT Android client ID (P4, #1 cause of DEVELOPER_ERROR)
-- Three SHA-1 fingerprints registered in Firebase: debug, upload, Play App Signing
+- SHA-1 fingerprints in Firebase must include the cert that **actually signs** the install (`android/app/debug.keystore` for local debug, plus upload + Play App Signing)
+- After Google sign-in / silent sign-in: `getTokens()` then `GoogleAuthProvider.credential(idToken, accessToken)` — idToken alone can fail with `accessToken cannot be empty`
 - OAuth scopes: `profile` + `email` only (minimal)
 - Silent sign-in on app startup via `GoogleSignin.signInSilently()` — never blocks gameplay
 - Sign-out calls both `GoogleSignin.signOut()` + `auth().signOut()`
+- Console: Google provider enabled; Branding support email set (see [google-signin](google-signin.md))
 
 ### Files
 | File | Role |
@@ -35,8 +39,8 @@ User taps "Sign in with Google" button
 
 ### Settings UI (D-124-D-127)
 - Placeholder `"Sign in — coming in Phase 5"` replaced with working `signInButton` row type
-- Signed out: tappable "Sign in with Google" row
-- Signed in: player name + "Sign Out" touchable
+- Signed out: tappable "Sign in with Google" row + chevron
+- Signed in: avatar + truncated player name + "Sign Out" (name uses `flexShrink` / ellipsis so Sign Out stays inside the card)
 - Sign-out: single tap, no confirmation
 
 ### Cold-start hydration (plan-checker finding)

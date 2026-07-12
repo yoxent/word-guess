@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   PanResponder,
   LayoutChangeEvent,
   Dimensions,
-  Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,6 +17,9 @@ import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
 import { useSettingsStore, snapVolume } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
+
+const TOOLTIP_MAX_WIDTH = 260;
+const TOOLTIP_DISMISS_MS = 3500;
 
 interface SettingsRowProps {
   config: SettingsRowConfig;
@@ -68,16 +72,86 @@ export function SettingsRow({
 
 function SettingsHelpButton({ label, helpText }: { label: string; helpText: string }) {
   const theme = useTheme();
+  const styles = useStyles(theme);
+  const buttonRef = useRef<View>(null);
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [anchor, setAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
+  const hideTooltip = useCallback(() => {
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    dismissTimer.current = null;
+    setVisible(false);
+  }, []);
+
+  const showTooltip = useCallback(() => {
+    if (visible) {
+      hideTooltip();
+      return;
+    }
+    buttonRef.current?.measureInWindow((x, y, width, height) => {
+      setAnchor({ x, y, width, height });
+      setVisible(true);
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      dismissTimer.current = setTimeout(hideTooltip, TOOLTIP_DISMISS_MS);
+    });
+  }, [visible, hideTooltip]);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    };
+  }, []);
+
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const tooltipLeft = Math.max(
+    12,
+    Math.min(anchor.x + anchor.width / 2 - TOOLTIP_MAX_WIDTH / 2, screenWidth - TOOLTIP_MAX_WIDTH - 12),
+  );
+  const preferBelow = anchor.y + anchor.height + 88 < screenHeight;
+  const verticalStyle = preferBelow
+    ? { top: anchor.y + anchor.height + 8 }
+    : { bottom: screenHeight - anchor.y + 8 };
+
   return (
-    <TouchableOpacity
-      onPress={() => Alert.alert(label, helpText)}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      accessible
-      accessibilityRole="button"
-      accessibilityLabel={`About ${label}`}
-    >
-      <MaterialIcons name="help-outline" size={18} color={theme.colors.icon.muted} />
-    </TouchableOpacity>
+    <>
+      <View ref={buttonRef} collapsable={false}>
+        <TouchableOpacity
+          onPress={showTooltip}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={`About ${label}`}
+          accessibilityHint={helpText}
+        >
+          <MaterialIcons name="help-outline" size={18} color={theme.colors.icon.muted} />
+        </TouchableOpacity>
+      </View>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={hideTooltip}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.tooltipBackdrop} onPress={hideTooltip} accessibilityLabel="Dismiss help">
+          <Pressable
+            style={[
+              styles.tooltipBubble,
+              verticalStyle,
+              {
+                left: tooltipLeft,
+                backgroundColor: theme.colors.surface.elevated,
+                borderColor: theme.colors.surface.muted,
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <Text style={[styles.tooltipText, { color: theme.colors.text.primary }]}>{helpText}</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -98,7 +172,7 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
   return (
     <View style={styles.row}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{config.label}</Text>
+        <Text style={styles.labelInline}>{config.label}</Text>
         {config.helpText ? (
           <SettingsHelpButton label={config.label} helpText={config.helpText} />
         ) : null}
@@ -144,12 +218,16 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
   const styles = useStyles(theme);
   return (
     <TouchableOpacity
-      style={[styles.row, styles.pressableRow]}
+      style={styles.row}
       onPress={onRestore}
       activeOpacity={0.7}
     >
-      <Text style={styles.label}>{config.label}</Text>
-      <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+      <Text style={styles.label} numberOfLines={1}>
+        {config.label}
+      </Text>
+      <View style={styles.chevron}>
+        <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -159,12 +237,14 @@ function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { typ
   const styles = useStyles(theme);
   return (
     <TouchableOpacity
-      style={[styles.row, styles.pressableRow]}
+      style={styles.row}
       onPress={() => onPurchase?.(config.productId)}
       activeOpacity={0.7}
     >
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.label, { color: theme.colors.brand.primary }]}>{config.label}</Text>
+      <View style={{ flex: 1, marginRight: 12 }}>
+        <Text style={[styles.labelInline, { color: theme.colors.brand.primary }]}>
+          {config.label}
+        </Text>
         {config.description && <Text style={styles.purchaseDescription}>{config.description}</Text>}
       </View>
       <View style={styles.buyBadge}>
@@ -197,9 +277,16 @@ function SignInButtonRow({
           <View style={styles.avatarCircle}>
             <MaterialIcons name="person" size={18} color={theme.colors.icon.inverse} />
           </View>
-          <Text style={styles.playerNameLabel}>{playerName ?? 'Player'}</Text>
+          <Text style={styles.playerNameLabel} numberOfLines={1} ellipsizeMode="tail">
+            {playerName ?? 'Player'}
+          </Text>
         </View>
-        <TouchableOpacity onPress={onSignOut} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={onSignOut}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -208,7 +295,7 @@ function SignInButtonRow({
 
   return (
     <TouchableOpacity
-      style={[styles.row, styles.pressableRow]}
+      style={styles.row}
       onPress={onSignIn}
       activeOpacity={0.7}
     >
@@ -216,7 +303,9 @@ function SignInButtonRow({
         <MaterialIcons name="login" size={20} color={theme.colors.brand.primary} />
         <Text style={styles.signInLabel}>Sign in with Google</Text>
       </View>
-      <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+      <View style={styles.chevron}>
+        <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -295,18 +384,21 @@ function VolumeSliderRow({
         <Text style={styles.volumeDescription}>{config.description}</Text>
       )}
       <View style={styles.sliderSpacer} />
-      <VolumeSlider
-        value={value}
-        onChange={(v) => handleChangeRef.current(v)}
-        accessibilityLabel={config.label}
-      />
+      <View style={styles.sliderInset}>
+        <VolumeSlider
+          value={value}
+          onChange={(v) => handleChangeRef.current(v)}
+          accessibilityLabel={config.label}
+        />
+      </View>
     </View>
   );
 }
 
-const THUMB_SIZE = 26; // slightly larger for easier grab
+const THUMB_SIZE = 26; // visual thumb size
+const THUMB_HIT_SIZE = 52; // invisible grab target around the thumb
 const TRACK_HEIGHT = 8; // thicker track
-const TOUCH_HEIGHT = 44; // larger touch area
+const TOUCH_HEIGHT = Math.max(56, THUMB_HIT_SIZE); // full-track vertical hit area
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const INITIAL_WIDTH_ESTIMATE = SCREEN_WIDTH - 2 * 20;
@@ -322,38 +414,86 @@ function VolumeSlider({
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
+  const containerRef = useRef<View>(null);
   const widthRef = useRef(INITIAL_WIDTH_ESTIMATE);
-  const valueRef = useRef(value);
+  const trackPageXRef = useRef(0);
   const grantValueRef = useRef(value);
-  valueRef.current = value;
+  const grantPageXRef = useRef(0);
+  const movedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-  const updateFromRatio = (ratio: number) => {
+  // Local visual value while dragging. Driving the thumb from the store
+  // `value` prop on every onChange (controlled) races the async bridge /
+  // parent re-render and flickers.
+  const [visual, setVisual] = useState(value);
+  const visualRef = useRef(value);
+
+  useEffect(() => {
+    if (!draggingRef.current) {
+      visualRef.current = value;
+      setVisual(value);
+    }
+  }, [value]);
+
+  const commit = (ratio: number) => {
     if (!Number.isFinite(ratio)) return;
-    const clamped = Math.max(0, Math.min(1, ratio));
-    onChange(snapVolume(clamped));
+    const snapped = snapVolume(Math.max(0, Math.min(1, ratio)));
+    if (snapped === visualRef.current) return;
+    visualRef.current = snapped;
+    setVisual(snapped);
+    onChangeRef.current(snapped);
+  };
+
+  const endDrag = () => {
+    draggingRef.current = false;
+    movedRef.current = false;
+  };
+
+  const measureTrack = () => {
+    containerRef.current?.measureInWindow((x, _y, width) => {
+      if (Number.isFinite(x)) trackPageXRef.current = x;
+      if (width > 0 && Number.isFinite(width)) widthRef.current = width;
+    });
   };
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
+      // Keep the gesture — parent ScrollView steal → terminate → re-grant
+      // can flash the thumb when locationX is misread.
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (e) => {
-        const w = widthRef.current;
-        if (w > 0) {
-          const snapped = snapVolume(e.nativeEvent.locationX / w);
-          grantValueRef.current = snapped;
-          onChange(snapped);
-        } else {
-          grantValueRef.current = valueRef.current;
-        }
+        draggingRef.current = true;
+        movedRef.current = false;
+        // Never seek on grant. locationX is relative to the *touched child*
+        // (often the thumb), so locationX/trackWidth ≈ 0 and the thumb
+        // jumps to 0% just from holding it. Drag from the current value;
+        // tap-to-seek happens on release via pageX.
+        grantValueRef.current = visualRef.current;
+        grantPageXRef.current = e.nativeEvent.pageX;
+        measureTrack();
       },
       onPanResponderMove: (_e, gestureState) => {
         const w = widthRef.current;
         if (w <= 0) return;
-        // Use dx from grant — locationX can jump to 0 mid-drag on Android.
-        updateFromRatio(grantValueRef.current + gestureState.dx / w);
+        if (Math.abs(gestureState.dx) > 2) movedRef.current = true;
+        commit(grantValueRef.current + gestureState.dx / w);
       },
+      onPanResponderRelease: (_e, gestureState) => {
+        const w = widthRef.current;
+        // Tap on track (no drag): seek using pageX, which is window-stable
+        // and not relative to the thumb child.
+        if (!movedRef.current && Math.abs(gestureState.dx) < 2 && w > 0) {
+          commit((grantPageXRef.current - trackPageXRef.current) / w);
+        }
+        endDrag();
+      },
+      onPanResponderTerminate: endDrag,
     })
   ).current;
 
@@ -362,33 +502,37 @@ function VolumeSlider({
     if (w > 0 && Number.isFinite(w)) {
       widthRef.current = w;
     }
+    measureTrack();
   };
 
-  const fillPercent = `${value * 100}%`;
-  const thumbPercent = `${value * 100}%`;
+  const fillPercent = `${visual * 100}%`;
+  const thumbPercent = `${visual * 100}%`;
 
   return (
     <View
+      ref={containerRef}
       style={styles.sliderTouchArea}
       onLayout={onLayout}
       {...panResponder.panHandlers}
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(visual * 100) }}
     >
-      <View style={styles.sliderTrack}>
+      <View style={styles.sliderTrack} pointerEvents="none">
         <View style={[styles.sliderFill, { width: fillPercent }]} />
       </View>
       <View
         style={[
-          styles.sliderThumb,
+          styles.thumbHitArea,
           {
             left: thumbPercent,
-            transform: [{ translateX: -THUMB_SIZE / 2 }],
+            transform: [{ translateX: -THUMB_HIT_SIZE / 2 }],
           },
         ]}
-      />
+      >
+        <View pointerEvents="none" style={styles.sliderThumb} />
+      </View>
     </View>
   );
 }
@@ -403,22 +547,56 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingVertical: 10,
-        },
-        pressableRow: {
+          minHeight: 48,
           paddingVertical: 12,
         },
         label: {
           ...typography.settingsRow,
           color: c.text.primary,
-          flex: 1,
+          flexShrink: 1,
+          minWidth: 0,
+          marginRight: 12,
+          includeFontPadding: false,
+        },
+        labelInline: {
+          ...typography.settingsRow,
+          color: c.text.primary,
+          includeFontPadding: false,
         },
         labelRow: {
           flex: 1,
           flexDirection: 'row',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 6,
           marginRight: 12,
+        },
+        chevron: {
+          width: 24,
+          height: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        },
+        tooltipBackdrop: {
+          flex: 1,
+        },
+        tooltipBubble: {
+          position: 'absolute',
+          maxWidth: TOOLTIP_MAX_WIDTH,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderRadius: 12,
+          borderWidth: 1,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 10,
+          elevation: 6,
+        },
+        tooltipText: {
+          ...typography.small,
+          lineHeight: 18,
         },
         comingSoon: {
           ...typography.small,
@@ -445,9 +623,13 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           fontWeight: '700',
         },
         signInInfo: {
+          flex: 1,
+          flexShrink: 1,
+          minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 10,
+          marginRight: 12,
         },
         avatarCircle: {
           width: 32,
@@ -456,16 +638,23 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           backgroundColor: c.brand.primary,
           justifyContent: 'center',
           alignItems: 'center',
+          flexShrink: 0,
         },
         signInLabel: {
           ...typography.settingsRow,
           color: c.brand.primary,
           fontWeight: '500',
+          includeFontPadding: false,
         },
         playerNameLabel: {
           ...typography.settingsRow,
           color: c.text.primary,
-          flex: 1,
+          flexShrink: 1,
+          minWidth: 0,
+          includeFontPadding: false,
+        },
+        signOutButton: {
+          flexShrink: 0,
         },
         signOutText: {
           ...typography.settingsRow,
@@ -499,19 +688,25 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           fontWeight: '700',
         },
         volumeRow: {
-          paddingVertical: 10,
+          paddingVertical: 12,
         },
         volumeHeader: {
           flexDirection: 'row',
-          alignItems: 'baseline',
+          alignItems: 'center',
+          minHeight: 24,
         },
         volumeDescription: {
           ...typography.small,
           color: c.text.secondary,
           marginTop: 2,
+          includeFontPadding: false,
         },
         sliderSpacer: {
           height: 12,
+        },
+        sliderInset: {
+          // Room for the thumb hit target at 0% / 100%.
+          paddingHorizontal: THUMB_HIT_SIZE / 2,
         },
         sliderTouchArea: {
           height: TOUCH_HEIGHT,
@@ -528,15 +723,21 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           backgroundColor: c.brand.primary,
           borderRadius: TRACK_HEIGHT / 2,
         },
-        sliderThumb: {
+        thumbHitArea: {
           position: 'absolute',
+          width: THUMB_HIT_SIZE,
+          height: THUMB_HIT_SIZE,
+          top: (TOUCH_HEIGHT - THUMB_HIT_SIZE) / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        sliderThumb: {
           width: THUMB_SIZE,
           height: THUMB_SIZE,
           borderRadius: THUMB_SIZE / 2,
           backgroundColor: '#FFFFFF',
           borderWidth: 2,
           borderColor: c.brand.primary,
-          top: (TOUCH_HEIGHT - THUMB_SIZE) / 2,
           shadowColor: c.brand.primary,
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.3,

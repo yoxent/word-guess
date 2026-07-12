@@ -1,7 +1,7 @@
 # toggle-side-effects
-updated: 2026-07-09
+updated: 2026-07-12
 tags: [pattern, settings, zustand, side-effect, audio, haptics]
-related: [architecture, ui-config-registry, dev-workflow]
+related: [architecture, ui-config-registry, dev-workflow, audio-system]
 
 ## Pattern
 
@@ -83,8 +83,20 @@ Whenever a setting has a runtime side effect outside the store:
 - **2026-07-09 (this update)**: Replaced the `soundEnabled: boolean` toggle with two numeric volume sliders (`bgmVolume`, `sfxVolume`). The call-site `useEffect` in `SettingsRow` was removed (no longer needed since the sliders are direct `setBgmVolume` calls). The reactive `useEffect` in `App.tsx` is now the primary wiring. Old `setSoundEnabled` API was removed.
 - **2026-07-09 (9ec6085)**: Initial fix for `soundEnabled` / `hapticEnabled` — added the `useEffect` in `ToggleRow` to call `setSoundEnabled`.
 
+## Volume 0% semantics (2026-07-12)
+
+0% is **no playback**, not muted silence. See [audio-system](audio-system.md).
+
+| Setting | At 0 | Mechanism |
+|---------|------|-----------|
+| `bgmVolume` | Pause BGM player | `setBgmVolume`: `pause()` on >0→0, `play()` only on 0→>0 |
+| `sfxVolume` | Skip SFX | `play()` early-returns before `seekTo`/`play()` |
+
+Do not "mute" by leaving players running at volume 0 — that keeps decoding and holding the audio session.
+
 ## Don't
 
 - Don't assume "toggling the state is enough". Side effects need explicit wiring.
 - Don't wire the side effect ONLY at the call site. The reactive useEffect in `App.tsx` is the safety net that ensures the audio player stays in sync even if a future code path changes the store directly (e.g. remote config, deep links).
 - Future settings should ship with the side effect handler in the same PR.
+- Don't treat volume=0 as silent playback for BGM — always `pause()`.

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,10 @@ import { useAuthStore } from '../stores/authStore';
 import { getLeaderboardData } from '../services/leaderboardService';
 import type { LeaderboardData, LeaderboardEntry } from '../types';
 import type { LeaderboardType } from '../services/firestoreService';
+import {
+  resolveLeaderboardView,
+  shouldApplyLeaderboardResult,
+} from './leaderboardView';
 
 // ── Tab config ──
 
@@ -34,12 +38,21 @@ const TAB_ICONS: Record<LeaderboardType, string> = {
   endless_total: '🏆',
 };
 
+const TAB_SCORE_HINT: Record<LeaderboardType, string> = {
+  daily_streak: 'win streak',
+  endless_streak: 'best run',
+  endless_total: 'words',
+};
+
 // ── Empty state messages ──
 
 const EMPTY_MESSAGES: Record<LeaderboardType, string> = {
-  daily_streak: 'No daily entries yet.\nWin a Daily Challenge to appear here.',
-  endless_streak: 'No endless entries yet.\nPlay Endless mode to set a streak.',
-  endless_total: 'No endless entries yet.\nPlay Endless mode to guess words.',
+  daily_streak:
+    'No daily streaks yet.\nWin Daily Challenges on consecutive days to climb this board.',
+  endless_streak:
+    'No endless streaks yet.\nWin games in Endless mode to set a streak.',
+  endless_total:
+    'No endless totals yet.\nPlay Endless mode — this ranks total words guessed.',
 };
 
 // ── Top 3 medal config ──
@@ -238,9 +251,11 @@ export function LeaderboardScreen() {
           elevation: 2,
         },
         currentPlayerRow: {
-          backgroundColor: `${theme.colors.brand.primary}14`,
+          backgroundColor: theme.colors.surface.muted,
           borderWidth: 1.5,
-          borderColor: `${theme.colors.brand.primary}40`,
+          borderColor: theme.colors.brand.primary,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         // Rank
         rankContainer: {
@@ -286,6 +301,11 @@ export function LeaderboardScreen() {
           fontWeight: '800',
           color: theme.colors.brand.primary,
         },
+        scoreHint: {
+          ...typography.small,
+          color: theme.colors.text.secondary,
+          marginTop: 1,
+        },
         scoreTop3: {
           fontSize: 20,
         },
@@ -302,35 +322,65 @@ export function LeaderboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const requestIdRef = useRef(0);
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
 
-  const loadLeaderboard = useCallback(async () => {
+  const loadLeaderboard = useCallback(async (type: LeaderboardType = activeTabRef.current) => {
+    const requestId = ++requestIdRef.current;
     try {
       setError(null);
       setIsLoading(true);
-      const result = await getLeaderboardData(activeTab);
+      const result = await getLeaderboardData(type);
+      if (
+        !shouldApplyLeaderboardResult(
+          requestId,
+          requestIdRef.current,
+          type,
+          activeTabRef.current,
+        )
+      ) {
+        return;
+      }
       setData(result);
     } catch {
+      if (
+        !shouldApplyLeaderboardResult(
+          requestId,
+          requestIdRef.current,
+          type,
+          activeTabRef.current,
+        )
+      ) {
+        return;
+      }
       setError('Failed to load leaderboard. Please try again.');
+      setData(null);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [activeTab]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       if (!isLoggedIn) return;
-      loadLeaderboard();
+      loadLeaderboard(activeTab);
     }, [activeTab, isLoggedIn, loadLeaderboard]),
   );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadLeaderboard();
+    await loadLeaderboard(activeTabRef.current);
     setRefreshing(false);
   }, [loadLeaderboard]);
 
   const handleTabChange = useCallback((tab: LeaderboardType) => {
+    if (tab === activeTabRef.current) return;
+    requestIdRef.current += 1; // invalidate any in-flight fetch for the old tab
     setActiveTab(tab);
+    setData(null);
     setIsLoading(true);
     setError(null);
   }, []);
@@ -495,20 +545,23 @@ export function LeaderboardScreen() {
           >
             {item.score}
           </Text>
+          <Text style={styles.scoreHint}>{TAB_SCORE_HINT[activeTab]}</Text>
         </View>
       </View>
     );
   };
 
   const renderContent = () => {
-    if (isLoading && !data) return renderLoadingState();
-    if (error && !data) return renderErrorState();
-    if (!data || data.entries.length === 0) return renderEmptyState();
+    const view = resolveLeaderboardView({ isLoading, error, data });
+    if (view === 'loading') return renderLoadingState();
+    if (view === 'error') return renderErrorState();
+    if (view === 'empty') return renderEmptyState();
 
     return (
       <FlatList
-        data={data.entries}
-        keyExtractor={(item) => `${item.playerId}-${item.rank}`}
+        key={activeTab}
+        data={data!.entries}
+        keyExtractor={(item) => `${activeTab}-${item.playerId}-${item.rank}`}
         renderItem={renderEntryRow}
         contentContainerStyle={styles.listContent}
         refreshControl={

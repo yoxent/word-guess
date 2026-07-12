@@ -18,7 +18,7 @@ Updated 2026-07-10: expanded with `brand`, `surface.elevated`, `surface.muted`, 
 | `src/types/theme.ts` | `ThemeColors` and `Theme` type definitions |
 | `src/hooks/useTheme.ts` | `useTheme()` hook + `buildSemantic()` builder |
 | `src/hooks/useSystemColorScheme.ts` | OS light/dark via `Appearance` API + change listener |
-| `src/utils/fonts.ts` | Nunito font loading utility |
+| `src/utils/fonts.ts` | Fraunces + DM Sans font loading utility |
 
 **Deleted:** `src/hooks/useColors.ts` — removed in frontend overhaul (was deprecated).
 

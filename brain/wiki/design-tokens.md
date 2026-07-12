@@ -1,10 +1,10 @@
 # design-tokens
-updated: 2026-07-10 (Phase 4-7: WCAG dark theme audit, ProgressRing, modal animations)
+updated: 2026-07-12 (Fraunces + DM Sans typography)
 tags: [design, tokens, spacing, typography, colors, UI, accessibility, themes]
 related: [architecture, ui-config-registry, tech-stack, phase-structure, accessibility, frontend-overhaul, theme-system, mixed-driver-animation-crash]
 
 ## Purpose
-System-wide visual design tokens. Updated 2026-07-10 for bright playful redesign — replaced Wordle muted earth tones with sky blue / green / coral palette. Nunito display font for headings.
+System-wide visual design tokens. Bright playful palette (sky blue / green / coral). Typography: Fraunces for display/headings, DM Sans for UI body/buttons/labels.
 
 ## Spacing scale (multiples of 4)
 | Token | Value | Usage |
@@ -26,18 +26,18 @@ System-wide visual design tokens. Updated 2026-07-10 for bright playful redesign
 | modal | 24px | All modals (was 16-20) |
 | segment | 12px | Theme selector segments |
 
-## Typography scale (Nunito + system)
+## Typography scale (Fraunces + DM Sans)
 | Role | Size | Weight | Font | Usage |
 |------|------|--------|------|-------|
-| display | 40px | 800 | Nunito | App title, win/loss announcements |
-| heading | 24px | 700 | Nunito | Section headings, screen titles |
-| cardTitle | 18px | 700 | Nunito | Card headers, settings sections |
-| button | 17px | 700 | Nunito | Button labels |
-| statValue | 32px | 800 | Nunito | Big numbers on stats cards |
-| settingsRow | 16px | 500 | System | Toggle/row labels |
-| body | 15px | 400 | System | General body text |
-| small | 13px | 500 | System | Captions, badges |
-| statLabel | 12px | 600 | System | Labels under stats, uppercase |
+| display | 40px | 800 | Fraunces | App title, win/loss announcements |
+| heading | 24px | 700 | Fraunces | Section headings, screen titles |
+| cardTitle | 18px | 700 | Fraunces | Card headers, settings sections |
+| button | 17px | 700 | DM Sans | Button labels |
+| statValue | 32px | 800 | Fraunces | Big numbers on stats cards |
+| settingsRow | 16px | 500 | DM Sans | Toggle/row labels |
+| body | 15px | 400 | DM Sans | General body text |
+| small | 13px | 600 | DM Sans | Captions, badges |
+| statLabel | 12px | 600 | DM Sans | Labels under stats, uppercase |
 
 - All fontSize values multiplied by `PixelRatio.getFontScale()` for accessibility
 - Tile sizes NOT scaled (already dynamic from screen width)

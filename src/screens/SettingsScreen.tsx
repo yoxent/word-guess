@@ -34,7 +34,8 @@ export function SettingsScreen() {
         sectionCard: {
           backgroundColor: theme.colors.surface.card,
           borderRadius: layout.cardBorderRadius,
-          padding: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 4,
           marginBottom: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
@@ -43,9 +44,9 @@ export function SettingsScreen() {
           elevation: 2,
         },
         divider: {
-          height: 1,
+          height: StyleSheet.hairlineWidth,
           backgroundColor: theme.colors.tile.empty,
-          marginVertical: 2,
+          marginHorizontal: 0,
         },
         toast: {
           position: 'absolute',

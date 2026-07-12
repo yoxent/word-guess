@@ -1,5 +1,5 @@
 # fabric-crash-patterns
-updated: 2026-07-11
+updated: 2026-07-12 (letter hint moved to ghost tile; keyboard pulse retired)
 tags: [fabric, crash, animation, reanimated, gotcha, anti-pattern]
 related: [home-background, animation-system, mixed-driver-animation-crash, tile-component]
 
@@ -85,9 +85,11 @@ Fabric's mounting system tries to update props on a view that's in an invalid/un
 - Letter-hint used `Animated.loop` on key **opacity** (native driver) while
   tapping the hinted key updated the tile board and cleared hint state in one
   frame — stopping the loop + style teardown collided with Fabric prop updates
-- **Fix:** Pulse hint via alternating `key.hint` / `key.hintDim` background
-  colors (JS interval, no opacity animation). Clear `hintLetter` in `addLetter`
-  when that letter is typed so the key returns to normal unused styling.
+- **Fix (historical):** Pulse hint via alternating `key.hint` / `key.hintDim`
+  background colors (JS interval, no opacity animation).
+- **Current (2026-07-12):** Letter hint is a ghost letter on the active guess
+  row tile (`hintTile`), not a keyboard key highlight — avoids keyboard style
+  teardown races entirely. Clear `hintTile` on successful `submitGuess`.
 
 ### 9. Startup SIGSEGV in MountingCoordinator (home marquee)
 - Not the Java `AssertionError` — native `Fatal signal 11 (SIGSEGV)` on

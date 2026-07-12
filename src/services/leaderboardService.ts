@@ -86,8 +86,9 @@ export async function updateLeaderboardAfterGame(params: {
   endlessTotalWords?: number;
 }): Promise<void> {
   if (params.mode === 'daily' && params.won) {
-    // Daily Challenge win — submit daily streak (D-144)
-    await submitScore('daily_streak', params.dailyStreak ?? 0);
+    // Daily Challenge win — submit daily streak (never submit 0 for a win)
+    const streak = params.dailyStreak && params.dailyStreak > 0 ? params.dailyStreak : 1;
+    await submitScore('daily_streak', streak);
   }
 
   if (params.mode === 'endless') {

@@ -8,10 +8,11 @@ import { fetchAdUnitIds } from '../services/remoteConfig';
 import { loadFonts } from '../utils/fonts';
 import { configureGoogleSignIn } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
-import { useSettingsStore } from '../stores/settingsStore';
+import { applyNativeThemeMode, useSettingsStore } from '../stores/settingsStore';
 import { useAdStore } from '../stores/adStore';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
+import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
 
 export default function App() {
@@ -22,6 +23,10 @@ export default function App() {
   const themeMode = useSettingsStore((s) => s.themeMode);
   const activeTheme: 'light' | 'dark' =
     themeMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : themeMode;
+
+  useEffect(() => {
+    applyNativeThemeMode(themeMode);
+  }, [themeMode]);
 
   // Subscribe to volume changes — when user adjusts a slider in Settings,
   // apply the new volume to the audio players immediately. This is the
@@ -58,11 +63,14 @@ export default function App() {
       console.time('startup-init');
     }
 
-    // Load Nunito display font — blocks first render for ~100ms but
+    // Load display + UI fonts — blocks first render briefly but
     // prevents flash of unstyled text. If loading fails, app continues
     // with system fonts.
     const init = async () => {
       await loadFonts();
+
+      // Open SQLite before any game can complete — stats writes need it
+      await initDatabase();
 
       // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
       fetchAdUnitIds();

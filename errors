@@ -1,0 +1,72 @@
+Console Error
+
+[authService] signInWithGoogle failed {"code":"auth/unknown","message":"[auth/unknown] Exception in HostFunction: accessToken cannot be empty","error":{}}
+
+Source:
+E:\Projects\Indie\word-guess\src\services\authService.ts (151:17)
+
+Call Stack:
+addLog (E:\Projects\Indie\word-guess\node_modules\react-native\Libraries\LogBox\Data\LogBoxData.js:235)
+addConsoleLog (E:\Projects\Indie\word-guess\node_modules\react-native\Libraries\LogBox\LogBox.js:213)
+reactConsoleErrorHandler (E:\Projects\Indie\word-guess\node_modules\react-native\Libraries\Core\ExceptionsManager.js:248)
+console.level (E:\Projects\Indie\word-guess\node_modules\react-native\Libraries\Core\setUpDeveloperTools.js:42)
+signInWithGoogle (E:\Projects\Indie\word-guess\src\services\authService.ts:151)
+
+2026-07-12 17:59:56.216 22425-22425 .android.gms.ui         pid-22425                            E  Not starting debugger since process cannot load the jdwp agent.
+2026-07-12 17:59:57.318 22425-22425 ashmem                  com.google.android.gms.ui            E  Pinning is deprecated since Android Q. Please use trim or other methods.
+2026-07-12 17:59:59.686 21787-21862 ReactNativeJS           com.vorithstudio.wordguess           E  '[authService] signInWithGoogle failed', { code: 'auth/unknown',
+                                                                                                      message: '[auth/unknown] Exception in HostFunction: accessToken cannot be empty',
+                                                                                                      error: [Error: [auth/unknown] Exception in HostFunction: accessToken cannot be empty] }
+2026-07-12 18:00:00.162   761-811   BluetoothP...sCollector system_server                        E  Cannot acquire BluetoothActivityEnergyInfo
+                                                                                                    java.util.concurrent.ExecutionException: java.lang.RuntimeException: error: 11
+                                                                                                    	at java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:372)
+                                                                                                    	at java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2072)
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector.collectBluetoothActivityInfo(BluetoothPowerStatsCollector.java:192)
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector.collectStats(BluetoothPowerStatsCollector.java:155)
+                                                                                                    	at com.android.server.power.stats.PowerStatsCollector.collectAndDeliverStats(PowerStatsCollector.java:176)
+                                                                                                    	at com.android.server.power.stats.PowerStatsCollector$$ExternalSyntheticLambda0.run(R8$$SyntheticClass:0)
+                                                                                                    	at android.os.Handler.handleCallback(Handler.java:995)
+                                                                                                    	at android.os.Handler.dispatchMessage(Handler.java:103)
+                                                                                                    	at android.os.Looper.loopOnce(Looper.java:248)
+                                                                                                    	at android.os.Looper.loop(Looper.java:338)
+                                                                                                    	at android.os.HandlerThread.run(HandlerThread.java:85)
+                                                                                                    Caused by: java.lang.RuntimeException: error: 11
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector$1.onBluetoothActivityEnergyInfoError(BluetoothPowerStatsCollector.java:181)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy.lambda$onBluetoothActivityEnergyInfoAvailable$0(BluetoothAdapter.java:1037)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+                                                                                                    	at android.bluetooth.BluetoothUtils.lambda$executeFromBinder$0(BluetoothUtils.java:343)
+                                                                                                    	at android.bluetooth.BluetoothUtils$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+                                                                                                    	at com.android.server.SystemServerInitThreadPool$$ExternalSyntheticLambda0.execute(R8$$SyntheticClass:0)
+                                                                                                    	at android.bluetooth.BluetoothUtils.executeFromBinder(BluetoothUtils.java:343)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy.onBluetoothActivityEnergyInfoAvailable(BluetoothAdapter.java:1035)
+                                                                                                    	at android.bluetooth.IBluetoothActivityEnergyInfoListener$Stub.onTransact(IBluetoothActivityEnergyInfoListener.java:98)
+                                                                                                    	at android.os.Binder.execTransactInternal(Binder.java:1426)
+                                                                                                    	at android.os.Binder.execTransact(Binder.java:1365)
+2026-07-12 18:00:00.230   761-811   BluetoothP...sCollector system_server                        E  Cannot acquire BluetoothActivityEnergyInfo
+                                                                                                    java.util.concurrent.ExecutionException: java.lang.RuntimeException: error: 11
+                                                                                                    	at java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:372)
+                                                                                                    	at java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2072)
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector.collectBluetoothActivityInfo(BluetoothPowerStatsCollector.java:192)
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector.collectStats(BluetoothPowerStatsCollector.java:155)
+                                                                                                    	at com.android.server.power.stats.PowerStatsCollector.collectAndDeliverStats(PowerStatsCollector.java:176)
+                                                                                                    	at com.android.server.power.stats.PowerStatsCollector$$ExternalSyntheticLambda0.run(R8$$SyntheticClass:0)
+                                                                                                    	at android.os.Handler.handleCallback(Handler.java:995)
+                                                                                                    	at android.os.Handler.dispatchMessage(Handler.java:103)
+                                                                                                    	at android.os.Looper.loopOnce(Looper.java:248)
+                                                                                                    	at android.os.Looper.loop(Looper.java:338)
+                                                                                                    	at android.os.HandlerThread.run(HandlerThread.java:85)
+                                                                                                    Caused by: java.lang.RuntimeException: error: 11
+                                                                                                    	at com.android.server.power.stats.BluetoothPowerStatsCollector$1.onBluetoothActivityEnergyInfoError(BluetoothPowerStatsCollector.java:181)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy.lambda$onBluetoothActivityEnergyInfoAvailable$0(BluetoothAdapter.java:1037)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+                                                                                                    	at android.bluetooth.BluetoothUtils.lambda$executeFromBinder$0(BluetoothUtils.java:343)
+                                                                                                    	at android.bluetooth.BluetoothUtils$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+                                                                                                    	at com.android.server.SystemServerInitThreadPool$$ExternalSyntheticLambda0.execute(R8$$SyntheticClass:0)
+                                                                                                    	at android.bluetooth.BluetoothUtils.executeFromBinder(BluetoothUtils.java:343)
+                                                                                                    	at android.bluetooth.BluetoothAdapter$OnBluetoothActivityEnergyInfoProxy.onBluetoothActivityEnergyInfoAvailable(BluetoothAdapter.java:1035)
+                                                                                                    	at android.bluetooth.IBluetoothActivityEnergyInfoListener$Stub.onTransact(IBluetoothActivityEnergyInfoListener.java:98)
+                                                                                                    	at android.os.Binder.execTransactInternal(Binder.java:1426)
+                                                                                                    	at android.os.Binder.execTransact(Binder.java:1365)
+2026-07-12 18:00:00.484  5432-5432  SmsApplication          com.android.settings                 E  com.google.android.apps.messaging lost android:read_cell_broadcasts:  (fixing)
+2026-07-12 18:00:04.904   761-1135  ClipboardService        system_server                        E  Denying clipboard access to com.google.android.gms, application is not in focus nor is it a system service for user 0
+2026-07-12 18:00:04.907   761-985   ClipboardService        system_server                        E  Denying clipboard access to com.google.android.gms, application is not in focus nor is it a system service for user 0

@@ -1,7 +1,7 @@
 # architecture
-updated: 2026-07-11 (error toast overlay, game restoration letterCount guard)
+updated: 2026-07-12 (ResultModal share/stats write, toast UX, stats-and-share link)
 tags: [architecture, patterns, project-structure]
-related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility, toggle-side-effects]
+related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility, toggle-side-effects, audio-system, stats-and-share]
 
 ## Layer stack
 ```
@@ -90,8 +90,8 @@ src/
 | Home | / | Mode buttons (Daily/Endless/Random), Hard Mode toggle, LengthPickerModal, HowToPlayModal, nav via top-right icon bar (? help, medal stats, leaderboard, settings). Sequential stagger entrance animation on mount |
 | Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
 | Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
-| Stats | /stats | StatsCard, GuessDistribution |
-| Settings | /settings | ToggleRow, volume sliders (10% steps), theme selector, Simpler Animations toggle, haptic toggle with (?) help |
+| Stats | /stats | Overview (Daily/Endless/Random streaks), length table, Wordle-style guess distribution bars — no share FAB |
+| Settings | /settings | ToggleRow, volume sliders (10% steps, large invisible thumb hit target), theme selector, Simpler Animations toggle, haptic toggle with (?) help, Account sign-in / restore / purchase |
 | Leaderboard | /leaderboard | LeaderboardRow[], AuthPrompt |
 | Result | (removed Phase 6) | Deleted — replaced by ResultModal overlay in Phase 2. Route removed from Navigation.tsx |
 
@@ -102,7 +102,7 @@ src/
 | GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. |
 | Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX. Uses `tileSize` prop for width/height + font size. |
 | Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
-| ResultModal | Post-game overlay | Win/loss, word, definition, emoji grid. Endless: centered Play Next + Back to Menu. Confetti in front of card on win. Interstitial before navigation |
+| ResultModal | Post-game overlay | Win/loss, word, definition, emoji grid. **Primary** `recordGameIfNeeded` on settle. Win: share icon → clipboard + toast. Endless: Play Next + Back to Menu both `alignSelf: 'stretch'` in full-width `buttonContainer`. Confetti in front of card on win. Interstitial before navigation |
 | LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
 | Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |
 
@@ -111,7 +111,7 @@ src/
 |---------|------|----------------|
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
-| Sound | services/sound.ts | **expo-audio** wired in Phase 6 (migrated from expo-av 2026-07-09 — see [tech-stack](tech-stack.md)). Loads keypress.wav, reveal.wav, win.wav, lose.wav from assets/sounds/. Callsites: Keyboard (playKeyPress), Tile animation callback (playReveal), ResultModal win/loss (playWin/playLoss). `setSoundEnabled()` re-exported from services/index.ts |
+| Sound | services/sound.ts | **expo-audio** — see [audio-system](audio-system.md). BGM loop + 4 SFX. 0% = pause/skip (not mute). AppState pause/resume. Callsites: Keyboard, tile reveal, GameScreen win/loss. Volumes via [toggle-side-effects](toggle-side-effects.md) |
 | RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
 
 ## Two-tier dictionary (Phase 2 decision)
@@ -138,7 +138,7 @@ store.submitGuess(guess):
   → Tile reveal animation (Reanimated, UI thread, 200ms flip, 50ms stagger)
   → (after last tile) → Keyboard color update
   → Win/loss check
-  → If game over: ResultModal overlay with definition
+  → If game over: ResultModal overlay with definition; `recordGameIfNeeded`; win share → clipboard + toast
   → Endless: "Play Next" (centered) or "Back to Menu"
   → Other: "Back to Menu" → HomeScreen
   → Rewarded hints (+1 attempt, letter hint) on GameScreen during play — not on ResultModal
@@ -155,6 +155,12 @@ store.submitGuess(guess):
 - `position: 'absolute', bottom: 0` inside `position: 'relative'` board container
 - Does NOT participate in flex layout — grid does not shift when toast appears/disappears
 - Previously was in normal flow between board and hint buttons, causing grid to shrink on every toast
+
+## Non-blocking feedback (prefer toast/tooltip over Alert)
+- Share copy confirmation: ResultModal toast
+- Settings IAP/auth: SettingsScreen toast
+- Settings help `(?)`: tooltip Modal next to label
+- Native `Alert.alert` removed from `src/` (2026-07-12) — see [stats-and-share](stats-and-share.md)
 
 ## Game restoration (`src/utils/activeGame.ts`)
 - `shouldOfferContinue()` — Home continue modal gate; random mode uses single slot (ignores newly rolled length)

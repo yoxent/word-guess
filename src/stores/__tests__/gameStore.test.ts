@@ -57,7 +57,7 @@ describe('gameStore', () => {
       error: null,
       isRevealing: false,
       pendingInputs: [],
-      hintLetter: null,
+      hintTile: null,
     });
   });
 
@@ -100,7 +100,7 @@ describe('gameStore', () => {
           maxAttempts: 8,
           startedAt: new Date().toISOString(),
         },
-        hintLetter: 'P',
+        hintTile: { index: 1, letter: 'P' },
       });
 
       useGameStore.getState().startGame('random', 'CRANE', 5, false);
@@ -110,7 +110,7 @@ describe('gameStore', () => {
       expect(session?.extraGuessesUsed).toBe(0);
       expect(session?.letterHintUsed).toBe(false);
       expect(session?.maxAttempts).toBe(6);
-      expect(useGameStore.getState().hintLetter).toBeNull();
+      expect(useGameStore.getState().hintTile).toBeNull();
     });
   });
 
@@ -124,10 +124,10 @@ describe('gameStore', () => {
       expect(useGameStore.getState().currentGuess).toBe('A');
     });
 
-    it('clears hintLetter when the hinted letter is typed', () => {
-      useGameStore.setState({ hintLetter: 'A' });
+    it('keeps hintTile when letters are typed (ghost until submit)', () => {
+      useGameStore.setState({ hintTile: { index: 0, letter: 'A' } });
       useGameStore.getState().addLetter('A');
-      expect(useGameStore.getState().hintLetter).toBeNull();
+      expect(useGameStore.getState().hintTile).toEqual({ index: 0, letter: 'A' });
     });
 
     it('does not exceed word length', () => {
@@ -225,6 +225,77 @@ describe('gameStore', () => {
       });
       useGameStore.getState().submitGuess();
       expect(useGameStore.getState().session?.guesses).toHaveLength(0);
+    });
+
+    it('clears hintTile on successful submit', () => {
+      useGameStore.setState({
+        currentGuess: 'CRANE',
+        hintTile: { index: 2, letter: 'P' },
+      });
+      useGameStore.getState().submitGuess();
+      expect(useGameStore.getState().hintTile).toBeNull();
+      expect(useGameStore.getState().session?.guesses).toContain('CRANE');
+    });
+
+    it('keeps hintTile when submit fails validation', () => {
+      const dictionaryStore = require('../dictionaryStore');
+      dictionaryStore.useDictionaryStore.getState.mockReturnValue({
+        isValidGuess: jest.fn(() => false),
+      });
+
+      useGameStore.setState({
+        currentGuess: 'XXXXX',
+        hintTile: { index: 0, letter: 'A' },
+      });
+      useGameStore.getState().submitGuess();
+      expect(useGameStore.getState().hintTile).toEqual({ index: 0, letter: 'A' });
+      expect(useGameStore.getState().error).toBe('Not in word list');
+    });
+  });
+
+  describe('useLetterHint', () => {
+    beforeEach(() => {
+      useGameStore.getState().startGame('random', 'APPLE', 5, false);
+    });
+
+    it('sets hintTile at a non-correct position and marks letterHintUsed', () => {
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      useGameStore.getState().useLetterHint();
+      const hint = useGameStore.getState().hintTile;
+      expect(hint).not.toBeNull();
+      expect(hint?.letter).toBe(useGameStore.getState().session!.word[hint!.index]);
+      expect(useGameStore.getState().session?.letterHintUsed).toBe(true);
+      randomSpy.mockRestore();
+    });
+
+    it('skips positions already marked correct', () => {
+      useGameStore.setState({
+        session: {
+          ...useGameStore.getState().session!,
+          feedback: [
+            [
+              { letter: 'A', feedback: 'correct' },
+              { letter: 'X', feedback: 'absent' },
+              { letter: 'X', feedback: 'absent' },
+              { letter: 'X', feedback: 'absent' },
+              { letter: 'X', feedback: 'absent' },
+            ],
+          ],
+          guesses: ['AXXXX'],
+        },
+      });
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      useGameStore.getState().useLetterHint();
+      expect(useGameStore.getState().hintTile?.index).not.toBe(0);
+      randomSpy.mockRestore();
+    });
+
+    it('does nothing if letter hint already used', () => {
+      useGameStore.setState({
+        session: { ...useGameStore.getState().session!, letterHintUsed: true },
+      });
+      useGameStore.getState().useLetterHint();
+      expect(useGameStore.getState().hintTile).toBeNull();
     });
   });
 

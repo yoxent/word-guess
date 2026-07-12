@@ -6,13 +6,17 @@ import { config } from '../constants/config';
 import { clearActiveGame } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
+/** Ghost letter shown in the active guess row after a rewarded letter hint. */
+export type HintTile = { index: number; letter: string };
+
 interface GameState {
   session: GameSession | null;
   currentGuess: string;
   error: string | null;
   isRevealing: boolean;
   pendingInputs: string[];
-  hintLetter: string | null; // letter highlighted by letter hint
+  /** Ghost letter at a correct answer index for the current active row only. */
+  hintTile: HintTile | null;
 
   startGame: (mode: GameMode, word: string, letterCount: number, hardMode: boolean) => void;
   addLetter: (letter: string) => void;
@@ -45,7 +49,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   error: null,
   isRevealing: false,
   pendingInputs: [],
-  hintLetter: null,
+  hintTile: null,
 
   startGame: (mode, word, letterCount, hardMode) => {
     clearActiveGame(hardMode);
@@ -65,19 +69,15 @@ export const useGameStore = create<GameState>()((set, get) => ({
       maxAttempts: letterCount + 1,
       startedAt: new Date().toISOString(),
     };
-    set({ session, currentGuess: '', error: null, pendingInputs: [], hintLetter: null });
+    set({ session, currentGuess: '', error: null, pendingInputs: [], hintTile: null });
   },
 
   addLetter: (letter) => {
-    const { session, currentGuess, hintLetter } = get();
+    const { session, currentGuess } = get();
     if (!session || session.status !== 'playing') return;
     if (currentGuess.length >= session.letterCount) return;
     const upper = letter.toUpperCase();
-    set({
-      currentGuess: currentGuess + upper,
-      // Clear hint highlight once the player uses the hinted letter (before submit).
-      hintLetter: hintLetter === upper ? null : hintLetter,
-    });
+    set({ currentGuess: currentGuess + upper });
   },
 
   removeLetter: () => {
@@ -152,15 +152,17 @@ export const useGameStore = create<GameState>()((set, get) => ({
       },
       currentGuess: '',
       error: null,
+      // Ghost hint is current-row only — clear whether the letter was typed or not.
+      hintTile: null,
     });
   },
 
-  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [], hintLetter: null }),
+  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [], hintTile: null }),
 
   setCurrentGuess: (guess) => set({ currentGuess: guess }),
 
   restoreSession: (session) => {
-    set({ session, currentGuess: '', error: null, pendingInputs: [], hintLetter: null });
+    set({ session, currentGuess: '', error: null, pendingInputs: [], hintTile: null });
   },
 
   clearError: () => set({ error: null }),
@@ -239,21 +241,34 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const { session } = get();
     if (!session || session.status !== 'playing' || session.letterHintUsed) return;
 
-    // Find letters in the word that haven't been guessed correctly yet
     const word = session.word.toUpperCase();
-    const guessedLetters = new Set(session.guesses.join('').split(''));
-    const unguessedLetters = [...new Set(word.split(''))].filter((l) => !guessedLetters.has(l));
 
-    // If all letters have been guessed, pick any letter from the word
-    const candidates = unguessedLetters.length > 0 ? unguessedLetters : [...new Set(word.split(''))];
-    const hintLetter = candidates[Math.floor(Math.random() * candidates.length)];
+    // Prefer positions not already marked correct from prior feedback.
+    const correctPositions = new Set<number>();
+    for (const row of session.feedback) {
+      row.forEach((tile, index) => {
+        if (tile.feedback === 'correct') correctPositions.add(index);
+      });
+    }
+
+    const candidates = word
+      .split('')
+      .map((letter, index) => ({ letter, index }))
+      .filter(({ index }) => !correctPositions.has(index));
+
+    // Fallback: any position (e.g. all green somehow mid-session).
+    const pool =
+      candidates.length > 0
+        ? candidates
+        : word.split('').map((letter, index) => ({ letter, index }));
+    const hintTile = pool[Math.floor(Math.random() * pool.length)];
 
     set({
       session: {
         ...session,
         letterHintUsed: true,
       },
-      hintLetter,
+      hintTile,
     });
   },
 }));

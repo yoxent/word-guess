@@ -26,6 +26,11 @@ jest.mock('../../../hooks/useTheme', () => ({
         primary: '#1a1a2e',
         onPresent: '#1a1a2e',
       },
+      key: {
+        hint: '#4FC3F7',
+        hintDim: '#81D4FA',
+        hintText: '#0D47A1',
+      },
     },
   }),
 }));
@@ -93,5 +98,38 @@ describe('GuessRow', () => {
     );
     expect(screen.getByText('A')).toBeTruthy();
     expect(screen.getByText('B')).toBeTruthy();
+  });
+
+  it('shows ghost hint letter on empty active cell', () => {
+    render(
+      <GuessRow
+        guess="A"
+        isActive
+        isRevealingRow={false}
+        rowIndex={0}
+        wordLength={5}
+        tileSize={50}
+        hintTile={{ index: 2, letter: 'P' }}
+      />,
+    );
+    expect(screen.getByText('A')).toBeTruthy();
+    expect(screen.getByText('P')).toBeTruthy();
+    expect(screen.getByLabelText('Position 3: P, hint')).toBeTruthy();
+  });
+
+  it('hides ghost when the hinted cell is filled', () => {
+    render(
+      <GuessRow
+        guess="APP"
+        isActive
+        isRevealingRow={false}
+        rowIndex={0}
+        wordLength={5}
+        tileSize={50}
+        hintTile={{ index: 1, letter: 'X' }}
+      />,
+    );
+    expect(screen.queryByLabelText('Position 2: X, hint')).toBeNull();
+    expect(screen.getByLabelText('Position 2: P, active')).toBeTruthy();
   });
 });

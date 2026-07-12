@@ -25,7 +25,7 @@ interface ButtonProps {
 
 /**
  * Primary interactive button — pill-shaped, spring press animation,
- * color shift on press, Nunito 700 font.
+ * color shift on press, DM Sans bold.
  *
  * Variants:
  * - primary: solid sky blue bg, white text
@@ -175,6 +175,10 @@ export function Button({
         style={[
           styles.button,
           {
+            // Fill the wrapper so caller `style={{ width }}` actually sizes
+            // the visible pill — without this, only the invisible Animated.View
+            // stretches and the touchable shrink-wraps to the label length.
+            alignSelf: 'stretch',
             backgroundColor: colors.bg,
             borderColor: colors.border,
             borderWidth: hasBorder ? 1.5 : 0,

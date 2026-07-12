@@ -1,7 +1,7 @@
 # game-modes
-updated: 2026-07-11 (random single-slot continue, hard mode session-only, rewarded hint scoping)
+updated: 2026-07-12 (share two-line header; stats Random columns; ResultModal share/record)
 tags: [gameplay, modes, game-design]
-related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup]
+related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup, stats-and-share]
 
 ## Three modes
 
@@ -43,11 +43,11 @@ When selecting a game mode from Home, if a saved in-progress game exists:
 - Starting fresh without continue always calls `clearActiveGame()` first so rewarded hints (`extraGuessesUsed`, `letterHintUsed`, boosted `maxAttempts`) do not leak into a new instance
 
 ## Streak tracking (per-mode, Phase 3)
-- **Per-mode:** Daily Challenge streak tracked separately from non-daily modes (Random + Free Play share a streak). Endless has its own streak (existing MMKV key, Phase 2).
+- **Per-mode × difficulty:** Daily / Endless / Random each have normal + hard streaks in SQLite (`daily_*`, `endless_*`, `random_*`; legacy `free` rows count as random).
 - **Reset:** Streak resets to 0 when player reaches `lost` state. Win keeps streak going; loss breaks it.
-- **Endless:** Endless streak (consecutive correct words) stored in MMKV via `getEndlessStreak`/`setEndlessStreak`, tracked independently of Daily/Random streaks.
-- **Overview streak display:** When viewing stats generically, shows last-played mode's streak.
-- **SQLite storage:** Game history table records won/lost per game. Streak computed by SQL aggregation queries ordering by `completed_at DESC` and grouping consecutive wins.
+- **Endless in-run:** Consecutive correct words also use MMKV `endless_streak_*` for the current Endless run UI.
+- **Overview UI:** Three columns Daily / Endless / Random (each showing normal + hard).
+- **Write path:** ResultModal + `recordGameIfNeeded` — see [stats-and-share](stats-and-share.md).
 
 ## Universal toggle: Hard Mode
 - Home screen **Hard Mode** pill toggle — applies to the current session's games
@@ -72,9 +72,11 @@ Bug fixed 2026-07-11: Previous implementation counted yellow letters cumulativel
 ## Result flow (all modes — Phase 2 change)
 - Result displayed as **modal overlay** (not navigation to ResultScreen)
 - Shows: win/loss state, target word, word definition, emoji grid
+- Win: share icon copies emoji grid (`Word Guess` / `{Mode} · {N}-letter` header lines) via toast feedback
 - Win confetti renders **in front of** the modal card (`zIndex` above card)
 - Endless: centered **Play Next** + **Back to Menu** (secondary)
 - Other modes: **Back to Menu** only
+- Stats row written via `recordGameIfNeeded` when modal settles
 
 ## Attempt system
 | Factor | Value |

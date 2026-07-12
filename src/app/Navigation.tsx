@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { BackHandler, Platform } from 'react-native';
+import { BackHandler, Platform, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
   useFocusEffect,
@@ -7,7 +7,6 @@ import {
   DefaultTheme,
   DarkTheme,
 } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -54,6 +53,31 @@ function BackHandlerController() {
   return null;
 }
 
+function HeaderBackButton({
+  tintColor,
+  onPress,
+}: {
+  tintColor?: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={{
+        marginLeft: Platform.OS === 'android' ? 4 : 0,
+        padding: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <MaterialIcons name="arrow-back-ios" size={22} color={tintColor} />
+    </TouchableOpacity>
+  );
+}
+
 export function Navigation() {
   const theme = useTheme();
   const navTheme = useMemo(
@@ -72,20 +96,21 @@ export function Navigation() {
       <BackHandlerController />
       <Stack.Navigator
         initialRouteName="Home"
-        screenOptions={{
+        screenOptions={({ navigation }) => ({
           headerTintColor: theme.colors.text.primary,
           headerStyle: { backgroundColor: theme.colors.surface.header },
           contentStyle: { backgroundColor: theme.colors.surface.background },
           animationTypeForReplace: 'push',
-          headerBackImage: ({ tintColor }) => (
-            <MaterialIcons
-              name="arrow-back-ios"
-              size={22}
-              color={tintColor}
-              style={{ marginLeft: Platform.OS === 'android' ? 4 : 0 }}
-            />
-          ),
-        }}
+          // native-stack ignores headerBackImage; use headerLeft so Android
+          // also gets the iOS-style "<" chevron instead of the default "<-".
+          headerLeft: ({ tintColor, canGoBack }) =>
+            canGoBack ? (
+              <HeaderBackButton
+                tintColor={tintColor}
+                onPress={() => navigation.goBack()}
+              />
+            ) : null,
+        })}
       >
         <Stack.Screen
           name="Home"

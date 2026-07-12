@@ -3,6 +3,7 @@ import type { GameMode, GuessFeedback } from '../types/game';
 export interface GameResultForShare {
   mode: GameMode;
   word: string;
+  letterCount: number;
   attempts: number;
   won: boolean;
   maxAttempts: number;
@@ -25,11 +26,13 @@ const MODE_NAMES: Record<GameMode, string> = {
 
 export function generateShareText(result: GameResultForShare): string {
   const modeName = MODE_NAMES[result.mode] || 'Word Guess';
+  const lengthLabel = `${result.letterCount}-letter`;
   const dateFormatted = result.date.split('T')[0];
   const lines: string[] = [];
 
-  // Header
-  lines.push(`Word Guess - ${modeName}`);
+  // Header — brand, then mode + word length on the next line
+  lines.push('Word Guess');
+  lines.push(`${modeName} · ${lengthLabel}`);
   lines.push(dateFormatted);
   lines.push('');
 

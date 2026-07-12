@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
@@ -15,22 +15,17 @@ const ROWS = [
   ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
 ];
 
-const HINT_PULSE_MS = 500;
-
 function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
 }
 
-/** Individual key with spring press animation (transform only — no opacity blink). */
+/** Individual key with spring press animation (transform only). */
 function KeyboardKey({
   label,
   displayText,
   fontSize,
   backgroundColor,
   textColor,
-  hintActive,
-  hintBright,
-  hintDim,
   wide,
   disabled,
   dimmed,
@@ -41,34 +36,12 @@ function KeyboardKey({
   fontSize: number;
   backgroundColor: string;
   textColor: string;
-  hintActive?: boolean;
-  hintBright?: string;
-  hintDim?: string;
   wide?: boolean;
   disabled: boolean;
   dimmed?: boolean;
   onPress: () => void;
 }) {
-  const [hintPulseBright, setHintPulseBright] = useState(true);
   const scale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!hintActive) {
-      setHintPulseBright(true);
-      return;
-    }
-    const id = setInterval(() => {
-      setHintPulseBright((prev) => !prev);
-    }, HINT_PULSE_MS);
-    return () => clearInterval(id);
-  }, [hintActive]);
-
-  const resolvedBackground =
-    hintActive && hintBright && hintDim
-      ? hintPulseBright
-        ? hintBright
-        : hintDim
-      : backgroundColor;
 
   const onPressIn = () => {
     Animated.spring(scale, {
@@ -99,7 +72,7 @@ function KeyboardKey({
       <TouchableOpacity
         style={[
           keyStyles.key,
-          { backgroundColor: resolvedBackground },
+          { backgroundColor },
           wide && keyStyles.wideKey,
           disabled && keyStyles.keyDisabled,
         ]}
@@ -182,7 +155,6 @@ function KeyboardComponent() {
   const currentGuess = useGameStore((s) => s.currentGuess);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
-  const hintLetter = useGameStore((s) => s.hintLetter);
   const hapticEnabled = useSettingsStore((s) => s.hapticEnabled);
 
   const isPlaying = session?.status === 'playing';
@@ -219,14 +191,6 @@ function KeyboardComponent() {
     [session?.keyColors, session?.pendingKeyColors],
   );
 
-  const isHintedKey = useCallback(
-    (key: string): boolean => {
-      if (!hintLetter || hintLetter !== key) return false;
-      return !getKeyFeedback(key);
-    },
-    [hintLetter, getKeyFeedback],
-  );
-
   const getKeyBackground = useCallback(
     (key: string): string => {
       if (isActionKey(key)) {
@@ -244,15 +208,12 @@ function KeyboardComponent() {
       if (isActionKey(key)) {
         return theme.colors.key.text;
       }
-      if (isHintedKey(key)) {
-        return theme.colors.key.hintText;
-      }
       const feedback = getKeyFeedback(key);
       if (!feedback) return theme.colors.key.text;
       if (feedback === 'present') return theme.colors.text.onPresent;
       return theme.colors.text.inverse;
     },
-    [getKeyFeedback, isHintedKey, theme],
+    [getKeyFeedback, theme],
   );
 
   const isKeyDisabled = useCallback(
@@ -281,7 +242,6 @@ function KeyboardComponent() {
             }
             const { text, fontSize, label } = getKeyDisplay(key);
             const disabled = isKeyDisabled(key);
-            const hinted = isHintedKey(key);
             const feedback = getKeyFeedback(key);
             return (
               <KeyboardKey
@@ -291,9 +251,6 @@ function KeyboardComponent() {
                 fontSize={fontSize}
                 backgroundColor={getKeyBackground(key)}
                 textColor={getKeyTextColor(key)}
-                hintActive={hinted}
-                hintBright={theme.colors.key.hint}
-                hintDim={theme.colors.key.hintDim}
                 wide={isActionKey(key)}
                 disabled={disabled}
                 dimmed={feedback === 'absent'}

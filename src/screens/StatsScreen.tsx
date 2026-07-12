@@ -7,27 +7,19 @@ import {
   RefreshControl,
   StyleSheet,
   Animated,
-  TouchableOpacity,
-  Dimensions,
-  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BarChart } from 'react-native-chart-kit';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { layout } from '../constants/layout';
 import { statsConfig } from '../config/ui';
 import { StatCard } from '../components/ui/StatCard';
 import { ProgressRing } from '../components/ui/ProgressRing';
-import { useStatsStore } from '../stores';
-import { generateShareText } from '../utils/share';
+import { useStatsStore, useSettingsStore } from '../stores';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_PADDING = layout.screenPadding;
-const CARD_PADDING = 24;
-const CHART_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2 - CARD_PADDING * 2;
 
 export function StatsScreen() {
   const theme = useTheme();
@@ -118,27 +110,41 @@ export function StatsScreen() {
           ...typography.small,
           color: theme.colors.text.secondary,
         },
-        // Per-mode streaks
+        // Per-mode streaks — 3 columns (Daily / Endless / Free·Random), normal + hard stacked
         perModeRow: {
           flexDirection: 'row',
-          justifyContent: 'space-around',
           marginTop: 16,
           paddingTop: 12,
           borderTopWidth: 1,
           borderTopColor: theme.colors.tile.empty,
+          gap: 8,
         },
         perModeItem: {
+          flex: 1,
+          minWidth: 0,
           alignItems: 'center',
+          backgroundColor: theme.colors.surface.muted,
+          borderRadius: 12,
+          paddingVertical: 10,
+          paddingHorizontal: 6,
         },
         perModeLabel: {
           ...typography.statLabel,
           color: theme.colors.text.secondary,
+          marginBottom: 6,
+          textAlign: 'center',
         },
         perModeValue: {
           ...typography.body,
           color: theme.colors.text.primary,
+          fontWeight: '700',
+          fontSize: 16,
+        },
+        perModeHard: {
+          ...typography.small,
+          color: theme.colors.brand.secondary,
           fontWeight: '600',
-          marginTop: 2,
+          marginTop: 4,
         },
         // By-length table
         tableHeader: {
@@ -169,30 +175,42 @@ export function StatsScreen() {
           ...typography.body,
           color: theme.colors.text.primary,
         },
-        // Chart
-        chartContainer: {
-          alignItems: 'center',
+        // Guess distribution — Wordle-style horizontal bars (even spacing, no chart-kit)
+        distributionList: {
+          gap: 6,
         },
-        // Share FAB — pill-shaped, sky blue, spring press
-        shareButton: {
-          position: 'absolute',
-          right: SCREEN_PADDING,
-          backgroundColor: theme.colors.brand.primary,
-          borderRadius: layout.buttonBorderRadius,
-          paddingVertical: 14,
-          paddingHorizontal: 28,
+        distributionRow: {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
-          shadowColor: theme.colors.brand.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          elevation: 6,
+          minHeight: 28,
         },
-        shareButtonText: {
-          ...typography.button,
-          color: '#FFFFFF',
+        distributionLabel: {
+          ...typography.statLabel,
+          color: theme.colors.text.secondary,
+          width: 20,
+          textAlign: 'center',
+          fontWeight: '700',
+        },
+        distributionBarTrack: {
+          flex: 1,
+          marginHorizontal: 8,
+          height: 28,
+          borderRadius: 6,
+          backgroundColor: theme.colors.surface.muted,
+          overflow: 'hidden',
+          justifyContent: 'center',
+        },
+        distributionBarFill: {
+          height: '100%',
+          borderRadius: 6,
+          minWidth: 28,
+          justifyContent: 'center',
+          paddingHorizontal: 8,
+        },
+        distributionCount: {
+          ...typography.statLabel,
+          fontWeight: '700',
+          fontSize: 12,
         },
       }),
     [theme],
@@ -200,19 +218,15 @@ export function StatsScreen() {
 
   const stats = useStatsStore((s) => s.stats);
   const isLoading = useStatsStore((s) => s.isLoading);
-  const lastGameResult = useStatsStore((s) => s.lastGameResult);
   const loadStats = useStatsStore((s) => s.loadStats);
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = React.useState(false);
-  const [sharing, setSharing] = React.useState(false);
 
-  // Entrance animation
+  // Entrance animation — start visible when reduceMotion so cards never stay at opacity 0
   const cardAnims = useRef(
-    statsConfig.map(() => new Animated.Value(0)),
+    statsConfig.map(() => new Animated.Value(reduceMotion ? 1 : 0)),
   ).current;
-
-  // Share button spring animation
-  const shareScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (__DEV__) {
@@ -225,19 +239,30 @@ export function StatsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reload when returning from a completed game
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats]),
+  );
+
   useEffect(() => {
-    if (stats) {
-      const animations = cardAnims.map((anim) =>
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      );
-      Animated.stagger(80, animations).start();
+    if (!stats) return;
+    if (reduceMotion) {
+      cardAnims.forEach((anim) => anim.setValue(1));
+      return;
     }
+    cardAnims.forEach((anim) => anim.setValue(0));
+    const animations = cardAnims.map((anim) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    );
+    Animated.stagger(80, animations).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats]);
+  }, [stats, reduceMotion]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -245,46 +270,177 @@ export function StatsScreen() {
     setRefreshing(false);
   }, [loadStats]);
 
-  const handleShare = useCallback(async () => {
-    if (!lastGameResult || sharing) return;
-    setSharing(true);
+  // ── Internal Content Components (must be before early returns for clarity) ──
 
-    try {
-      const shareText = generateShareText({
-        mode: lastGameResult.mode,
-        word: lastGameResult.word,
-        attempts: lastGameResult.attempts,
-        won: lastGameResult.won,
-        maxAttempts: lastGameResult.maxAttempts,
-        guesses: lastGameResult.feedback,
-        date: lastGameResult.date,
-      });
-      await Clipboard.setStringAsync(shareText);
-      Alert.alert('Copied', 'Results copied to clipboard!');
-    } catch {
-      Alert.alert('Error', 'Could not copy results. Please try again.');
+  function OverviewContent() {
+    if (!stats) return null;
+
+    const winRate = stats.winRate / 100;
+
+    return (
+      <>
+        {/* Top row: Progress ring + key stats */}
+        <View style={styles.overviewTop}>
+          <View style={styles.overviewStats}>
+            <ProgressRing
+              progress={winRate}
+              size={100}
+              strokeWidth={8}
+              label="Win Rate"
+            />
+          </View>
+          <View style={styles.overviewStats}>
+            <Text style={styles.statValue}>{stats.totalGames}</Text>
+            <Text style={styles.statLabel}>Games</Text>
+            <View style={styles.streakBadge}>
+              <Text style={{ fontSize: 18 }}>🔥</Text>
+              <Text style={styles.streakText}>{stats.currentStreak}</Text>
+            </View>
+            <Text style={styles.streakLabel}>Current Streak</Text>
+          </View>
+          <View style={styles.overviewStats}>
+            <Text style={styles.statValue}>{stats.wins}</Text>
+            <Text style={styles.statLabel}>Wins</Text>
+            <View style={styles.streakBadge}>
+              <Text style={{ fontSize: 18 }}>🏆</Text>
+              <Text style={styles.streakText}>{stats.maxStreak}</Text>
+            </View>
+            <Text style={styles.streakLabel}>Best Streak</Text>
+          </View>
+        </View>
+
+        {/* Per-mode streaks — 3 mode columns, normal + hard stacked (no overflow) */}
+        {stats.perModeStreaks && (
+          <View style={styles.perModeRow}>
+            {(
+              [
+                { id: 'daily', label: 'Daily' },
+                { id: 'endless', label: 'Endless' },
+                { id: 'random', label: 'Random' },
+              ] as const
+            ).map(({ id, label }) => {
+              const normal = stats.perModeStreaks?.[`${id}_normal`]?.current ?? 0;
+              const hard = stats.perModeStreaks?.[`${id}_hard`]?.current ?? 0;
+              return (
+                <View key={id} style={styles.perModeItem}>
+                  <Text style={styles.perModeLabel} numberOfLines={1}>
+                    {label}
+                  </Text>
+                  <Text style={styles.perModeValue}>{normal}</Text>
+                  <Text style={styles.perModeHard}>🔥 {hard}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </>
+    );
+  }
+
+  function ByLengthContent() {
+    if (!stats) return null;
+
+    const lengths = [5, 6, 7, 8, 9, 10];
+    const maxLabelWidth = 70;
+
+    return (
+      <View>
+        <View style={[styles.tableHeader, { paddingLeft: maxLabelWidth }]}>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Played</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Won</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Win %</Text>
+        </View>
+        {lengths.map((len) => {
+          const entry = stats!.gamesByLength[len];
+          const played = entry?.played ?? 0;
+          const won = entry?.won ?? 0;
+          const winPct = played > 0 ? Math.round((won / played) * 100) : 0;
+
+          return (
+            <View
+              key={len}
+              style={[
+                styles.tableRow,
+                len % 2 === 0 ? styles.tableRowAlt : undefined,
+              ]}
+            >
+              <View style={[styles.lengthLabel, { width: maxLabelWidth }]}>
+                <Text style={styles.tableCell}>{len} letters</Text>
+              </View>
+              <Text style={[styles.tableCell, { flex: 1 }]}>{played}</Text>
+              <Text style={[styles.tableCell, { flex: 1 }]}>{won}</Text>
+              <Text style={[styles.tableCell, { flex: 1 }]}>{winPct}%</Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
+
+  function GuessDistributionContent() {
+    if (!stats) return null;
+
+    const distribution = stats.guessDistribution;
+    if (distribution.length === 0) {
+      return (
+        <Text
+          style={{ ...typography.body, color: theme.colors.text.secondary }}
+        >
+          No wins yet — complete a game to see your distribution.
+        </Text>
+      );
     }
 
-    setTimeout(() => setSharing(false), 1000);
-  }, [lastGameResult, sharing]);
+    // Indices 1..N (skip unused 0). Always at least 1–6 after storage pad.
+    const bins = distribution.slice(1);
+    const maxCount = Math.max(...bins, 1);
 
-  const onSharePressIn = () => {
-    Animated.spring(shareScale, {
-      toValue: 0.93,
-      useNativeDriver: true,
-      friction: 4,
-      tension: 50,
-    }).start();
-  };
+    return (
+      <View style={styles.distributionList}>
+        {bins.map((count, i) => {
+          const attempt = i + 1;
+          const filled = count > 0;
+          // Zero bins get a short muted chip; filled bars scale to max
+          const widthPct = filled ? Math.max(22, (count / maxCount) * 100) : 0;
 
-  const onSharePressOut = () => {
-    Animated.spring(shareScale, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 4,
-      tension: 50,
-    }).start();
-  };
+          return (
+            <View key={attempt} style={styles.distributionRow}>
+              <Text style={styles.distributionLabel}>{attempt}</Text>
+              <View style={styles.distributionBarTrack}>
+                <View
+                  style={[
+                    styles.distributionBarFill,
+                    filled
+                      ? {
+                          width: `${widthPct}%`,
+                          backgroundColor: theme.colors.brand.primary,
+                        }
+                      : {
+                          width: 28,
+                          backgroundColor: theme.colors.tile.empty,
+                        },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.distributionCount,
+                      {
+                        color: filled
+                          ? '#FFFFFF'
+                          : theme.colors.text.secondary,
+                      },
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
 
   // ── Loading state ──
   if (isLoading && !stats) {
@@ -360,219 +516,6 @@ export function StatsScreen() {
           </Animated.View>
         ))}
       </ScrollView>
-
-      {/* Share FAB — pill-shaped with spring press */}
-      {lastGameResult && (
-        <Animated.View
-          style={[
-            styles.shareButton,
-            {
-              bottom: insets.bottom + 16,
-              transform: [{ scale: shareScale }],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={handleShare}
-            onPressIn={onSharePressIn}
-            onPressOut={onSharePressOut}
-            disabled={sharing}
-            activeOpacity={1}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={sharing ? 'Results copied' : 'Share Results'}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-          >
-            <MaterialIcons
-              name={sharing ? 'check' : 'share'}
-              size={18}
-              color="#FFFFFF"
-            />
-            <Text style={styles.shareButtonText}>
-              {sharing ? 'Copied!' : 'Share'}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
     </View>
   );
-
-  // ── Internal Content Components ──
-
-  function OverviewContent() {
-    if (!stats) return null;
-
-    const winRate = stats.winRate / 100;
-
-    return (
-      <>
-        {/* Top row: Progress ring + key stats */}
-        <View style={styles.overviewTop}>
-          <View style={styles.overviewStats}>
-            <ProgressRing
-              progress={winRate}
-              size={100}
-              strokeWidth={8}
-              label="Win Rate"
-            />
-          </View>
-          <View style={styles.overviewStats}>
-            <Text style={styles.statValue}>{stats.totalGames}</Text>
-            <Text style={styles.statLabel}>Games</Text>
-            <View style={styles.streakBadge}>
-              <Text style={{ fontSize: 18 }}>🔥</Text>
-              <Text style={styles.streakText}>{stats.currentStreak}</Text>
-            </View>
-            <Text style={styles.streakLabel}>Current Streak</Text>
-          </View>
-          <View style={styles.overviewStats}>
-            <Text style={styles.statValue}>{stats.wins}</Text>
-            <Text style={styles.statLabel}>Wins</Text>
-            <View style={styles.streakBadge}>
-              <Text style={{ fontSize: 18 }}>🏆</Text>
-              <Text style={styles.streakText}>{stats.maxStreak}</Text>
-            </View>
-            <Text style={styles.streakLabel}>Best Streak</Text>
-          </View>
-        </View>
-
-        {/* Per-mode streaks */}
-        {stats.perModeStreaks &&
-          Object.keys(stats.perModeStreaks).length > 0 && (
-            <View style={styles.perModeRow}>
-              {Object.entries(stats.perModeStreaks).map(([mode, streak]) => (
-                <View key={mode} style={styles.perModeItem}>
-                  <Text style={styles.perModeLabel}>
-                    {(() => {
-                      const isHard = mode.endsWith('_hard');
-                      const base = mode.replace(/_normal$|_hard$/, '');
-                      const label = base === 'non-daily' ? 'Free/Random' : base.charAt(0).toUpperCase() + base.slice(1);
-                      return isHard ? label + ' 🔥' : label;
-                    })()}
-                  </Text>
-                  <Text style={styles.perModeValue}>
-                    {streak.current} streak
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-      </>
-    );
-  }
-
-  function ByLengthContent() {
-    if (!stats) return null;
-
-    const lengths = [5, 6, 7, 8, 9, 10];
-    const maxLabelWidth = 70;
-
-    return (
-      <View>
-        <View style={[styles.tableHeader, { paddingLeft: maxLabelWidth }]}>
-          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Played</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Won</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Win %</Text>
-        </View>
-        {lengths.map((len) => {
-          const entry = stats!.gamesByLength[len];
-          const played = entry?.played ?? 0;
-          const won = entry?.won ?? 0;
-          const winPct =
-            played > 0 ? Math.round((won / played) * 100) : 0;
-
-          return (
-            <View
-              key={len}
-              style={[
-                styles.tableRow,
-                len % 2 === 0 ? styles.tableRowAlt : undefined,
-              ]}
-            >
-              <View style={[styles.lengthLabel, { width: maxLabelWidth }]}>
-                <Text style={styles.tableCell}>{len} letters</Text>
-              </View>
-              <Text style={[styles.tableCell, { flex: 1 }]}>{played}</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]}>{won}</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]}>
-                {winPct}%
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    );
-  }
-
-  function GuessDistributionContent() {
-    if (!stats) return null;
-
-    const distribution = stats.guessDistribution;
-    const chartData = {
-      labels:
-        distribution.length > 0
-          ? distribution.slice(1).map((_, i) => (i + 1).toString())
-          : [''],
-      datasets: [
-        {
-          data: distribution.length > 0 ? distribution.slice(1) : [0],
-        },
-      ],
-    };
-
-    if (distribution.length === 0) {
-      return (
-        <View style={styles.chartContainer}>
-          <Text
-            style={{ ...typography.body, color: theme.colors.text.secondary }}
-          >
-            No wins yet — complete a game to see your distribution.
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.chartContainer}>
-        <BarChart
-          data={chartData}
-          width={CHART_WIDTH}
-          height={200}
-          fromZero
-          yAxisLabel=""
-          yAxisSuffix=""
-          showBarTops={false}
-          showValuesOnTopOfBars={false}
-          withHorizontalLabels
-          withVerticalLabels
-          segments={4}
-          chartConfig={{
-            backgroundColor: theme.colors.surface.card,
-            backgroundGradientFrom: theme.colors.surface.card,
-            backgroundGradientTo: theme.colors.surface.card,
-            decimalPlaces: 0,
-            color: (opacity, index) => {
-              // Sky blue for bars with data, muted for empty
-              const count =
-                chartData.datasets[0].data[index ?? 0] ?? 0;
-              return count > 0
-                ? `rgba(66, 165, 245, ${opacity})` // sky blue
-                : `rgba(176, 190, 197, ${opacity * 0.5})`; // muted blue-gray
-            },
-            labelColor: () => theme.colors.text.secondary,
-            propsForBackgroundLines: {
-              strokeDasharray: '',
-              stroke: theme.colors.tile.empty,
-            },
-            propsForLabels: {
-              fontSize: 12,
-              fontWeight: '600',
-            },
-            barPercentage: 0.7,
-          }}
-          style={{ borderRadius: 3 }}
-        />
-      </View>
-    );
-  }
 }

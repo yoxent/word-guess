@@ -101,11 +101,11 @@ export interface ThemeColors {
     present: string;
     absent: string;
     unused: string;
-    /** Light blue background for ad letter-hint blink. */
+    /** Light blue used for ad letter-hint ghost tile border. */
     hint: string;
-    /** Alternate phase for hint color pulse (no Animated opacity — Fabric safe). */
+    /** Soft fill for letter-hint ghost tile. */
     hintDim: string;
-    /** Text on the letter-hint key. */
+    /** Text on the letter-hint ghost tile. */
     hintText: string;
     /** Text color on an unused letter key. */
     text: string;

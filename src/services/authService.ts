@@ -76,6 +76,20 @@ export class AuthError extends Error {
 
 // ── Functions ──
 
+async function getFirebaseGoogleCredential(idToken: string) {
+  const tokens = await GoogleSignin.getTokens();
+  const firebaseIdToken = tokens.idToken || idToken;
+
+  if (!tokens.accessToken) {
+    throw new AuthError(
+      AuthErrorCode.CONFIGURATION_ERROR,
+      'Google Sign-In failed — no accessToken returned for Firebase Auth credential exchange.',
+    );
+  }
+
+  return GoogleAuthProvider.credential(firebaseIdToken, tokens.accessToken);
+}
+
 /**
  * Configure Google Sign-In. Must be called once before any signIn/signOut calls.
  * Safe to call multiple times (GoogleSignin.configure is idempotent).
@@ -127,8 +141,8 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       );
     }
 
-    // 3. Exchange Google idToken for Firebase Auth credential (D-115)
-    const credential = GoogleAuthProvider.credential(idToken);
+    // 3. Exchange Google tokens for Firebase Auth credential (D-115)
+    const credential = await getFirebaseGoogleCredential(idToken);
     await signInWithCredential(firebaseAuth, credential);
 
     // 4. Return combined user data
@@ -146,7 +160,23 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       throw error;
     }
 
-    const typedError = error as { code?: string };
+    const typedError = error as { code?: string | number; message?: string };
+    // Native Google Sign-In / Firebase often put the useful detail here.
+    console.error('[authService] signInWithGoogle failed', {
+      code: typedError.code,
+      message: typedError.message,
+      error,
+    });
+
+    if (
+      typedError.code === statusCodes.SIGN_IN_CANCELLED ||
+      typedError.code === 'SIGN_IN_CANCELLED'
+    ) {
+      throw new AuthError(
+        AuthErrorCode.SIGN_IN_CANCELLED,
+        'Sign-in was cancelled.',
+      );
+    }
 
     if (typedError.code === statusCodes.IN_PROGRESS) {
       throw new AuthError(
@@ -162,10 +192,18 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       );
     }
 
+    // Firebase Auth credential exchange failures (provider disabled, etc.)
+    if (typeof typedError.code === 'string' && typedError.code.startsWith('auth/')) {
+      throw new AuthError(
+        AuthErrorCode.CONFIGURATION_ERROR,
+        `Firebase Auth failed (${typedError.code}): ${typedError.message ?? 'enable Google provider in Firebase Console → Authentication → Sign-in method.'}`,
+      );
+    }
+
     // Rethrow with configuration error hint (D-113, P4 mitigation)
     throw new AuthError(
       AuthErrorCode.CONFIGURATION_ERROR,
-      `Google Sign-In failed (${typedError.code ?? 'unknown'}) — check SHA-1 fingerprints and Web client ID.`,
+      `Google Sign-In failed (${typedError.code ?? 'unknown'}: ${typedError.message ?? 'no message'}) — check SHA-1, Web client ID, OAuth consent test users, and Firebase Google provider.`,
     );
   }
 }
@@ -209,8 +247,8 @@ export async function signInSilently(): Promise<SilentlySignInResult | null> {
       return null;
     }
 
-    // Exchange idToken for Firebase credential
-    const credential = GoogleAuthProvider.credential(idToken);
+    // Exchange Google tokens for Firebase credential
+    const credential = await getFirebaseGoogleCredential(idToken);
     await signInWithCredential(firebaseAuth, credential);
 
     return {

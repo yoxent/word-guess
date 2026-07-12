@@ -1,3 +1,4 @@
+import { Appearance } from 'react-native';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { mmkvZustandStorage } from '../services/storage';
@@ -16,6 +17,10 @@ export function snapVolume(v: number): number {
   if (Number.isNaN(v)) return 0;
   const clamped = Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, v));
   return Math.round(clamped * 10) / 10;
+}
+
+export function applyNativeThemeMode(mode: AppSettings['themeMode']): void {
+  Appearance.setColorScheme(mode === 'system' ? 'unspecified' : mode);
 }
 
 type PersistedSettings = Omit<
@@ -52,7 +57,10 @@ export const useSettingsStore = create<SettingsState>()(
       setPro: (value) => set({ isPro: value }),
       toggleColorBlindMode: () => set((s) => ({ colorBlindMode: !s.colorBlindMode })),
       toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
-      setThemeMode: (mode) => set({ themeMode: mode }),
+      setThemeMode: (mode) => {
+        applyNativeThemeMode(mode);
+        set({ themeMode: mode });
+      },
     }),
     {
       name: 'settings-storage',
@@ -102,3 +110,7 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 );
+
+// Apply the persisted preference before the first themed render. This matters
+// for "system": it clears any prior app-level light/dark override.
+applyNativeThemeMode(useSettingsStore.getState().themeMode);

@@ -1,7 +1,7 @@
 # ui-config-registry
-updated: 2026-07-11 (settings layout, help tooltips, simpler animations in Appearance)
+updated: 2026-07-12 (Settings card/row/slider layout lessons)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110, accessibility]
-related: [architecture, phase-structure, storage-strategy, monetization, accessibility]
+related: [architecture, phase-structure, storage-strategy, monetization, accessibility, stats-and-share, audio-system, google-signin]
 
 ## What
 Data-driven UI architecture: screens render from TypeScript config arrays instead of hardcoded JSX. Config is the single source of truth for what appears, in what order, and how it behaves.
@@ -95,10 +95,16 @@ Reusable card container for stat sections. Driven by config array.
 Vis: surface bg (#fff), borderRadius 12, shadow `{elevation:3, opacity:0.08}`, padding 24px, marginBottom 16px. Title: 18px bold textPrimary.
 
 ### SettingsRow (`src/components/ui/SettingsRow.tsx`)
-Generic row renderer dispatching on `SettingsRowConfig.type`. Toggle rows may show `help-outline` (?) when `helpText` is set — opens `Alert` with explanation (Haptic Feedback, Simpler Animations). Volume sliders use percentage-based thumb positioning (no layout jump on drag).
+Generic row renderer dispatching on `SettingsRowConfig.type`. Toggle rows may show `help-outline` (?) when `helpText` is set — layout is `Label (?) …… [Switch]` (`labelInline` has no `flex:1` so the icon sits next to the word). Tap opens an anchored **tooltip** Modal (not `Alert`); auto-dismiss ~3.5s or tap outside.
+
+**Layout lessons (2026-07-12):**
+- Section cards: `paddingHorizontal` + small `paddingVertical` — avoid large uniform `padding: 20` (last row looks bottom-heavy)
+- Row labels: do **not** put `flex: 1` on `Text` (stretches the text box tall → empty space under glyphs / misaligned chevrons). Use natural text width + `flexShrink` / row `space-between`, or wrap in a flex container
+- Shared `chevron` slot (fixed 24×24, centered) for Restore / Sign-in trailing icons
+- Volume sliders: percentage-based thumb; `sliderInset` = half thumb-hit size so 0%/100% don't clip the card; visual thumb 26px inside invisible `thumbHitArea` 52px; claim pan before ScrollView (`onStartShouldSetPanResponderCapture`)
 
 ### Share utility (`src/utils/share.ts`)
-Pure function `generateShareText(gameResult)` → emoji grid string. Input: GameResult with mode, word, attempts, won, guesses[][], date. Output: Wordle-style emoji grid with header + date + rows + footer.
+Pure function `generateShareText(result)` → emoji grid string. Requires `mode`, `letterCount`, `attempts`, `won`, `maxAttempts`, `guesses[][]`, `date`. Header lines: `Word Guess` then `{Mode} · {N}-letter`. Called from **ResultModal** (win share icon → clipboard + toast). See [stats-and-share](stats-and-share.md).
 
 ## Component contracts (edge cases)
 | Scenario | Behavior |
@@ -107,15 +113,16 @@ Pure function `generateShareText(gameResult)` → emoji grid string. Input: Game
 | Stats loading | ActivityIndicator (accent), centered, not empty state |
 | SQLite error | Error card + pull-to-refresh to retry |
 | Zero wins | Chart shows flat bars at 0, Win % = 0%, streak = 0 |
-| Share no games | Button hidden when totalGames === 0 |
-| Share win vs loss | Footer: "5/6" (win) / "X/6" (loss) |
-| First launch no settings | Defaults: hardMode=true, sound=true, haptic=true, isPro=false |
+| Share | ResultModal win only — clipboard + toast; no Stats FAB |
+| Share win vs loss | Attempt line: "5/6" (win) / "X/6" (loss); header includes letter length |
+| First launch no settings | Defaults: hardMode session-off, haptic=true, isPro=false |
 
 ## Screen behavior (Phase 3 decisions)
 | Screen | Feature | Behavior |
 |--------|---------|----------|
 | Stats | Entrance animation | Cards fade-in + slide-up (opacity 0→1, translateY 10→0), 300ms, 80ms stagger per card (D-82) |
-| Stats | Share button | Floating action button, `position: absolute` at bottom, overlay on ScrollView (D-83) |
+| Stats | Share button | **Removed 2026-07-12** — share is ResultModal-only (was FAB per D-83) |
+| Stats | Guess distribution | Custom horizontal bars bins 1–14 (chart-kit unused in UI) |
 | Stats | Pull-to-refresh | Always enabled via `RefreshControl`, re-runs `statsStore.loadStats()` (D-86) |
 
 ## Typography constants (D-84)

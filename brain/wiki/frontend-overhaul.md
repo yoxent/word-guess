@@ -1,5 +1,5 @@
 # frontend-overhaul
-updated: 2026-07-11 (home top spacing, result modal endless actions, keyboard absent dim)
+updated: 2026-07-12 (typography locked: Fraunces + DM Sans)
 tags: [ui, redesign, visual, palette, font, animation, phase-7, complete]
 related: [design-tokens, theme-system, tech-stack, architecture, animation-system]
 
@@ -13,14 +13,14 @@ Transform from "Wordle clone with muted earth tones" to "bright, playful, family
 | Tile palette | Full bright overhaul (not Wordle-recognizable) | Differentiated identity, not a clone |
 | Home screen | Mode cards + decorative elements + daily preview | Visual identity, not a button list |
 | Microinteractions | Playful — spring press, card lift, color shift | Game-like feel, satisfying feedback |
-| Typography | Display font (Nunito) for headings + system body | Brand personality without heavy bundle |
+| Typography | Fraunces (display/headings) + DM Sans (UI body/buttons) | Editorial word-game personality; locked 2026-07-12 after A/B of three pairings |
 | Dark theme | Keep both, ship light as default | WCAG AA verified, dark is opt-in |
 
 ## 7-phase plan — ALL COMPLETE
 
 | Phase | Name | Status | Key Deliverables |
 |-------|------|--------|-----------------|
-| 1 | Design Foundation | ✅ | Palette, Nunito font, tokens, theme groups |
+| 1 | Design Foundation | ✅ | Palette, display font, tokens, theme groups |
 | 2 | Component Overhaul | ✅ | Button rewrite, StatCard, Modals, SettingsRow |
 | 3 | Home Screen | ✅ | ModeCards (gradient), DailyPreview pills, HardModePill |
 | 4 | Game Screen | ✅ | Sky blue header, keyboard spring press, toast slide-in |

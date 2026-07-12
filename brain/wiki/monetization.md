@@ -1,5 +1,5 @@
 # monetization
-updated: 2026-07-11 (GameScreen hint buttons, session-scoped rewards)
+updated: 2026-07-12 (letter hint = ghost tile on active row, not keyboard)
 tags: [ads, iap, monetization, phase-4, remote-config, ad-hints]
 related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns, hooks-order-discipline]
 
@@ -96,15 +96,16 @@ Shows at **transition from ResultModal to next screen** (Back to Menu / Play Nex
 | Button | `Watch Ad · Letter Hint` (orange secondary, lightbulb icon) |
 | Location | Beside +1 Attempt in same row |
 | Visibility | `session.status === 'playing' && !session.letterHintUsed` |
-| Effect | Highlights one unguessed letter on keyboard (color pulse, no opacity animation) |
+| Effect | Ghost letter in the correct tile of the **current** guess row |
 | Max uses | 1 per **game instance** |
 | Code | `gameStore.useLetterHint()` |
 
 ### Letter hint mechanics
-- Picks random letter from word not yet present in submitted guesses
-- Keyboard key pulses via alternating `key.hint` / `key.hintDim` colors (Fabric-safe)
-- Clears `hintLetter` when player types that letter
-- Reward state resets on new game (`startGame` clears slot + `hintLetter`)
+- Picks a random answer index not already marked `correct` in prior feedback
+- Shows that letter as a ghost in the active row tile (dim blue fill/border); keyboard is unchanged
+- Ghost only while that cell is empty — typed letters cover it; backspace reveals it again
+- Clears `hintTile` on successful submit (whether the letter was used or not); invalid submit keeps it
+- Reward state resets on new game (`startGame` clears slot + `hintTile`)
 
 ### Session boundary (2026-07-11)
 Rewarded fields do **not** carry to a new game instance. `startGame()` calls `clearActiveGame()`; Home navigates fresh only after `clearActiveGame()` when not continuing.
@@ -123,8 +124,8 @@ Rewarded fields do **not** carry to a new game instance. `startGame()` calls `cl
 | `useLetterHint()` | Letter hint ad reward — only during 'playing', once per game |
 
 ### State management
-- `hintLetter: string | null` in gameStore — tracks which letter is blinking
-- Reset to `null` on `resetGame()` and `restoreSession()`
+- `hintTile: { index, letter } | null` in gameStore — ghost letter for the active row
+- Reset to `null` on successful `submitGuess()`, `resetGame()`, and `restoreSession()`
 
 ### Button styling
 - Row uses `alignSelf: 'stretch'` within screen horizontal padding; each button `flex: 1`

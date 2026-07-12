@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { View, Text, Modal, Animated, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  Modal,
+  Animated,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types';
-import { useGameStore, useSettingsStore } from '../../stores';
+import { useGameStore, useSettingsStore, useStatsStore } from '../../stores';
 import { useDictionaryStore } from '../../stores/dictionaryStore';
 
 import { useTheme } from '../../hooks/useTheme';
@@ -13,13 +21,12 @@ import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
 import { typography } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { generateShareText } from '../../utils/share';
 import {
   clearActiveGame,
-  getEndlessStreak,
-  setEndlessStreak as persistEndlessStreak,
   markDailyCompleted,
-  incrementEndlessTotalWords,
 } from '../../services/storage';
+import { applyEndlessEndCounters } from '../../services/endlessLeaderboardCounters';
 import { getDailyDateString } from '../../services/dailySeed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -55,6 +62,18 @@ export function ResultModal() {
           shadowOpacity: 0.2,
           shadowRadius: 32,
           elevation: 12,
+        },
+        shareButton: {
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          zIndex: 2,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: `${theme.colors.brand.primary}18`,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         iconContainer: {
           width: 72,
@@ -114,15 +133,33 @@ export function ResultModal() {
         buttonContainer: {
           marginTop: 8,
           width: '100%',
+          alignItems: 'stretch',
           gap: 10,
         },
-        playNextButton: {
-          width: '100%',
+        actionButton: {
+          alignSelf: 'stretch',
         },
-        endlessPrimaryButton: {
-          alignSelf: 'center',
-          width: 'auto',
-          minWidth: 220,
+        toast: {
+          position: 'absolute',
+          bottom: 28,
+          left: 20,
+          right: 20,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          borderRadius: layout.buttonBorderRadius,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 10,
+          elevation: 8,
+        },
+        toastText: {
+          ...typography.button,
+          color: theme.colors.text.inverse,
         },
       }),
     [theme],
@@ -132,8 +169,10 @@ export function ResultModal() {
   const session = useGameStore((s) => s.session);
   const resetGame = useGameStore((s) => s.resetGame);
   const isRevealing = useGameStore((s) => s.isRevealing);
-  const isPro = useSettingsStore(s => s.isPro);
   const [endlessStreak, setEndlessStreakState] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; isSuccess: boolean } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Compute definition from session data
   const definition = useMemo(() => {
@@ -144,31 +183,38 @@ export function ResultModal() {
     );
   }, [session]);
 
-  // Track daily completions and endless streak. Win/loss SFX are played from
-  // GameScreen after reveal finishes — not here — so audio never fires while
-  // tiles are still flipping.
+  // Track daily completions, endless streak, and SQLite stats. Win/loss SFX are
+  // played from GameScreen after reveal finishes — not here — so audio never
+  // fires while tiles are still flipping.
   useEffect(() => {
     if (!session || isRevealing) return;
 
     if (session.status === 'won' || session.status === 'lost') {
+      void useStatsStore.getState().recordGameIfNeeded({
+        id: session.id,
+        mode: session.mode,
+        word: session.word,
+        letterCount: session.letterCount,
+        guesses: session.guesses.length,
+        won: session.status === 'won',
+        hardMode: session.hardMode,
+        extraGuessesUsed: session.extraGuessesUsed,
+        completedAt: session.completedAt || new Date().toISOString(),
+        feedback: session.feedback,
+      });
+
       if (session.mode === 'daily') {
         const dateStr = getDailyDateString();
         markDailyCompleted(dateStr, session.letterCount);
       }
 
       if (session.mode === 'endless') {
-        const hard = session.hardMode;
-        if (session.status === 'won') {
-          const prev = getEndlessStreak(hard);
-          const next = prev + 1;
-          persistEndlessStreak(next, hard);
-          setEndlessStreakState(next);
-        } else {
-          const finalStreak = getEndlessStreak(hard);
-          setEndlessStreakState(finalStreak);
-          persistEndlessStreak(0, hard);
-        }
-        incrementEndlessTotalWords();
+        const endless = applyEndlessEndCounters({
+          sessionId: session.id,
+          won: session.status === 'won',
+          hardMode: session.hardMode,
+        });
+        setEndlessStreakState(endless.displayStreak);
       }
 
       clearActiveGame(session.hardMode);
@@ -230,7 +276,39 @@ export function ResultModal() {
     handleBackToMenu();
   }, [showInterstitialIfNeeded, handleBackToMenu]);
 
+  const showToast = useCallback((message: string, isSuccess: boolean) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ message, isSuccess });
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    if (!session || session.status !== 'won' || sharing) return;
+    setSharing(true);
+    try {
+      const shareText = generateShareText({
+        mode: session.mode,
+        word: session.word,
+        letterCount: session.letterCount,
+        attempts: session.guesses.length,
+        won: true,
+        maxAttempts: session.maxAttempts,
+        guesses: session.feedback,
+        date: session.completedAt || new Date().toISOString(),
+      });
+      await Clipboard.setStringAsync(shareText);
+      showToast('Copied to clipboard', true);
+    } catch {
+      showToast('Could not copy results', false);
+    }
+    setTimeout(() => setSharing(false), 1000);
+  }, [session, sharing, showToast]);
 
   // Build emoji grid
   const emojiRows = session?.feedback.map((rowFeedback) => {
@@ -303,6 +381,24 @@ export function ResultModal() {
             },
           ]}
         >
+          {isWin && (
+            <TouchableOpacity
+              style={styles.shareButton}
+              onPress={handleShare}
+              disabled={sharing}
+              activeOpacity={0.7}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={sharing ? 'Results copied' : 'Share results'}
+            >
+              <MaterialIcons
+                name={sharing ? 'check' : 'share'}
+                size={22}
+                color={theme.colors.brand.primary}
+              />
+            </TouchableOpacity>
+          )}
+
           {/* Result icon */}
           <View
             style={[
@@ -359,21 +455,45 @@ export function ResultModal() {
                 <Button
                   title="Play Next"
                   onPress={handlePlayNextWithAd}
-                  style={[styles.playNextButton, styles.endlessPrimaryButton]}
+                  style={styles.actionButton}
                 />
                 <Button
                   title="Back to Menu"
                   variant="secondary"
                   onPress={handleBackToMenuWithAd}
-                  style={styles.playNextButton}
+                  style={styles.actionButton}
                 />
               </>
             ) : (
-              <Button title="Back to Menu" onPress={handleBackToMenuWithAd} />
+              <Button
+                title="Back to Menu"
+                onPress={handleBackToMenuWithAd}
+                style={styles.actionButton}
+              />
             )}
           </View>
         </Animated.View>
         {isWin && showConfetti && <Confetti />}
+        {toast && (
+          <View
+            style={[
+              styles.toast,
+              {
+                backgroundColor: toast.isSuccess
+                  ? theme.colors.status.success
+                  : theme.colors.status.danger,
+              },
+            ]}
+            pointerEvents="none"
+          >
+            <MaterialIcons
+              name={toast.isSuccess ? 'check-circle' : 'error'}
+              size={18}
+              color={theme.colors.text.inverse}
+            />
+            <Text style={styles.toastText}>{toast.message}</Text>
+          </View>
+        )}
       </View>
     </Modal>
   );

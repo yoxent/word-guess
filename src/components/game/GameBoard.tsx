@@ -46,6 +46,7 @@ export function GameBoard() {
   const isRevealing = useGameStore((s) => s.isRevealing);
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
+  const hintTile = useGameStore((s) => s.hintTile);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-dismiss error toast after 1.5s
@@ -149,6 +150,7 @@ export function GameBoard() {
             wordLength={wordLength}
             tileSize={tileSize}
             error={i === completedGuesses && session.status === 'playing' ? error : null}
+            hintTile={row.isActive ? hintTile : null}
           />
         ))}
       </View>

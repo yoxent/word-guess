@@ -8,5 +8,5 @@ export interface PlayerStats {
   gamesByLength: Record<number, { played: number; won: number }>;
   lastGameDate: string;
   perModeStreaks: Record<string, { current: number; max: number }>;
-  // Keys: 'daily', 'endless', 'non-daily' (free+random share, D-74)
+  // Keys: 'daily_*', 'endless_*', 'random_*' (legacy 'free' rows roll into random)
 }

@@ -5,6 +5,7 @@ describe('share', () => {
     const baseResult: GameResultForShare = {
       mode: 'random',
       word: 'APPLE',
+      letterCount: 5,
       attempts: 4,
       won: true,
       maxAttempts: 6,
@@ -27,9 +28,12 @@ describe('share', () => {
       date: '2026-07-10T15:30:00Z',
     };
 
-    it('includes mode name', () => {
+    it('includes mode name and letter length', () => {
       const text = generateShareText(baseResult);
-      expect(text).toContain('Random');
+      expect(text).toContain('Word Guess');
+      expect(text).toContain('Random · 5-letter');
+      expect(text.split('\n')[0]).toBe('Word Guess');
+      expect(text.split('\n')[1]).toBe('Random · 5-letter');
     });
 
     it('includes formatted date', () => {
@@ -40,13 +44,14 @@ describe('share', () => {
     it('generates emoji rows', () => {
       const text = generateShareText(baseResult);
       const lines = text.split('\n');
-      // lines[0] = 'Word Guess - Random'
-      // lines[1] = '2026-07-10'
-      // lines[2] = '' (blank line)
-      // lines[3] = first guess row: ⬛🟨🟩⬛🟩
-      // lines[4] = second guess row: 🟩🟩🟩🟩🟩
-      expect(lines[3]).toBe('⬛🟨🟩⬛🟩');
-      expect(lines[4]).toBe('🟩🟩🟩🟩🟩');
+      // lines[0] = 'Word Guess'
+      // lines[1] = 'Random · 5-letter'
+      // lines[2] = '2026-07-10'
+      // lines[3] = '' (blank line)
+      // lines[4] = first guess row: ⬛🟨🟩⬛🟩
+      // lines[5] = second guess row: 🟩🟩🟩🟩🟩
+      expect(lines[4]).toBe('⬛🟨🟩⬛🟩');
+      expect(lines[5]).toBe('🟩🟩🟩🟩🟩');
     });
 
     it('shows win ratio when won', () => {
@@ -65,22 +70,22 @@ describe('share', () => {
       expect(text).toContain('Play Word Guess!');
     });
 
-    it('handles daily mode', () => {
-      const dailyResult = { ...baseResult, mode: 'daily' as const };
+    it('handles daily mode with length', () => {
+      const dailyResult = { ...baseResult, mode: 'daily' as const, letterCount: 7 };
       const text = generateShareText(dailyResult);
-      expect(text).toContain('Daily Challenge');
+      expect(text).toContain('Daily Challenge · 7-letter');
     });
 
-    it('handles endless mode', () => {
-      const endlessResult = { ...baseResult, mode: 'endless' as const };
+    it('handles endless mode with length', () => {
+      const endlessResult = { ...baseResult, mode: 'endless' as const, letterCount: 10 };
       const text = generateShareText(endlessResult);
-      expect(text).toContain('Endless');
+      expect(text).toContain('Endless · 10-letter');
     });
 
     it('handles free mode', () => {
       const freeResult = { ...baseResult, mode: 'free' as const };
       const text = generateShareText(freeResult);
-      expect(text).toContain('Free Play');
+      expect(text).toContain('Free Play · 5-letter');
     });
   });
 });

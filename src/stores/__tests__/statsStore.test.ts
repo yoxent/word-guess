@@ -93,10 +93,40 @@ describe('statsStore', () => {
       await useStatsStore.getState().recordGame(gameResult);
       const state = useStatsStore.getState();
 
-      expect(storage.saveGameResult).toHaveBeenCalledWith(gameResult);
+      expect(storage.saveGameResult).toHaveBeenCalledWith({
+        id: 'test123',
+        mode: 'random',
+        word: 'APPLE',
+        letterCount: 5,
+        guesses: 4,
+        won: true,
+        hardMode: false,
+        extraGuessesUsed: 0,
+        completedAt: '2026-07-10T15:30:00Z',
+      });
       expect(state.stats).toEqual(mockStats);
       expect(state.lastGameResult?.word).toBe('APPLE');
       expect(state.lastGameResult?.won).toBe(true);
+    });
+
+    it('recordGameIfNeeded is idempotent for the same session id', async () => {
+      const gameResult = {
+        id: 'once-only',
+        mode: 'endless',
+        word: 'BRAVE',
+        letterCount: 5,
+        guesses: 3,
+        won: true,
+        hardMode: false,
+        extraGuessesUsed: 0,
+        completedAt: '2026-07-10T15:30:00Z',
+        feedback: [],
+      };
+
+      await useStatsStore.getState().recordGameIfNeeded(gameResult);
+      await useStatsStore.getState().recordGameIfNeeded(gameResult);
+
+      expect(storage.saveGameResult).toHaveBeenCalledTimes(1);
     });
   });
 });
