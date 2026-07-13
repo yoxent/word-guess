@@ -71,3 +71,4 @@ modules/**/android/local.properties
 
 # ── Agent SDD scratch ───────────────────────────────────────
 .superpowers/
+/.cursor
