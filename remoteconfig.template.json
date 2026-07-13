@@ -1,0 +1,22 @@
+{
+  "parameters": {
+    "admob_interstitial_id": {
+      "defaultValue": {
+        "value": "ca-app-pub-4297882562709937/5589745315"
+      },
+      "description": "AdMob interstitial ad unit ID for free-tier game-over ads"
+    },
+    "admob_rewarded_id": {
+      "defaultValue": {
+        "value": "ca-app-pub-4297882562709937/8970431595"
+      },
+      "description": "AdMob rewarded ad unit ID for +1 attempt and letter hint"
+    },
+    "admob_interstitial_frequency_override": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Optional override for interstitial frequency capping (reserved; unused in MVP)"
+    }
+  }
+}

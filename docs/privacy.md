@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-07-09
+**Last updated:** 2026-07-14
 
 Word Guess ("the App") is developed by Vorith Studio ("we," "us," or "our"). This Privacy Policy explains what information the App collects, how it is used, and the choices you have.
 
@@ -12,12 +12,12 @@ By installing or using the App, you agree to the terms of this Privacy Policy.
 
 ### 1.1 Information You Provide
 
-The App is fully playable **without creating an account or signing in**. If you choose to sign in with Google to enable cloud sync and global leaderboards, we collect:
+The App is fully playable **without creating an account or signing in**. If you choose to sign in (via Google Play Games on Android, or Google Sign-In where offered) to enable cloud sync and global leaderboards, we may collect:
 
-- **Google account name** (display name from your Google profile)
-- **Google account email address**
-- **Google account profile photo URL** (if available)
-- **Player identifier** (a non-personally-identifiable ID generated for leaderboard ranking)
+- **Display name** (from your Play Games or Google profile)
+- **Account email address** (when provided by the sign-in provider)
+- **Profile photo URL** (if available from the sign-in provider)
+- **Player identifier** (a non-personally-identifiable ID used for leaderboard ranking and cloud sync)
 
 If you do not sign in, the App stores your game history and statistics only on your device. We do not transmit your gameplay data to any server until you sign in.
 
@@ -70,9 +70,12 @@ The App uses the following third-party services, each governed by its own privac
 | Service | Purpose | Privacy Policy |
 |---------|---------|----------------|
 | **Google AdMob** | Advertising | <https://support.google.com/admob/answer/6128543> |
-| **Google Sign-In** | Optional account authentication | <https://policies.google.com/privacy> |
+| **Google Play Games Services** | Optional account authentication (Android) | <https://policies.google.com/privacy> |
+| **Google Sign-In** | Optional account authentication (where offered) | <https://policies.google.com/privacy> |
 | **Firebase Authentication** | Account management | <https://firebase.google.com/support/privacy> |
 | **Firebase Firestore** | Cloud storage of stats and leaderboard scores | <https://firebase.google.com/support/privacy> |
+| **Firebase Remote Config** | App configuration (e.g. ad unit IDs) | <https://firebase.google.com/support/privacy> |
+| **Google Play Billing** | In-app purchases (Pro upgrade) | <https://policies.google.com/privacy> |
 | **Google Play Services** | Core Android platform integration | <https://policies.google.com/privacy> |
 
 ---
@@ -98,7 +101,7 @@ If you believe we have inadvertently collected information from a child under 13
 ## 6. Your Choices and Rights
 
 - **Opt out of advertising personalization**: enable "Opt out of Ads Personalization" in your device's Google settings, or reset your Advertising ID.
-- **Remove ads entirely**: purchase the in-app "Pro" upgrade. The Pro upgrade removes all ads within the App.
+- **Remove interstitial ads**: purchase the in-app "Pro" upgrade. Pro removes interstitial ads; optional rewarded ads for gameplay helps (extra attempt / letter hint) may still be available.
 - **Sign out**: clear your account and stop future cloud sync.
 - **Uninstall**: removes all locally stored data.
 - **Access and deletion requests**: contact us at the email below.
@@ -124,7 +127,7 @@ We may update this Privacy Policy from time to time. When we do, we will revise 
 If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
 
 **Vorith Studio**
-Email: <support@vorithstudio.example>
+Email: <xent.xent@gmail.com>
 Package: `com.vorithstudio.wordguess`
 
 ---
