@@ -14,7 +14,8 @@ export interface SyncEvent {
 // ── Constants ──
 
 const QUEUE_KEY = 'sync_queue';
-const MAX_RETRIES = 3;
+/** Transient Firestore outages can last longer than 3 short retries. */
+const MAX_RETRIES = 6;
 
 // ── Hash helpers ──
 
@@ -111,7 +112,7 @@ export async function enqueueEvent(
  *
  * - On handler success: remove event from queue.
  * - On handler failure: increment retryCount, set nextRetryAt.
- * - Discard events with retryCount >= 3 (max retries exhausted) — D-148.
+ * - Discard events with retryCount >= MAX_RETRIES (exhausted) — D-148.
  * - If an event's nextRetryAt is in the future, skip it this pass.
  *
  * Returns number of events processed (success + discarded).
@@ -150,7 +151,9 @@ export async function drainQueue(
         } else {
           // Increment retry and schedule next attempt with exponential backoff
           const nextRetryCount = event.retryCount + 1;
-          const delayMs = Math.pow(2, nextRetryCount) * 1000; // 2^retryCount * 1000ms
+          // Exponential backoff with a floor that tolerates brief Firestore outages
+          // (unavailable): ~3s, 6s, 12s, 24s, 48s …
+          const delayMs = Math.pow(2, nextRetryCount) * 1500;
 
           if (nextRetryCount >= MAX_RETRIES) {
             // Max retries reached — discard
@@ -167,7 +170,7 @@ export async function drainQueue(
       } catch {
         // Handler threw — treat as failure, increment retry
         const nextRetryCount = event.retryCount + 1;
-        const delayMs = Math.pow(2, nextRetryCount) * 1000;
+        const delayMs = Math.pow(2, nextRetryCount) * 1500;
 
         if (nextRetryCount >= MAX_RETRIES) {
           processed++;

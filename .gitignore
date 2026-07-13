@@ -5,9 +5,8 @@ dist/
 web-build/
 
 # Generated native projects (regenerated via npx expo prebuild)
-android/
-ios/
-
+/android/
+/ios/
 # TypeScript
 *.tsbuildinfo
 tsconfig.tsbuildinfo
@@ -64,3 +63,11 @@ nul
 *.tmp
 *.temp
 google-services.json
+
+# ── Local Expo module build junk ────────────────────────────
+modules/**/android/build/
+modules/**/android/.gradle/
+modules/**/android/local.properties
+
+# ── Agent SDD scratch ───────────────────────────────────────
+.superpowers/

@@ -6,7 +6,7 @@ import { Navigation } from './Navigation';
 import { LoadingScreen } from '../screens/LoadingScreen';
 import { fetchAdUnitIds } from '../services/remoteConfig';
 import { loadFonts } from '../utils/fonts';
-import { configureGoogleSignIn } from '../services/authService';
+import { configureAuth } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { applyNativeThemeMode, useSettingsStore } from '../stores/settingsStore';
 import { useAdStore } from '../stores/adStore';
@@ -14,6 +14,7 @@ import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
 import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
+import { hasSignedInPlayer } from '../utils/authState';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -98,11 +99,10 @@ export default function App() {
   useEffect(() => {
     if (!isReady) return;
 
-    // Configure Google Sign-In once at startup
-    configureGoogleSignIn();
+    // Configure auth provider once at startup (Play Games or Google)
+    configureAuth();
 
-    // Attempt silent sign-in (D-118) — restores previous session
-    // Never blocks gameplay — runs asynchronously
+    // Attempt silent / auto sign-in — never blocks gameplay
     useAuthStore.getState().googleSignInSilently();
   }, [isReady]);
 
@@ -113,21 +113,18 @@ export default function App() {
     const drainHandler = async (event: syncQueue.SyncEvent) => {
       if (event.type === 'game_result') {
         const authState = useAuthStore.getState();
-        if (!authState.isLoggedIn) return false;
+        if (!hasSignedInPlayer(authState)) return false;
         return await firestoreService.updatePlayerStats(
-          authState.playerId!,
+          authState.playerId,
           authState.playerName ?? 'Player',
           event.data.stats as any,
         );
       }
       if (event.type === 'leaderboard_score') {
-        const data = event.data as any;
-        return await firestoreService.submitLeaderboardScore(
-          data.type,
-          data.playerId,
-          data.playerName,
-          data.score,
+        const { drainLeaderboardScoreEvent } = await import(
+          '../services/leaderboardService'
         );
+        return drainLeaderboardScoreEvent(event);
       }
       return false;
     };
@@ -135,7 +132,7 @@ export default function App() {
     // Periodic drain every 30s while app is active
     const intervalId = setInterval(() => {
       const authState = useAuthStore.getState();
-      if (authState.isLoggedIn) {
+      if (hasSignedInPlayer(authState)) {
         syncQueue.drainQueue(drainHandler);
       }
     }, 30000);
@@ -144,7 +141,7 @@ export default function App() {
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
         const authState = useAuthStore.getState();
-        if (authState.isLoggedIn) {
+        if (hasSignedInPlayer(authState)) {
           syncQueue.drainQueue(drainHandler);
         }
       }

@@ -27,6 +27,7 @@ import {
   markDailyCompleted,
 } from '../../services/storage';
 import { applyEndlessEndCounters } from '../../services/endlessLeaderboardCounters';
+import { syncLeaderboardForSession } from '../../services/leaderboardService';
 import { getDailyDateString } from '../../services/dailySeed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -190,34 +191,37 @@ export function ResultModal() {
     if (!session || isRevealing) return;
 
     if (session.status === 'won' || session.status === 'lost') {
-      void useStatsStore.getState().recordGameIfNeeded({
-        id: session.id,
-        mode: session.mode,
-        word: session.word,
-        letterCount: session.letterCount,
-        guesses: session.guesses.length,
-        won: session.status === 'won',
-        hardMode: session.hardMode,
-        extraGuessesUsed: session.extraGuessesUsed,
-        completedAt: session.completedAt || new Date().toISOString(),
-        feedback: session.feedback,
-      });
-
-      if (session.mode === 'daily') {
-        const dateStr = getDailyDateString();
-        markDailyCompleted(dateStr, session.letterCount);
-      }
-
-      if (session.mode === 'endless') {
-        const endless = applyEndlessEndCounters({
-          sessionId: session.id,
+      void (async () => {
+        await useStatsStore.getState().recordGameIfNeeded({
+          id: session.id,
+          mode: session.mode,
+          word: session.word,
+          letterCount: session.letterCount,
+          guesses: session.guesses.length,
           won: session.status === 'won',
           hardMode: session.hardMode,
+          extraGuessesUsed: session.extraGuessesUsed,
+          completedAt: session.completedAt || new Date().toISOString(),
+          feedback: session.feedback,
         });
-        setEndlessStreakState(endless.displayStreak);
-      }
 
-      clearActiveGame(session.hardMode);
+        if (session.mode === 'daily') {
+          const dateStr = getDailyDateString();
+          markDailyCompleted(dateStr, session.letterCount);
+        }
+
+        if (session.mode === 'endless') {
+          const endless = applyEndlessEndCounters({
+            sessionId: session.id,
+            won: session.status === 'won',
+            hardMode: session.hardMode,
+          });
+          setEndlessStreakState(endless.displayStreak);
+        }
+
+        await syncLeaderboardForSession(session);
+        clearActiveGame(session.hardMode);
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.status, isRevealing]);

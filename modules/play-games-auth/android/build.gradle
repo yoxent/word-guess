@@ -1,0 +1,26 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.playgamesauth'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.playgamesauth"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Play Games Services v2 (auto sign-in + server auth codes)
+  implementation "com.google.android.gms:play-services-games-v2:21.0.0"
+  // Align with @react-native-firebase/auth Firebase BOM when available
+  implementation platform("com.google.firebase:firebase-bom:34.15.0")
+  implementation "com.google.firebase:firebase-auth"
+}

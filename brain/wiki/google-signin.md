@@ -1,6 +1,6 @@
 # Google Sign-In
-updated: 2026-07-12 (debug.keystore SHA, accessToken credential, OAuth branding)
-tags: [auth, firebase, google, known-pain, eas, signing]
+updated: 2026-07-13 (Play Games primary path; Google kept as fallback until verified)
+tags: [auth, firebase, google, play-games, known-pain, eas, signing]
 related: [key-risks, tech-stack, phase-structure, dev-workflow, android-build-setup, cloud-sync]
 
 ## Firebase project (kept)
@@ -13,7 +13,31 @@ related: [key-risks, tech-stack, phase-structure, dev-workflow, android-build-se
 
 Repo points at this project via `.firebaserc` + root/`android/app` `google-services.json`. Do not create a second Firebase project for this app.
 
-## Flow
+## Auth provider strategy (2026-07-13)
+
+| Path | When |
+|------|------|
+| **Play Games → Firebase** (Android) | Primary once `PLAY_GAMES_APP_ID` is set — auto sign-in on launch, Settings button for interactive fallback |
+| **Google Sign-In → Firebase** | Fallback while Play Games App ID is unset, or `EXPO_PUBLIC_AUTH_PROVIDER=google` |
+
+Code: `src/config/auth.ts`, `src/services/authService.ts`, native module `modules/play-games-auth`.
+
+**Do not remove Google Sign-In** until Play Games auto + Settings sign-in are verified on a Play/dev build with Games Services configured.
+
+### Play Games setup checklist
+1. Play Console → Grow → Play Games Services → create/link game to Firebase project `word-guess-8fbee`
+2. Add **Game server** credential (Web client ID) + **Android** credential (package + SHA-1)
+3. Copy numeric **Play Games App / Project ID**
+4. Firebase Console → Authentication → Sign-in method → enable **Play Games** (same web client ID + secret)
+5. Set env and rebuild native:
+   - `PLAY_GAMES_APP_ID=<id>`
+   - `EXPO_PUBLIC_PLAY_GAMES_APP_ID=<id>`
+6. Or set `android/app/src/main/res/values/strings.xml` → `game_services_project_id` and uncomment `APP_ID` meta-data in `AndroidManifest.xml`
+7. `npx expo run:android` — cold start should silent-auth; Settings can force interactive sign-in
+
+Player identity for Firestore remains **Firebase Auth UID** (`resolveFirebasePlayerId`).
+
+## Legacy Google Sign-In flow
 1. User taps "Sign in with Google" → `GoogleSignin.signIn()`
 2. `GoogleSignin.getTokens()` → `{ idToken, accessToken }`
 3. `GoogleAuthProvider.credential(idToken, accessToken)` then `signInWithCredential`
@@ -23,9 +47,9 @@ Repo points at this project via `.firebaserc` + root/`android/app` `google-servi
 Same token exchange for silent sign-in (`signInSilently` → `getTokens` → credential).
 
 ## Critical: Web client ID
-Pass **Web** client ID (Firebase → Web credentials / `client_type: 3` in `google-services.json`) to `GoogleSignin.configure()`. NOT the Android client ID. #1 cause of `DEVELOPER_ERROR`.
+Pass **Web** client ID (Firebase → Web credentials / `client_type: 3` in `google-services.json`) to `GoogleSignin.configure()` and Play Games `requestServerSideAccess`. NOT the Android client ID. #1 cause of `DEVELOPER_ERROR`.
 
-Current Web client ID is in `src/services/authService.ts` (`WEB_CLIENT_ID`).
+Current Web client ID: `src/config/auth.ts` → `FIREBASE_WEB_CLIENT_ID`.
 
 ## Critical: accessToken for Firebase Auth
 RN Firebase Auth native credential path can throw:

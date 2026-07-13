@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "word-guess-8fbee"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

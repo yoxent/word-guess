@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,10 @@ import { useTheme } from '../hooks/useTheme';
 import { layout } from '../constants/layout';
 import { typography } from '../constants/typography';
 import { useAuthStore } from '../stores/authStore';
-import { getLeaderboardData } from '../services/leaderboardService';
+import {
+  getLeaderboardData,
+  reconcileLocalLeaderboardScores,
+} from '../services/leaderboardService';
 import type { LeaderboardData, LeaderboardEntry } from '../types';
 import type { LeaderboardType } from '../services/firestoreService';
 import {
@@ -25,9 +28,9 @@ import {
 // ── Tab config ──
 
 const TAB_LABELS: Record<LeaderboardType, string> = {
-  daily_streak: 'Daily',
-  endless_streak: 'Streak',
-  endless_total: 'Total',
+  daily_streak: 'Daily streak',
+  endless_streak: 'Endless streak',
+  endless_total: 'Endless words',
 };
 
 const TAB_TYPES: LeaderboardType[] = ['daily_streak', 'endless_streak', 'endless_total'];
@@ -39,20 +42,20 @@ const TAB_ICONS: Record<LeaderboardType, string> = {
 };
 
 const TAB_SCORE_HINT: Record<LeaderboardType, string> = {
-  daily_streak: 'win streak',
-  endless_streak: 'best run',
-  endless_total: 'words',
+  daily_streak: 'consecutive Daily wins',
+  endless_streak: 'current Endless run',
+  endless_total: 'Endless words cleared',
 };
 
 // ── Empty state messages ──
 
 const EMPTY_MESSAGES: Record<LeaderboardType, string> = {
   daily_streak:
-    'No daily streaks yet.\nWin Daily Challenges on consecutive days to climb this board.',
+    'No Daily streaks yet.\nWin Daily Challenges on consecutive days to climb this board.',
   endless_streak:
-    'No endless streaks yet.\nWin games in Endless mode to set a streak.',
+    'No Endless streaks yet.\nWin games in Endless mode to set a streak.',
   endless_total:
-    'No endless totals yet.\nPlay Endless mode — this ranks total words guessed.',
+    'No Endless word totals yet.\nPlay Endless mode — this ranks total words cleared.',
 };
 
 // ── Top 3 medal config ──
@@ -324,6 +327,7 @@ export function LeaderboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const requestIdRef = useRef(0);
   const activeTabRef = useRef(activeTab);
+  const hasFocusedRef = useRef(false);
   activeTabRef.current = activeTab;
 
   const loadLeaderboard = useCallback(async (type: LeaderboardType = activeTabRef.current) => {
@@ -366,9 +370,21 @@ export function LeaderboardScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!isLoggedIn) return;
-      loadLeaderboard(activeTab);
-    }, [activeTab, isLoggedIn, loadLeaderboard]),
+      hasFocusedRef.current = true;
+      // Heal local scores once when the screen is opened; tab switches only fetch.
+      void reconcileLocalLeaderboardScores().finally(() => {
+        loadLeaderboard(activeTabRef.current);
+      });
+      return () => {
+        hasFocusedRef.current = false;
+      };
+    }, [isLoggedIn, loadLeaderboard]),
   );
+
+  useEffect(() => {
+    if (!isLoggedIn || !hasFocusedRef.current) return;
+    loadLeaderboard(activeTab);
+  }, [activeTab, isLoggedIn, loadLeaderboard]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -399,7 +415,7 @@ export function LeaderboardScreen() {
           </View>
           <Text style={styles.authTitle}>Leaderboards</Text>
           <Text style={styles.authSubtitle}>
-            Sign in with Google to see how you rank against other players.
+            Sign in with Play Games to see how you rank against other players.
           </Text>
           <TouchableOpacity
             style={styles.googleSignInButton}
@@ -412,12 +428,12 @@ export function LeaderboardScreen() {
             ) : (
               <>
                 <MaterialIcons
-                  name="login"
+                  name="sports-esports"
                   size={20}
                   color="#FFFFFF"
                 />
                 <Text style={styles.googleSignInText}>
-                  Sign in with Google
+                  Sign in with Play Games
                 </Text>
               </>
             )}
@@ -483,7 +499,7 @@ export function LeaderboardScreen() {
       <Text style={styles.errorTitle}>{error}</Text>
       <TouchableOpacity
         style={styles.retryButton}
-        onPress={loadLeaderboard}
+        onPress={() => loadLeaderboard()}
         activeOpacity={0.7}
       >
         <Text style={styles.retryText}>Retry</Text>

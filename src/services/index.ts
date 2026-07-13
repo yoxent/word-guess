@@ -54,17 +54,33 @@ export type { SyncEvent } from './syncQueue';
 export {
   submitScore,
   updateLeaderboardAfterGame,
+  syncLeaderboardForSession,
+  reconcileLocalLeaderboardScores,
+  drainLeaderboardScoreEvent,
   getLeaderboardData,
 } from './leaderboardService';
 
 export {
+  computeLeaderboardMetrics,
+  getLeaderboardMetrics,
+} from './leaderboardMetrics';
+export type { LeaderboardMetrics } from './leaderboardMetrics';
+
+export {
+  configureAuth,
   configureGoogleSignIn,
+  signIn,
   signInWithGoogle,
+  signOut,
   signOutFromGoogle,
   signInSilently,
   getCurrentUser,
   onAuthStateChanged,
+  getSignInButtonLabel,
+  isUsingPlayGamesAuth,
   AuthError,
   AuthErrorCode,
 } from './authService';
-export type { GoogleSignInResult, SilentlySignInResult } from './authService';
+export type { SignInResult, SilentlySignInResult, AuthUser } from './authService';
+/** @deprecated Use SignInResult */
+export type { SignInResult as GoogleSignInResult } from './authService';

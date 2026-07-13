@@ -1,5 +1,10 @@
 import type { ExpoConfig } from 'expo/config';
 
+const playGamesAppId =
+  process.env.PLAY_GAMES_APP_ID ??
+  process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ??
+  '';
+
 const config: ExpoConfig = {
   name: 'Word Guess',
   slug: 'word-guess',
@@ -54,11 +59,14 @@ const config: ExpoConfig = {
     'expo-audio',
     'expo-asset',
     'expo-font',
+    './plugins/withPlayGamesAppId.js',
   ],
   extra: {
     eas: {
       projectId: '6a882883-5561-4b6a-bd2f-05d4b8f8cd3e',
     },
+    /** Play Console → Play Games Services → Configuration → Project / App ID */
+    playGamesAppId,
   },
 };
 

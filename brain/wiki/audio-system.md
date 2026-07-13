@@ -65,6 +65,6 @@ No playback-status / ended listener today — only `console.warn` on thrown erro
 |-------|-----|
 | Key press | `playKeyPress()` |
 | Tile reveal | `playReveal()` |
-| Win / loss | `playWin()` / `playLoss()` (GameScreen after reveal, not ResultModal) |
+| Win / loss | `playWin()` / `playLoss()` — GameScreen fires these from `pendingStatus` **before** `finalizeRevealOutcome` / ResultModal mount (modal + sync was starving Android audio). SFX `play()` awaits `seekTo(0)` so longer clips replay reliably. |
 | Volume change | `setBgmVolume` / `setSfxVolume` |
 | AppState | `pauseBgm` / `resumeBgm` |

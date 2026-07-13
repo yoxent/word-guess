@@ -1,60 +1,44 @@
 /**
- * Google Sign-In + Firebase Auth wrapper.
+ * Auth service — Play Games (primary) + optional legacy Google Sign-In.
  *
- * Separates SDK concerns from Zustand store (D-119).
- * Handles Google Sign-In lifecycle, Firebase Auth credential exchange,
- * and provides a clean async API for authStore consumption.
+ * Play Games path (Android):
+ *   PlayGamesSdk auto / interactive sign-in
+ *   → requestServerSideAccess(webClientId)
+ *   → native PlayGamesAuthProvider → Firebase Auth
+ *   → persist Firebase UID as playerId (Firestore rules require auth.uid)
  *
- * # Web Client ID (CRITICAL)
- * The `WEB_CLIENT_ID` constant below must be replaced with the actual
- * Firebase Web client ID from Firebase Console → Project Settings →
- * General → Your apps → Web app → Web client ID.
- *
- * This MUST be the **Web** client ID, NOT the Android client ID.
- * Using the wrong client ID is the #1 cause of `DEVELOPER_ERROR` (D-114, P4).
- *
- * @see https://github.com/react-native-google-signin/google-signin
- * @see https://rnfirebase.io/auth/social#google
+ * Google path is gated by AUTH_PROVIDER === 'google' until Play Games is verified.
  */
 
+import { Platform } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { getAuth, GoogleAuthProvider, signInWithCredential, signOut, onAuthStateChanged as onFirebaseAuthStateChanged } from '@react-native-firebase/auth';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import Constants from 'expo-constants';
+import PlayGamesAuth from '../../modules/play-games-auth';
+import {
+  AUTH_PROVIDER,
+  FIREBASE_WEB_CLIENT_ID,
+} from '../config/auth';
+import { resolveFirebasePlayerId } from '../utils/authState';
 
-/** Firebase Auth instance (modular API). */
-const firebaseAuth = getAuth();
+const firebaseAuth = auth();
 
-// ── Configuration ──
-
-// D-114: Pass Web client ID (from Firebase Console → Web credentials)
-// IMPORTANT: Must be Web client ID, NOT Android client ID (D-114, P4)
-// Developer must replace this value with their Firebase Web client ID
-const WEB_CLIENT_ID = '765565366850-kadse78msbqs0r8gab1gue4faoukbngu.apps.googleusercontent.com';
-
-// D-117: Minimal OAuth scopes
 const OAUTH_SCOPES: string[] = ['profile', 'email'];
 
-// ── Types ──
-
-export interface GoogleSignInResult {
-  user: {
-    id: string;
-    name: string | null;
-    email: string | null;
-    photo: string | null;
-  };
-  idToken: string;
+export interface AuthUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+  photo: string | null;
 }
 
-export interface SilentlySignInResult {
-  user: {
-    id: string;
-    name: string | null;
-    email: string | null;
-    photo: string | null;
-  };
+export interface SignInResult {
+  user: AuthUser;
+  /** Present for Google path only; Play Games uses Firebase session. */
+  idToken?: string;
 }
 
-// ── Error types ──
+export type SilentlySignInResult = { user: AuthUser };
 
 export enum AuthErrorCode {
   SIGN_IN_CANCELLED = 'SIGN_IN_CANCELLED',
@@ -74,9 +58,94 @@ export class AuthError extends Error {
   }
 }
 
-// ── Functions ──
+function playGamesAppIdFromConfig(): string {
+  const extra = Constants.expoConfig?.extra as
+    | { playGamesAppId?: string }
+    | undefined;
+  return (extra?.playGamesAppId ?? process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ?? '').trim();
+}
 
-async function getFirebaseGoogleCredential(idToken: string) {
+/**
+ * Play Games is active only when selected AND App ID is configured.
+ * Until Play Console Games Services is wired, we keep the Google path so
+ * leaderboards/auth still work during the migration.
+ */
+export function isUsingPlayGamesAuth(): boolean {
+  return (
+    AUTH_PROVIDER === 'play_games' &&
+    Platform.OS === 'android' &&
+    playGamesAppIdFromConfig().length > 0
+  );
+}
+
+/** Call once at startup. Configures Google when that path is still active. */
+export function configureAuth(): void {
+  if (!isUsingPlayGamesAuth()) {
+    GoogleSignin.configure({
+      webClientId: FIREBASE_WEB_CLIENT_ID,
+      offlineAccess: false,
+      scopes: OAUTH_SCOPES,
+    });
+  }
+}
+
+/** @deprecated Use configureAuth — kept for older call sites during migration. */
+export function configureGoogleSignIn(): void {
+  configureAuth();
+}
+
+function mapNativePlayGamesError(error: unknown): AuthError {
+  const anyErr = error as { code?: string; message?: string } | null;
+  const code = anyErr?.code ?? '';
+  const message = anyErr?.message ?? 'Play Games sign-in failed.';
+
+  if (code === 'E_SILENT_FAILED' || code === 'E_NOT_AUTHENTICATED') {
+    return new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, message);
+  }
+  if (code === 'E_CONFIG' || code === 'E_SERVER_AUTH' || code === 'E_FIREBASE') {
+    return new AuthError(AuthErrorCode.CONFIGURATION_ERROR, message);
+  }
+  return new AuthError(AuthErrorCode.UNKNOWN, message);
+}
+
+async function signInWithPlayGames(interactive: boolean): Promise<SignInResult> {
+  const appId = playGamesAppIdFromConfig();
+  if (!appId) {
+    throw new AuthError(
+      AuthErrorCode.CONFIGURATION_ERROR,
+      'Play Games App ID is not set. Add PLAY_GAMES_APP_ID from Play Console → Play Games Services → Configuration, then rebuild the native app.',
+    );
+  }
+
+  try {
+    const user = await PlayGamesAuth.signInWithFirebase(
+      FIREBASE_WEB_CLIENT_ID,
+      interactive,
+    );
+    const playerId = resolveFirebasePlayerId(user.uid);
+    if (!playerId) {
+      throw new AuthError(
+        AuthErrorCode.CONFIGURATION_ERROR,
+        'Play Games Firebase sign-in returned an empty UID.',
+      );
+    }
+    return {
+      user: {
+        id: playerId,
+        name: user.displayName,
+        email: user.email,
+        photo: user.photoURL,
+      },
+    };
+  } catch (error: unknown) {
+    if (error instanceof AuthError) throw error;
+    throw mapNativePlayGamesError(error);
+  }
+}
+
+async function getFirebaseGoogleCredential(
+  idToken: string,
+): Promise<FirebaseAuthTypes.AuthCredential> {
   const tokens = await GoogleSignin.getTokens();
   const firebaseIdToken = tokens.idToken || idToken;
 
@@ -87,53 +156,19 @@ async function getFirebaseGoogleCredential(idToken: string) {
     );
   }
 
-  return GoogleAuthProvider.credential(firebaseIdToken, tokens.accessToken);
+  return auth.GoogleAuthProvider.credential(firebaseIdToken, tokens.accessToken);
 }
 
-/**
- * Configure Google Sign-In. Must be called once before any signIn/signOut calls.
- * Safe to call multiple times (GoogleSignin.configure is idempotent).
- */
-export function configureGoogleSignIn(): void {
-  GoogleSignin.configure({
-    webClientId: WEB_CLIENT_ID,
-    offlineAccess: false,
-    scopes: OAUTH_SCOPES,
-  });
-}
-
-/**
- * Attempt to sign in with Google.
- * Returns `{ user, idToken }` on success.
- *
- * Throws `AuthError` with specific codes:
- *   - `SIGN_IN_CANCELLED`: user cancelled the sign-in flow
- *   - `IN_PROGRESS`: another sign-in is already in progress
- *   - `PLAY_SERVICES_NOT_AVAILABLE`: Play Services not installed/updated
- *   - `CONFIGURATION_ERROR`: likely SHA-1 or Web client ID misconfiguration
- *   - `UNKNOWN`: unexpected error
- *
- * After Google Sign-In success, exchanges the idToken for a Firebase Auth credential (D-115).
- */
-export async function signInWithGoogle(): Promise<GoogleSignInResult> {
+async function signInWithGoogleInteractive(): Promise<SignInResult> {
   try {
-    // 1. Check Play Services availability (D-113)
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
-    // 2. Sign in with Google
     const response = await GoogleSignin.signIn();
 
-    // v16 API returns discriminated union: { type: 'success', data: User } | { type: 'cancelled', data: null }
     if (response.type === 'cancelled') {
-      throw new AuthError(
-        AuthErrorCode.SIGN_IN_CANCELLED,
-        'Sign-in was cancelled.',
-      );
+      throw new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, 'Sign-in was cancelled.');
     }
 
-    // Success — extract from response.data
     const { idToken, user: googleUser } = response.data;
-
     if (!idToken) {
       throw new AuthError(
         AuthErrorCode.CONFIGURATION_ERROR,
@@ -141,27 +176,31 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       );
     }
 
-    // 3. Exchange Google tokens for Firebase Auth credential (D-115)
     const credential = await getFirebaseGoogleCredential(idToken);
-    await signInWithCredential(firebaseAuth, credential);
+    await firebaseAuth.signInWithCredential(credential);
 
-    // 4. Return combined user data
+    const firebaseUser = firebaseAuth.currentUser;
+    const playerId = resolveFirebasePlayerId(firebaseUser?.uid);
+    if (!firebaseUser || !playerId) {
+      throw new AuthError(
+        AuthErrorCode.CONFIGURATION_ERROR,
+        'Firebase Auth sign-in succeeded but no currentUser was available.',
+      );
+    }
+
     return {
       user: {
-        id: googleUser.id,
-        name: googleUser.name ?? null,
-        email: googleUser.email ?? null,
-        photo: googleUser.photo ?? null,
+        id: playerId,
+        name: firebaseUser.displayName ?? googleUser.name ?? null,
+        email: firebaseUser.email ?? googleUser.email ?? null,
+        photo: firebaseUser.photoURL ?? googleUser.photo ?? null,
       },
       idToken,
     };
   } catch (error: unknown) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
+    if (error instanceof AuthError) throw error;
 
     const typedError = error as { code?: string | number; message?: string };
-    // Native Google Sign-In / Firebase often put the useful detail here.
     console.error('[authService] signInWithGoogle failed', {
       code: typedError.code,
       message: typedError.message,
@@ -172,107 +211,126 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       typedError.code === statusCodes.SIGN_IN_CANCELLED ||
       typedError.code === 'SIGN_IN_CANCELLED'
     ) {
-      throw new AuthError(
-        AuthErrorCode.SIGN_IN_CANCELLED,
-        'Sign-in was cancelled.',
-      );
+      throw new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, 'Sign-in was cancelled.');
     }
-
     if (typedError.code === statusCodes.IN_PROGRESS) {
-      throw new AuthError(
-        AuthErrorCode.IN_PROGRESS,
-        'Sign-in is already in progress.',
-      );
+      throw new AuthError(AuthErrorCode.IN_PROGRESS, 'Sign-in is already in progress.');
     }
-
     if (typedError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       throw new AuthError(
         AuthErrorCode.PLAY_SERVICES_NOT_AVAILABLE,
         'Google Play Services are not available. Please update Google Play Services.',
       );
     }
-
-    // Firebase Auth credential exchange failures (provider disabled, etc.)
     if (typeof typedError.code === 'string' && typedError.code.startsWith('auth/')) {
       throw new AuthError(
         AuthErrorCode.CONFIGURATION_ERROR,
-        `Firebase Auth failed (${typedError.code}): ${typedError.message ?? 'enable Google provider in Firebase Console → Authentication → Sign-in method.'}`,
+        `Firebase Auth failed (${typedError.code}): ${typedError.message ?? 'check Auth providers in Firebase Console.'}`,
       );
     }
-
-    // Rethrow with configuration error hint (D-113, P4 mitigation)
     throw new AuthError(
       AuthErrorCode.CONFIGURATION_ERROR,
-      `Google Sign-In failed (${typedError.code ?? 'unknown'}: ${typedError.message ?? 'no message'}) — check SHA-1, Web client ID, OAuth consent test users, and Firebase Google provider.`,
+      `Google Sign-In failed (${typedError.code ?? 'unknown'}: ${typedError.message ?? 'no message'}).`,
     );
   }
 }
 
-/**
- * Sign out from both Google Sign-In and Firebase Auth.
- */
-export async function signOutFromGoogle(): Promise<void> {
-  try {
-    await GoogleSignin.signOut();
-  } catch {
-    // Google sign-out failure is non-fatal — proceed with Firebase sign-out
+/** Interactive sign-in (Settings / Leaderboard button). */
+export async function signIn(): Promise<SignInResult> {
+  if (isUsingPlayGamesAuth()) {
+    return signInWithPlayGames(true);
   }
+  return signInWithGoogleInteractive();
+}
 
-  try {
-    await signOut(firebaseAuth);
-  } catch {
-    // Firebase sign-out failure is non-fatal — local state will be cleared
-  }
+/** @deprecated Prefer signIn() — Google-only entry kept for migration. */
+export async function signInWithGoogle(): Promise<SignInResult> {
+  return signInWithGoogleInteractive();
 }
 
 /**
- * Attempt silent sign-in (restores previous session).
- * Call on app startup (D-118).
- *
- * Returns user info if successful, `null` if no prior session.
- * Never throws — returns `null` on any failure (no prior sign-in, network, etc.).
+ * Startup / silent sign-in. Never throws — returns null when no session.
+ * Play Games: uses non-interactive path (auto-auth from PGS v2).
+ * Google: GoogleSignin.signInSilently().
  */
 export async function signInSilently(): Promise<SilentlySignInResult | null> {
   try {
-    const response = await GoogleSignin.signInSilently();
+    if (isUsingPlayGamesAuth()) {
+      // Prefer existing Firebase session (fast path after prior launch).
+      const existing = getCurrentUser();
+      if (existing) return existing;
 
-    // v16 API: type === 'noSavedCredentialFound' means no prior session
-    if (response.type === 'noSavedCredentialFound') {
-      return null;
+      try {
+        const result = await signInWithPlayGames(false);
+        return { user: result.user };
+      } catch (error: unknown) {
+        if (error instanceof AuthError && error.code === AuthErrorCode.SIGN_IN_CANCELLED) {
+          return null;
+        }
+        if (__DEV__) {
+          console.log('[authService] Play Games silent sign-in unavailable', error);
+        }
+        return null;
+      }
     }
+
+    const response = await GoogleSignin.signInSilently();
+    if (response.type === 'noSavedCredentialFound') return null;
 
     const { idToken, user: googleUser } = response.data;
+    if (!idToken) return null;
 
-    if (!idToken) {
-      return null;
-    }
-
-    // Exchange Google tokens for Firebase credential
     const credential = await getFirebaseGoogleCredential(idToken);
-    await signInWithCredential(firebaseAuth, credential);
+    await firebaseAuth.signInWithCredential(credential);
+
+    const firebaseUser = firebaseAuth.currentUser;
+    const playerId = resolveFirebasePlayerId(firebaseUser?.uid);
+    if (!firebaseUser || !playerId) return null;
 
     return {
       user: {
-        id: googleUser.id,
-        name: googleUser.name ?? null,
-        email: googleUser.email ?? null,
-        photo: googleUser.photo ?? null,
+        id: playerId,
+        name: firebaseUser.displayName ?? googleUser.name ?? null,
+        email: firebaseUser.email ?? googleUser.email ?? null,
+        photo: firebaseUser.photoURL ?? googleUser.photo ?? null,
       },
     };
   } catch {
-    // Silent sign-in failure is expected if user never signed in before (D-118)
     return null;
   }
 }
 
-/**
- * Returns the currently signed-in Firebase user, or null.
- */
+export async function signOut(): Promise<void> {
+  if (isUsingPlayGamesAuth()) {
+    try {
+      await PlayGamesAuth.signOutFirebase();
+    } catch {
+      // Firebase sign-out failure is non-fatal — clear local state anyway
+    }
+    return;
+  }
+
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // ignore
+  }
+  try {
+    await firebaseAuth.signOut();
+  } catch {
+    // ignore
+  }
+}
+
+/** @deprecated Prefer signOut(). */
+export async function signOutFromGoogle(): Promise<void> {
+  await signOut();
+}
+
 export function getCurrentUser(): SilentlySignInResult | null {
   try {
     const currentUser = firebaseAuth.currentUser;
     if (!currentUser) return null;
-
     return {
       user: {
         id: currentUser.uid,
@@ -286,15 +344,10 @@ export function getCurrentUser(): SilentlySignInResult | null {
   }
 }
 
-/**
- * Subscribe to Firebase Auth state changes.
- * Returns an unsubscribe function.
- * Called when user signs in/out — fires on mount and on change.
- */
 export function onAuthStateChanged(
   callback: (user: { id: string; name: string | null } | null) => void,
 ): () => void {
-  return onFirebaseAuthStateChanged(firebaseAuth, (firebaseUser) => {
+  return firebaseAuth.onAuthStateChanged((firebaseUser) => {
     if (firebaseUser) {
       callback({
         id: firebaseUser.uid,
@@ -304,4 +357,8 @@ export function onAuthStateChanged(
       callback(null);
     }
   });
+}
+
+export function getSignInButtonLabel(): string {
+  return isUsingPlayGamesAuth() ? 'Sign in with Play Games' : 'Sign in with Google';
 }

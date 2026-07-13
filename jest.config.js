@@ -7,7 +7,12 @@ module.exports = {
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(wav)$': '<rootDir>/src/__tests__/fileMock.js',
+    '^../../modules/play-games-auth$':
+      '<rootDir>/src/__tests__/mocks/playGamesAuthMock.js',
+    '^.*modules/play-games-auth$':
+      '<rootDir>/src/__tests__/mocks/playGamesAuthMock.js',
   },
 
   collectCoverageFrom: [

@@ -163,33 +163,53 @@ const SFX_DUCK_DURATION_MS: Record<string, number> = {
 const DUCK_RATIO = 0.3;
 let _duckRestoreTimer: ReturnType<typeof setTimeout> | null = null;
 
+function duckBgmForSfx(name: string): void {
+  if (!_bgmPlayer || _currentBgmVolume <= 0) return;
+  _bgmPlayer.volume = _currentBgmVolume * DUCK_RATIO;
+  if (_duckRestoreTimer) clearTimeout(_duckRestoreTimer);
+  const duckMs = SFX_DUCK_DURATION_MS[name] ?? 300;
+  _duckRestoreTimer = setTimeout(() => {
+    if (_bgmPlayer) {
+      _bgmPlayer.volume = _currentBgmVolume;
+    }
+    _duckRestoreTimer = null;
+  }, duckMs);
+}
+
+/**
+ * Replay an SFX from the start. expo-audio leaves the playhead at the end
+ * after a clip finishes, so we must await seekTo(0) before play() — calling
+ * play() without a completed seek often no-ops on Android for longer clips
+ * (win/lose), while short keypress clips can still "seem" to work.
+ */
 function play(name: string): void {
   if (_currentSfxVolume === 0) return;
   const player = _sfxPlayers[name];
-  if (!player) return;
-  try {
-    // Duck the BGM while the SFX plays. Without this, the combined
-    // audio output of BGM + SFX can exceed 1.0 and clip — which the
-    // user hears as static / distortion. We restore the BGM to its
-    // intended volume after the SFX has finished.
-    // We set the player volume directly (bypassing setBgmVolume) so
-    // the play/pause transition logic in setBgmVolume isn't disturbed.
-    if (_bgmPlayer && _currentBgmVolume > 0) {
-      _bgmPlayer.volume = _currentBgmVolume * DUCK_RATIO;
-      if (_duckRestoreTimer) clearTimeout(_duckRestoreTimer);
-      const duckMs = SFX_DUCK_DURATION_MS[name] ?? 300;
-      _duckRestoreTimer = setTimeout(() => {
-        if (_bgmPlayer) {
-          _bgmPlayer.volume = _currentBgmVolume;
-        }
-        _duckRestoreTimer = null;
-      }, duckMs);
+  if (!player) {
+    if (__DEV__) {
+      console.warn(`[sound] SFX player missing: ${name}`);
     }
-    player.seekTo(0);
-    player.play();
-  } catch (e) {
-    console.warn(`[sound] Failed to play ${name}:`, e);
+    return;
   }
+
+  void (async () => {
+    try {
+      // Duck the BGM while the SFX plays. Without this, the combined
+      // audio output of BGM + SFX can exceed 1.0 and clip — which the
+      // user hears as static / distortion. We restore the BGM to its
+      // intended volume after the SFX has finished.
+      // We set the player volume directly (bypassing setBgmVolume) so
+      // the play/pause transition logic in setBgmVolume isn't disturbed.
+      duckBgmForSfx(name);
+      if (player.playing) {
+        player.pause();
+      }
+      await player.seekTo(0);
+      player.play();
+    } catch (e) {
+      console.warn(`[sound] Failed to play ${name}:`, e);
+    }
+  })();
 }
 
 export function playKeyPress(): void {

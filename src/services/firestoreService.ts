@@ -13,10 +13,23 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
+import { shouldWriteLeaderboardScore } from './leaderboardWritePolicy';
 
 // ── Types ──
 
 export type LeaderboardType = 'daily_streak' | 'endless_streak' | 'endless_total';
+
+function isTransientFirestoreError(err: unknown): boolean {
+  const anyErr = err as { code?: string; message?: string } | null;
+  const haystack = `${anyErr?.code ?? ''} ${anyErr?.message ?? err}`.toLowerCase();
+  return (
+    haystack.includes('unavailable') ||
+    haystack.includes('deadline-exceeded') ||
+    haystack.includes('resource-exhausted') ||
+    haystack.includes('network')
+  );
+}
+
 
 // ── Initialisation (modular API) ──
 
@@ -111,8 +124,33 @@ export async function submitLeaderboardScore(
   score: number,
 ): Promise<boolean> {
   try {
+    const scoreRef = doc(leaderboardRef(type), playerId);
+    const existing = await getDoc(scoreRef);
+    const existingScore = existing.data()?.score;
+    const numericExisting =
+      typeof existingScore === 'number' ? existingScore : undefined;
+
+    if (!shouldWriteLeaderboardScore(type, score, numericExisting)) {
+      // shouldWrite only returns false when an existing numeric score is higher.
+      if (typeof numericExisting !== 'number') {
+        return true;
+      }
+      // Always include `score` so rules that require it succeed on merge.
+      await setDoc(
+        scoreRef,
+        {
+          playerId,
+          playerName,
+          score: numericExisting,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return true;
+    }
+
     await setDoc(
-      doc(leaderboardRef(type), playerId),
+      scoreRef,
       {
         playerId,
         playerName,
@@ -122,7 +160,15 @@ export async function submitLeaderboardScore(
       { merge: true },
     );
     return true;
-  } catch {
+  } catch (err) {
+    if (__DEV__) {
+      if (isTransientFirestoreError(err)) {
+        // Expected while offline / Firebase briefly unreachable — caller queues + retries.
+        console.log('[firestore] submitLeaderboardScore deferred (transient)', type);
+      } else {
+        console.warn('[firestore] submitLeaderboardScore failed', type, err);
+      }
+    }
     return false;
   }
 }
@@ -131,7 +177,8 @@ export async function submitLeaderboardScore(
  * Query top 50 entries from a leaderboard collection.
  * Ordered by score descending, limited to 50 (D-132).
  *
- * Returns LeaderboardData with entries array, or empty data on error.
+ * Throws on read failure so the screen can show an error instead of
+ * incorrectly rendering a network problem as "No entries yet".
  */
 export async function getLeaderboard(
   type: LeaderboardType,
@@ -156,11 +203,10 @@ export async function getLeaderboard(
       entries,
       lastUpdated: new Date().toISOString(),
     };
-  } catch {
-    return {
-      type,
-      entries: [],
-      lastUpdated: new Date().toISOString(),
-    };
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[firestore] getLeaderboard failed', type, err);
+    }
+    throw err;
   }
 }

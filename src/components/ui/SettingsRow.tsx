@@ -17,6 +17,7 @@ import { typography } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
 import { useSettingsStore, snapVolume } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
+import { getSignInButtonLabel } from '../../services/authService';
 
 const TOOLTIP_MAX_WIDTH = 260;
 const TOOLTIP_DISMISS_MS = 3500;
@@ -301,7 +302,7 @@ function SignInButtonRow({
     >
       <View style={styles.signInInfo}>
         <MaterialIcons name="login" size={20} color={theme.colors.brand.primary} />
-        <Text style={styles.signInLabel}>Sign in with Google</Text>
+        <Text style={styles.signInLabel}>{getSignInButtonLabel()}</Text>
       </View>
       <View style={styles.chevron}>
         <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />

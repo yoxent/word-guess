@@ -40,9 +40,10 @@ import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
-import { useNavigation } from '@react-navigation/native';import { GRADIENTS } from '../components/home/ModeCard';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import { hasSignedInPlayer } from '../utils/authState';
 
 type Props = ScreenProps<'Game'>;
 
@@ -107,47 +108,15 @@ function recordEndGameSideEffects(currentSession: GameSession): void {
 
     const stats = useStatsStore.getState().stats;
 
-    const leaderboardParams: {
-      mode: string;
-      won: boolean;
-      dailyStreak?: number;
-      endlessStreak?: number;
-      endlessTotalWords?: number;
-    } = {
-      mode: currentSession.mode,
-      won: currentSession.status === 'won',
-    };
-
-    if (currentSession.mode === 'daily' && currentSession.status === 'won') {
-      const dailyKey = 'daily_' + (currentSession.hardMode ? 'hard' : 'normal');
-      const { resolveDailyLeaderboardScore } = require('../services/endlessLeaderboardCounters');
-      // recordGameIfNeeded awaits in-flight writes so this streak is fresh
-      leaderboardParams.dailyStreak = resolveDailyLeaderboardScore(
-        true,
-        stats?.perModeStreaks?.[dailyKey]?.current,
-      );
-    }
-
-    if (currentSession.mode === 'endless') {
-      const { applyEndlessEndCounters } = require('../services/endlessLeaderboardCounters');
-      const endless = applyEndlessEndCounters({
-        sessionId: currentSession.id,
-        won: currentSession.status === 'won',
-        hardMode: currentSession.hardMode,
-      });
-      leaderboardParams.endlessStreak = endless.endlessStreak;
-      leaderboardParams.endlessTotalWords = endless.endlessTotalWords;
-    }
-
-    import('../services/leaderboardService').then(({ updateLeaderboardAfterGame }) => {
-      updateLeaderboardAfterGame(leaderboardParams);
+    import('../services/leaderboardService').then(({ syncLeaderboardForSession }) => {
+      void syncLeaderboardForSession(currentSession);
     });
 
     import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
       const authState = authStoreRef.getState();
-      if (authState.isLoggedIn && stats) {
+      if (hasSignedInPlayer(authState) && stats) {
         import('../services/firestoreService').then(({ updatePlayerStats }) => {
-          updatePlayerStats(authState.playerId!, authState.playerName ?? 'Player', stats);
+          updatePlayerStats(authState.playerId, authState.playerName ?? 'Player', stats);
         });
       } else if (stats) {
         import('../services/syncQueue').then(({ enqueueEvent }) => {
@@ -424,6 +393,19 @@ export function GameScreen({ route }: Props) {
       }
 
       const timer = setTimeout(() => {
+        // Play outcome SFX *before* promoting status / mounting ResultModal.
+        // Win/lose used to wait until after finalize + modal mount; that batch
+        // (modal, confetti, leaderboard sync) often starved Android audio so
+        // only short keypress SFX still seemed to work.
+        const pendingOutcome = useGameStore.getState().session?.pendingStatus;
+        if (pendingOutcome === 'won') {
+          sound.playWin();
+        } else if (pendingOutcome === 'lost') {
+          sound.playLoss();
+        } else {
+          sound.playReveal();
+        }
+
         // Phase 1: stop flip animations (Animated Tile → StaticTile swap).
         setIsRevealing(false);
         flushPendingInputs();
@@ -432,21 +414,9 @@ export function GameScreen({ route }: Props) {
         runAfterUiSettle(() => {
           finalizeRevealOutcome();
 
-          // Phase 3 (+50ms): audio/haptics — separate from Fabric commit batch.
-          setTimeout(() => {
-            const currentSession = useGameStore.getState().session;
-            if (currentSession?.status === 'won') {
-              sound.playWin();
-            } else if (currentSession?.status === 'lost') {
-              sound.playLoss();
-            } else {
-              sound.playReveal();
-            }
-
-            if (useSettingsStore.getState().hapticEnabled) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-            }
-          }, 50);
+          if (useSettingsStore.getState().hapticEnabled) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          }
         });
       }, totalAnimationTime);
 

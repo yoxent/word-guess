@@ -6,6 +6,7 @@ import type { AuthState } from '../types';
 import * as authService from '../services/authService';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
+import { hasSignedInPlayer } from '../utils/authState';
 
 // ── Types ──
 
@@ -25,21 +26,18 @@ interface AuthStoreState extends AuthState {
 const drainHandler = async (event: syncQueue.SyncEvent): Promise<boolean> => {
   if (event.type === 'game_result') {
     const authState = useAuthStore.getState();
-    if (!authState.isLoggedIn) return false;
+    if (!hasSignedInPlayer(authState)) return false;
     return await firestoreService.updatePlayerStats(
-      authState.playerId!,
+      authState.playerId,
       authState.playerName ?? 'Player',
       event.data.stats as any,
     );
   }
   if (event.type === 'leaderboard_score') {
-    const data = event.data as any;
-    return await firestoreService.submitLeaderboardScore(
-      data.type,
-      data.playerId,
-      data.playerName,
-      data.score,
+    const { drainLeaderboardScoreEvent } = await import(
+      '../services/leaderboardService'
     );
+    return drainLeaderboardScoreEvent(event);
   }
   return false;
 };
@@ -77,16 +75,18 @@ export const useAuthStore = create<AuthStoreState>()(
       // ── New Google Sign-In actions ──
 
       /**
-       * Sign in with Google. Calls authService, persists session, drains sync queue.
-       * Returns true on success, false on failure (authError set accordingly).
+       * Interactive sign-in (Play Games primary, or Google when AUTH_PROVIDER=google).
        */
       googleSignIn: async () => {
         set({ isAuthPending: true, authError: null });
         try {
-          const result = await authService.signInWithGoogle();
-          await get().setPlayer(result.user.id, result.user.name ?? 'Player', result.idToken);
+          const result = await authService.signIn();
+          await get().setPlayer(
+            result.user.id,
+            result.user.name ?? 'Player',
+            result.idToken ?? 'play_games_session',
+          );
 
-          // Drain deferred sync queue after successful sign-in (D-123)
           syncQueue.drainQueue(drainHandler).catch(() => {});
 
           set({ isAuthPending: false });
@@ -102,25 +102,21 @@ export const useAuthStore = create<AuthStoreState>()(
       },
 
       /**
-       * Sign out from Google and Firebase, then clear local auth state.
+       * Sign out from auth provider + clear local auth state.
        */
       googleSignOut: async () => {
         set({ isAuthPending: true });
         try {
-          await authService.signOutFromGoogle();
+          await authService.signOut();
           await get().signOut();
         } catch {
-          // Sign-out failure is non-fatal — clear local state anyway
           await get().signOut();
         }
         set({ isAuthPending: false, authError: null });
       },
 
       /**
-       * Attempt silent sign-in on app startup (D-118).
-       * Restores previous session if available.
-       * Clears stale isLoggedIn state if no prior session.
-       * Never sets authError on failure (not an error condition).
+       * Silent / auto sign-in on startup (Play Games auto-auth or Google silent).
        */
       googleSignInSilently: async () => {
         try {
@@ -128,12 +124,10 @@ export const useAuthStore = create<AuthStoreState>()(
           if (result) {
             await get().setPlayer(result.user.id, result.user.name ?? 'Player', 'silent_token');
 
-            // Drain deferred sync queue after successful silent sign-in
             syncQueue.drainQueue(drainHandler).catch(() => {});
 
             return true;
           } else {
-            // Clear stale logged-in state if persist had stale true (D-118, P24)
             set({
               isLoggedIn: false,
               playerId: null,
@@ -143,7 +137,6 @@ export const useAuthStore = create<AuthStoreState>()(
             return false;
           }
         } catch {
-          // Silent sign-in failure is expected — clear stale state
           set({
             isLoggedIn: false,
             playerId: null,

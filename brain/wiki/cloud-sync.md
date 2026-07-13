@@ -88,9 +88,9 @@ leaderboards/endless_total/scores/{playerId}
 
 ### Retry & backoff (D-137-D-138)
 ```
-Exponential backoff: 2^retryCount * 1000ms
-  → 1s, 2s, 4s (max 3 retries)
-Events with retryCount >= 3 discarded on next drain attempt
+Exponential backoff: 2^retryCount * 1500ms
+  → ~3s, 6s, 12s, 24s, 48s (max 6 retries)
+Events with retryCount >= 6 discarded on next drain attempt
 ```
 
 ### Drain triggers (D-139)
@@ -113,6 +113,11 @@ Events with retryCount >= 3 discarded on next drain attempt
 - `submitScore(type, score)` — submits to leaderboard, queues if offline/unauthed
 - `getLeaderboardData(type)` — fetches top 50, marks current player
 - `updateLeaderboardAfterGame(params)` — mode-aware: Daily→daily_streak, Endless→streak+total
+
+### Stats ↔ leaderboards (2026-07-13)
+Local stats/storage is the source of truth for the player's competitive metrics.
+Leaderboards publish ranked slices (`daily_streak`, `endless_streak`, `endless_total`) via `getLeaderboardMetrics()` — they do not maintain a second counter system.
+UI tabs: **Daily streak** / **Endless streak** / **Endless words**.
 
 ### Score submission (D-144)
 | Mode | Outcome | Submits to |
@@ -147,7 +152,7 @@ All sync is **fire-and-forget** — never blocks UI transition.
 ## Deferred score queue (D-146-D-148)
 - Scores from unauthenticated games queued as `leaderboard_score` events
 - On sign-in: drainQueue replays all queued scores
-- Failed submissions: retry 3× with backoff, then discard (accepted data loss)
+- Failed submissions: retry 6× with backoff, then discard (accepted data loss)
 
 ## Endless total words (D-145)
 - MMKV counter: `getEndlessTotalWords()` / `incrementEndlessTotalWords()` in storage.ts

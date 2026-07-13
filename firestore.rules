@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(playerId) {
+      return signedIn() && request.auth.uid == playerId;
+    }
+
+    function isLeaderboardType(type) {
+      return type in ['daily_streak', 'endless_streak', 'endless_total'];
+    }
+
+    function hasOnlyLeaderboardFields() {
+      return request.resource.data.keys().hasOnly([
+        'playerId',
+        'playerName',
+        'score',
+        'updatedAt'
+      ]);
+    }
+
+    match /playerStats/{playerId} {
+      allow read, write: if isOwner(playerId);
+    }
+
+    match /leaderboards/{leaderboardType}/scores/{playerId} {
+      allow get, list: if isLeaderboardType(leaderboardType);
+      allow create, update: if isLeaderboardType(leaderboardType)
+        && isOwner(playerId)
+        && hasOnlyLeaderboardFields()
+        && request.resource.data.playerId == playerId
+        && request.resource.data.playerName is string
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0;
+      allow delete: if false;
+    }
+  }
+}
