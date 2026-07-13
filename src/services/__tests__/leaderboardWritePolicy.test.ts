@@ -18,6 +18,13 @@ describe('shouldWriteLeaderboardScore', () => {
   it('allows endless streak resets to 0 after a loss', () => {
     expect(shouldWriteLeaderboardScore('endless_streak', 0, 5)).toBe(true);
   });
+
+  it('never lets best streak or sharpshooter decrease', () => {
+    expect(shouldWriteLeaderboardScore('best_streak', 3, 5)).toBe(false);
+    expect(shouldWriteLeaderboardScore('best_streak', 6, 5)).toBe(true);
+    expect(shouldWriteLeaderboardScore('sharpshooter', 1, 4)).toBe(false);
+    expect(shouldWriteLeaderboardScore('sharpshooter', 4, 4)).toBe(true);
+  });
 });
 
 describe('resolveLeaderboardWritePlayer', () => {

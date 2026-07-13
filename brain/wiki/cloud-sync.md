@@ -64,6 +64,12 @@ leaderboards/endless_streak/scores/{playerId}
 
 leaderboards/endless_total/scores/{playerId}
   — playerId, playerName, score (total words), updatedAt
+
+leaderboards/best_streak/scores/{playerId}
+  — playerId, playerName, score (best-ever streak any mode), updatedAt
+
+leaderboards/sharpshooter/scores/{playerId}
+  — playerId, playerName, score (fast-win points: 1×3 + 2×2 + 3×1), updatedAt
 ```
 
 ### Write strategy
@@ -116,24 +122,31 @@ Events with retryCount >= 6 discarded on next drain attempt
 
 ### Stats ↔ leaderboards (2026-07-13)
 Local stats/storage is the source of truth for the player's competitive metrics.
-Leaderboards publish ranked slices (`daily_streak`, `endless_streak`, `endless_total`) via `getLeaderboardMetrics()` — they do not maintain a second counter system.
-UI tabs: **Daily streak** / **Endless streak** / **Endless words**.
+Leaderboards publish ranked slices via `getLeaderboardMetrics()` — they do not maintain a second counter system.
+UI chips: **Daily** / **Run** / **Words** / **Best** / **Sharp** (podium + flair titles + personal footer).
 
 ### Score submission (D-144)
 | Mode | Outcome | Submits to |
 |------|---------|-----------|
-| Daily | Win | `daily_streak` (current streak) |
-| Endless | Win | `endless_streak` + `endless_total` |
-| Endless | Loss | `endless_streak` (0 if broken) + `endless_total` |
+| Daily | Win | `daily_streak` + career boards |
+| Endless | Win | `endless_streak` + `endless_total` + career boards |
+| Endless | Loss | `endless_streak` (0 if broken) + `endless_total` + career boards |
+| Random / other | Win or loss | career boards only (`best_streak`, `sharpshooter` when > 0) |
 
-### Screen (3 tabs, 5 states, D-149-D-152)
-| Tab | Leaderboard Type |
-|-----|-----------------|
-| Daily Streak | `daily_streak` |
-| Endless Streak | `endless_streak` |
-| Endless Total | `endless_total` |
+Career boards:
+- `best_streak` ← `PlayerStats.maxStreak` (monotonic)
+- `sharpshooter` ← guessDistribution 1×3 + 2×2 + 3×1 (monotonic)
 
-**States:** Not signed in (auth gate) → Loading → Empty → Error → Data
+### Screen (5 boards, podium UI)
+| Chip | Leaderboard Type |
+|------|-----------------|
+| Daily | `daily_streak` |
+| Run | `endless_streak` |
+| Words | `endless_total` |
+| Best | `best_streak` |
+| Sharp | `sharpshooter` |
+
+**States:** Not signed in (auth gate) → Loading → Empty → Error → Data (podium for top 3 + list 4+)
 
 ### Wire protocol (D-153-D-154)
 ```

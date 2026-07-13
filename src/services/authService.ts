@@ -18,6 +18,7 @@ import PlayGamesAuth from '../../modules/play-games-auth';
 import {
   AUTH_PROVIDER,
   FIREBASE_WEB_CLIENT_ID,
+  PLAY_GAMES_APP_ID,
 } from '../config/auth';
 import { resolveFirebasePlayerId } from '../utils/authState';
 
@@ -62,7 +63,11 @@ function playGamesAppIdFromConfig(): string {
   const extra = Constants.expoConfig?.extra as
     | { playGamesAppId?: string }
     | undefined;
-  return (extra?.playGamesAppId ?? process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ?? '').trim();
+  return (
+    extra?.playGamesAppId ??
+    process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ??
+    PLAY_GAMES_APP_ID
+  ).trim();
 }
 
 /**
@@ -256,9 +261,9 @@ export async function signInWithGoogle(): Promise<SignInResult> {
 export async function signInSilently(): Promise<SilentlySignInResult | null> {
   try {
     if (isUsingPlayGamesAuth()) {
-      // Prefer existing Firebase session (fast path after prior launch).
-      const existing = getCurrentUser();
-      if (existing) return existing;
+      // Wait for Firebase disk restore before assuming there is no session.
+      const restored = await waitForFirebaseAuthReady();
+      if (restored) return restored;
 
       try {
         const result = await signInWithPlayGames(false);
@@ -342,6 +347,49 @@ export function getCurrentUser(): SilentlySignInResult | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Wait until Firebase Auth finishes restoring any persisted session.
+ * Without this, cold start often sees currentUser === null and races Play Games.
+ */
+export function waitForFirebaseAuthReady(timeoutMs = 4000): Promise<SilentlySignInResult | null> {
+  const existing = getCurrentUser();
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: SilentlySignInResult | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(value);
+    };
+
+    const unsubscribe = firebaseAuth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        const playerId = resolveFirebasePlayerId(firebaseUser.uid);
+        if (!playerId) {
+          finish(null);
+          return;
+        }
+        finish({
+          user: {
+            id: playerId,
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+            photo: firebaseUser.photoURL,
+          },
+        });
+        return;
+      }
+      // First null emission = restore finished with no user — stop waiting.
+      finish(null);
+    });
+
+    const timer = setTimeout(() => finish(getCurrentUser()), timeoutMs);
+  });
 }
 
 export function onAuthStateChanged(

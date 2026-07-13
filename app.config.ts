@@ -1,9 +1,11 @@
 import type { ExpoConfig } from 'expo/config';
 
+const DEFAULT_PLAY_GAMES_APP_ID = '765565366850';
+
 const playGamesAppId =
   process.env.PLAY_GAMES_APP_ID ??
   process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ??
-  '';
+  DEFAULT_PLAY_GAMES_APP_ID;
 
 const config: ExpoConfig = {
   name: 'Word Guess',

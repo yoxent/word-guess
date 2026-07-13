@@ -178,8 +178,7 @@ export function GameScreen({ route }: Props) {
           marginLeft: 8,
         },
         hardModeBadgeText: {
-          fontSize: 11,
-          fontWeight: '700',
+          ...typography.small,
           color: '#FFFFFF',
         },
         // ── Board & Keyboard ──
@@ -215,9 +214,9 @@ export function GameScreen({ route }: Props) {
           marginRight: 2,
         },
         errorText: {
+          ...typography.small,
           color: theme.colors.text.inverse,
           fontSize: 14,
-          fontWeight: '600',
         },
         // ── Hint Buttons ──
         hintButtonsContainer: {
@@ -253,7 +252,7 @@ export function GameScreen({ route }: Props) {
           opacity: 0.5,
         },
         hintButtonText: {
-          ...typography.button,
+          ...typography.small,
           fontSize: 13,
           color: '#FFFFFF',
           flexShrink: 1,

@@ -6,8 +6,17 @@ export interface LeaderboardEntry {
   isCurrentPlayer?: boolean;
 }
 
+export type LeaderboardDataType =
+  | 'daily_streak'
+  | 'endless_streak'
+  | 'endless_total'
+  | 'best_streak'
+  | 'sharpshooter';
+
 export interface LeaderboardData {
-  type: 'daily_streak' | 'endless_streak' | 'endless_total';
+  type: LeaderboardDataType;
   entries: LeaderboardEntry[];
   lastUpdated: string;
+  /** Absolute rank of the signed-in player when known (1-based). */
+  currentPlayerRank?: number | null;
 }

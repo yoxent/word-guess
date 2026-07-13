@@ -11,7 +11,13 @@ service cloud.firestore {
     }
 
     function isLeaderboardType(type) {
-      return type in ['daily_streak', 'endless_streak', 'endless_total'];
+      return type in [
+        'daily_streak',
+        'endless_streak',
+        'endless_total',
+        'best_streak',
+        'sharpshooter',
+      ];
     }
 
     function hasOnlyLeaderboardFields() {

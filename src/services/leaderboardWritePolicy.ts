@@ -3,15 +3,26 @@
  * regression-test the bugs that left Daily at 0 and Total empty.
  */
 
-export type MonotonicLeaderboardType = 'daily_streak' | 'endless_total';
+export type MonotonicLeaderboardType =
+  | 'daily_streak'
+  | 'endless_total'
+  | 'best_streak'
+  | 'sharpshooter';
 
-/** Daily streak / endless total must never move backwards (stale queue overwrites). */
+const MONOTONIC_TYPES = new Set<string>([
+  'daily_streak',
+  'endless_total',
+  'best_streak',
+  'sharpshooter',
+]);
+
+/** Career / cumulative boards must never move backwards (stale queue overwrites). */
 export function shouldWriteLeaderboardScore(
   type: string,
   incomingScore: number,
   existingScore: number | undefined,
 ): boolean {
-  if (type !== 'daily_streak' && type !== 'endless_total') {
+  if (!MONOTONIC_TYPES.has(type)) {
     return true;
   }
   if (typeof existingScore !== 'number') {

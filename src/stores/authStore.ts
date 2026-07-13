@@ -117,32 +117,45 @@ export const useAuthStore = create<AuthStoreState>()(
 
       /**
        * Silent / auto sign-in on startup (Play Games auto-auth or Google silent).
+       * Soft-fail: do not wipe a persisted session if silent auth is merely
+       * racing Play Games / Firebase restore — only clear when we know there
+       * is no Firebase user after the attempt.
        */
       googleSignInSilently: async () => {
         try {
           const result = await authService.signInSilently();
           if (result) {
-            await get().setPlayer(result.user.id, result.user.name ?? 'Player', 'silent_token');
+            await get().setPlayer(
+              result.user.id,
+              result.user.name ?? 'Player',
+              'silent_token',
+            );
 
             syncQueue.drainQueue(drainHandler).catch(() => {});
 
             return true;
-          } else {
+          }
+
+          // Confirmed no Firebase session — clear local auth flags.
+          const stillSignedIn = authService.getCurrentUser();
+          if (!stillSignedIn) {
             set({
               isLoggedIn: false,
               playerId: null,
               playerName: null,
               authToken: null,
             });
-            return false;
           }
+          return false;
         } catch {
-          set({
-            isLoggedIn: false,
-            playerId: null,
-            playerName: null,
-            authToken: null,
-          });
+          if (!authService.getCurrentUser()) {
+            set({
+              isLoggedIn: false,
+              playerId: null,
+              playerName: null,
+              authToken: null,
+            });
+          }
           return false;
         }
       },

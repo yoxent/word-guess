@@ -3,6 +3,7 @@ import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
+import { typography } from '../../constants/typography';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
 
@@ -21,7 +22,8 @@ export function GameBoard() {
           alignItems: 'center',
         },
         loadingText: {
-          fontSize: 16,
+          ...typography.small,
+          fontSize: 14,
           color: theme.colors.text.secondary,
         },
         attemptsContainer: {
@@ -29,9 +31,9 @@ export function GameBoard() {
           marginBottom: 8,
         },
         attemptsText: {
+          ...typography.small,
           fontSize: 14,
           color: theme.colors.text.secondary,
-          fontWeight: '500',
         },
         grid: {
           gap: layout.tileGap,

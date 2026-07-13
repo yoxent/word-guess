@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
+import { FONTS } from '../../utils/fonts';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -112,6 +113,7 @@ const keyStyles = StyleSheet.create({
     opacity: 0.4,
   },
   keyText: {
+    fontFamily: FONTS.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
   },

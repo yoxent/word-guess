@@ -20,14 +20,17 @@ export const AUTH_PROVIDER: AuthProviderId =
 export const FIREBASE_WEB_CLIENT_ID =
   '765565366850-kadse78msbqs0r8gab1gue4faoukbngu.apps.googleusercontent.com';
 
+/** Play Games Services project ID (Play Console → Configuration). */
+export const PLAY_GAMES_APP_ID = '765565366850';
+
 /**
  * Play Games Services App ID from Play Console → Play Games Services →
- * Configuration. Required for auto sign-in. Set via PLAY_GAMES_APP_ID / app.config.
+ * Configuration. Required for auto sign-in.
  */
 export function getPlayGamesAppId(): string {
-  // Prefer runtime Expo extra when available; fall back to env at build time.
   const fromEnv = process.env.EXPO_PUBLIC_PLAY_GAMES_APP_ID ?? '';
-  return fromEnv.trim();
+  if (fromEnv.trim().length > 0) return fromEnv.trim();
+  return PLAY_GAMES_APP_ID;
 }
 
 export function isPlayGamesConfigured(): boolean {

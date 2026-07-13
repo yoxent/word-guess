@@ -60,7 +60,7 @@ export const typography: Record<string, TextStyle> = {
   statLabel: {
     fontFamily: FONTS.caption,
     fontSize: Math.round(12 * fontScale),
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: Math.round(16 * fontScale),
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -72,11 +72,15 @@ export const typography: Record<string, TextStyle> = {
     fontWeight: '700',
     lineHeight: Math.round(22 * fontScale),
   },
-  /** Small text — captions, badges, fine print. */
+  /**
+   * Small script — captions, badges, hints, microcopy.
+   * Same typeface/weight as Guess Distribution counts (DM Sans SemiBold).
+   */
   small: {
     fontFamily: FONTS.caption,
-    fontSize: Math.round(13 * fontScale),
-    fontWeight: '600',
-    lineHeight: Math.round(18 * fontScale),
+    fontSize: Math.round(12 * fontScale),
+    fontWeight: '700',
+    lineHeight: Math.round(16 * fontScale),
+    letterSpacing: 0.2,
   },
 } as const;

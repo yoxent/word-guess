@@ -16,6 +16,10 @@ import {
 } from './endlessLeaderboardCounters';
 import { getLeaderboardMetrics } from './leaderboardMetrics';
 import { resolveLeaderboardWritePlayer } from './leaderboardWritePolicy';
+import {
+  buildDemoLeaderboard,
+  isDemoLeaderboardEnabled,
+} from './leaderboardDemoData';
 import type { LeaderboardData, LeaderboardEntry, GameSession } from '../types';
 
 /** Prevent GameScreen + ResultModal from double-submitting one session. */
@@ -98,6 +102,32 @@ export async function drainLeaderboardScoreEvent(event: {
 }
 
 /**
+ * Publish career boards derived from local stats (Best streak, Sharpshooter).
+ */
+export async function publishCareerLeaderboardScores(
+  metrics: {
+    bestStreak: number;
+    sharpshooter: number;
+  },
+  sessionId?: string,
+): Promise<void> {
+  if (metrics.bestStreak > 0) {
+    await submitScore(
+      'best_streak',
+      metrics.bestStreak,
+      sessionId ? `${sessionId}:best` : undefined,
+    );
+  }
+  if (metrics.sharpshooter > 0) {
+    await submitScore(
+      'sharpshooter',
+      metrics.sharpshooter,
+      sessionId ? `${sessionId}:sharp` : undefined,
+    );
+  }
+}
+
+/**
  * Mode-aware dispatcher after a game completes.
  */
 export async function updateLeaderboardAfterGame(params: {
@@ -158,6 +188,7 @@ export async function syncLeaderboardForSession(
         sessionId: session.id,
         dailyStreak,
       });
+      await publishCareerLeaderboardScores(metrics, session.id);
       return;
     }
 
@@ -178,7 +209,14 @@ export async function syncLeaderboardForSession(
         endlessStreak: metrics.endlessStreak,
         endlessTotalWords: metrics.endlessTotalWords,
       });
+      await publishCareerLeaderboardScores(metrics, session.id);
+      return;
     }
+
+    // Random / other modes — still publish career boards from refreshed stats.
+    const stats = (await getStats()) ?? useStatsStore.getState().stats;
+    const metrics = getLeaderboardMetrics(stats);
+    await publishCareerLeaderboardScores(metrics, session.id);
   } catch (err) {
     // Allow a later caller to retry if this attempt failed before any write.
     syncedSessionIds.delete(session.id);
@@ -224,6 +262,22 @@ export async function reconcileLocalLeaderboardScores(): Promise<void> {
         `reconcile:total:${metrics.endlessTotalWords}`,
       );
     }
+
+    if (metrics.bestStreak > 0) {
+      await submitScore(
+        'best_streak',
+        metrics.bestStreak,
+        `reconcile:best:${metrics.bestStreak}`,
+      );
+    }
+
+    if (metrics.sharpshooter > 0) {
+      await submitScore(
+        'sharpshooter',
+        metrics.sharpshooter,
+        `reconcile:sharp:${metrics.sharpshooter}`,
+      );
+    }
   } catch (err) {
     if (__DEV__) {
       console.warn('[leaderboard] reconcileLocalLeaderboardScores failed', err);
@@ -233,12 +287,42 @@ export async function reconcileLocalLeaderboardScores(): Promise<void> {
 
 /**
  * Fetch leaderboard data for a specific type.
+ * In __DEV__, returns a populated demo board unless
+ * EXPO_PUBLIC_DEMO_LEADERBOARDS=0.
  */
 export async function getLeaderboardData(
   type: LeaderboardType,
 ): Promise<LeaderboardData> {
-  const data = await firestoreService.getLeaderboard(type);
   const authState = useAuthStore.getState();
+
+  if (isDemoLeaderboardEnabled()) {
+    const stats =
+      useStatsStore.getState().stats ?? (await getStats());
+    const metrics = getLeaderboardMetrics(stats);
+    const localScore =
+      type === 'daily_streak'
+        ? metrics.dailyStreak
+        : type === 'endless_streak'
+          ? metrics.endlessStreak
+          : type === 'endless_total'
+            ? metrics.endlessTotalWords
+            : type === 'best_streak'
+              ? metrics.bestStreak
+              : metrics.sharpshooter;
+
+    return buildDemoLeaderboard(
+      type,
+      authState.playerId && localScore > 0
+        ? {
+            playerId: authState.playerId,
+            playerName: authState.playerName ?? 'You',
+            score: localScore,
+          }
+        : null,
+    );
+  }
+
+  const data = await firestoreService.getLeaderboard(type);
 
   if (!authState.playerId) {
     return data;
@@ -251,8 +335,36 @@ export async function getLeaderboardData(
     }),
   );
 
+  const inTop = markedEntries.find((e) => e.isCurrentPlayer);
+  let currentPlayerRank: number | null = inTop?.rank ?? null;
+
+  if (currentPlayerRank == null) {
+    const stats =
+      useStatsStore.getState().stats ?? (await getStats());
+    const metrics = getLeaderboardMetrics(stats);
+    const localScore =
+      type === 'daily_streak'
+        ? metrics.dailyStreak
+        : type === 'endless_streak'
+          ? metrics.endlessStreak
+          : type === 'endless_total'
+            ? metrics.endlessTotalWords
+            : type === 'best_streak'
+              ? metrics.bestStreak
+              : metrics.sharpshooter;
+    if (localScore > 0) {
+      currentPlayerRank = await firestoreService.getLeaderboardRank(
+        type,
+        localScore,
+      );
+    }
+  }
+
   return {
     ...data,
     entries: markedEntries,
+    currentPlayerRank,
   };
 }
+
+

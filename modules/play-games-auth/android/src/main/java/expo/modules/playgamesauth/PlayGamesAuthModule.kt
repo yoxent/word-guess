@@ -1,6 +1,8 @@
 package expo.modules.playgamesauth
 
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
 import com.google.firebase.auth.FirebaseAuth
@@ -11,6 +13,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 
 class PlayGamesAuthModule : Module() {
   private var sdkInitialized = false
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   override fun definition() = ModuleDefinition {
     Name("PlayGamesAuth")
@@ -118,34 +121,47 @@ class PlayGamesAuthModule : Module() {
         requestServerAuthAndFirebase()
       }
 
-      gamesClient.isAuthenticated.addOnCompleteListener { authCheck ->
-        val alreadyIn =
-          authCheck.isSuccessful &&
-            authCheck.result != null &&
-            authCheck.result.isAuthenticated
+      /**
+       * PGS v2 auto-authenticates after PlayGamesSdk.initialize(), but that
+       * often completes *after* JS cold-start silent sign-in. Poll briefly
+       * before giving up (or falling through to interactive signIn).
+       */
+      fun waitForPlayGamesAuth(attempt: Int) {
+        gamesClient.isAuthenticated.addOnCompleteListener { authCheck ->
+          val alreadyIn =
+            authCheck.isSuccessful &&
+              authCheck.result != null &&
+              authCheck.result.isAuthenticated
 
-        if (alreadyIn) {
-          afterPlayGamesAuthenticated(true)
-          return@addOnCompleteListener
-        }
+          if (alreadyIn) {
+            afterPlayGamesAuthenticated(true)
+            return@addOnCompleteListener
+          }
 
-        if (!interactive) {
-          // Silent path: PGS v2 usually auto-attempts on launch; if still not
-          // authenticated, report soft failure so JS can leave the user signed out.
-          promise.reject(
-            "E_SILENT_FAILED",
-            "Play Games silent sign-in is not available yet.",
-            null,
-          )
-          return@addOnCompleteListener
-        }
+          // ~8 × 400ms ≈ 3.2s window for auto-auth after SDK init
+          if (attempt < 8) {
+            mainHandler.postDelayed({ waitForPlayGamesAuth(attempt + 1) }, 400L)
+            return@addOnCompleteListener
+          }
 
-        gamesClient.signIn().addOnCompleteListener { signInTask ->
-          val result = signInTask.result
-          val ok = signInTask.isSuccessful && result != null && result.isAuthenticated
-          afterPlayGamesAuthenticated(ok)
+          if (!interactive) {
+            promise.reject(
+              "E_SILENT_FAILED",
+              "Play Games silent sign-in is not available yet.",
+              null,
+            )
+            return@addOnCompleteListener
+          }
+
+          gamesClient.signIn().addOnCompleteListener { signInTask ->
+            val result = signInTask.result
+            val ok = signInTask.isSuccessful && result != null && result.isAuthenticated
+            afterPlayGamesAuthenticated(ok)
+          }
         }
       }
+
+      waitForPlayGamesAuth(0)
     }
 
     AsyncFunction("signOutFirebase") { promise: Promise ->

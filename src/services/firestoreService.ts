@@ -10,14 +10,22 @@ import {
   query,
   orderBy,
   limit,
+  where,
+  getCountFromServer,
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
 import { shouldWriteLeaderboardScore } from './leaderboardWritePolicy';
+import { LEADERBOARD_TOP_N } from '../constants/leaderboard';
 
 // ── Types ──
 
-export type LeaderboardType = 'daily_streak' | 'endless_streak' | 'endless_total';
+export type LeaderboardType =
+  | 'daily_streak'
+  | 'endless_streak'
+  | 'endless_total'
+  | 'best_streak'
+  | 'sharpshooter';
 
 function isTransientFirestoreError(err: unknown): boolean {
   const anyErr = err as { code?: string; message?: string } | null;
@@ -174,8 +182,8 @@ export async function submitLeaderboardScore(
 }
 
 /**
- * Query top 50 entries from a leaderboard collection.
- * Ordered by score descending, limited to 50 (D-132).
+ * Query top N entries from a leaderboard collection.
+ * Ordered by score descending (visible board size = LEADERBOARD_TOP_N).
  *
  * Throws on read failure so the screen can show an error instead of
  * incorrectly rendering a network problem as "No entries yet".
@@ -185,7 +193,11 @@ export async function getLeaderboard(
 ): Promise<LeaderboardData> {
   try {
     const snapshot = await getDocs(
-      query(leaderboardRef(type), orderBy('score', 'desc'), limit(50)),
+      query(
+        leaderboardRef(type),
+        orderBy('score', 'desc'),
+        limit(LEADERBOARD_TOP_N),
+      ),
     );
 
     const entries: LeaderboardEntry[] = snapshot.docs.map((docSnap, index) => {
@@ -208,5 +220,27 @@ export async function getLeaderboard(
       console.warn('[firestore] getLeaderboard failed', type, err);
     }
     throw err;
+  }
+}
+
+/**
+ * Absolute 1-based rank: 1 + number of players with a strictly higher score.
+ * Returns null if the query fails.
+ */
+export async function getLeaderboardRank(
+  type: LeaderboardType,
+  score: number,
+): Promise<number | null> {
+  if (score <= 0) return null;
+  try {
+    const snapshot = await getCountFromServer(
+      query(leaderboardRef(type), where('score', '>', score)),
+    );
+    return snapshot.data().count + 1;
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[firestore] getLeaderboardRank failed', type, err);
+    }
+    return null;
   }
 }

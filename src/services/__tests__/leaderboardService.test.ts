@@ -92,6 +92,8 @@ describe('leaderboardService', () => {
       dailyStreak: 1,
       endlessStreak: 1,
       endlessTotalWords: 1,
+      bestStreak: 1,
+      sharpshooter: 1,
     });
     enqueueEvent.mockResolvedValue(true);
   });
@@ -101,6 +103,8 @@ describe('leaderboardService', () => {
       dailyStreak: 7,
       endlessStreak: 5,
       endlessTotalWords: 99,
+      bestStreak: 12,
+      sharpshooter: 8,
     });
     submitLeaderboardScore.mockResolvedValue(true);
 
@@ -125,6 +129,18 @@ describe('leaderboardService', () => {
       'Player One',
       99,
     );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'best_streak',
+      'uid-1',
+      'Player One',
+      12,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'sharpshooter',
+      'uid-1',
+      'Player One',
+      8,
+    );
     // Must not derive from direct storage mocks when metrics seam is present.
     expect(mockedGetEndlessStreak).not.toHaveBeenCalled();
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
@@ -136,7 +152,7 @@ describe('leaderboardService', () => {
     await reconcileLocalLeaderboardScores();
     await reconcileLocalLeaderboardScores();
 
-    expect(submitLeaderboardScore).toHaveBeenCalledTimes(6);
+    expect(submitLeaderboardScore).toHaveBeenCalledTimes(10);
   });
 
   it('surfaces leaderboard load failures instead of rendering empty data', async () => {
@@ -152,6 +168,8 @@ describe('leaderboardService', () => {
       dailyStreak: 1,
       endlessStreak: 5,
       endlessTotalWords: 99,
+      bestStreak: 5,
+      sharpshooter: 3,
     });
     submitLeaderboardScore.mockResolvedValue(true);
 
@@ -180,6 +198,18 @@ describe('leaderboardService', () => {
       'Player One',
       99,
     );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'best_streak',
+      'uid-1',
+      'Player One',
+      5,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'sharpshooter',
+      'uid-1',
+      'Player One',
+      3,
+    );
     expect(mockedGetEndlessStreak).not.toHaveBeenCalled();
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
   });
@@ -189,6 +219,8 @@ describe('leaderboardService', () => {
       dailyStreak: 7,
       endlessStreak: 1,
       endlessTotalWords: 1,
+      bestStreak: 7,
+      sharpshooter: 2,
     });
     submitLeaderboardScore.mockResolvedValue(true);
 
@@ -207,6 +239,56 @@ describe('leaderboardService', () => {
       'uid-1',
       'Player One',
       7,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'best_streak',
+      'uid-1',
+      'Player One',
+      7,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'sharpshooter',
+      'uid-1',
+      'Player One',
+      2,
+    );
+  });
+
+  it('syncLeaderboardForSession random win publishes career boards only', async () => {
+    mockedGetLeaderboardMetrics.mockReturnValue({
+      dailyStreak: 0,
+      endlessStreak: 0,
+      endlessTotalWords: 0,
+      bestStreak: 4,
+      sharpshooter: 6,
+    });
+    submitLeaderboardScore.mockResolvedValue(true);
+
+    await syncLeaderboardForSession({
+      id: 'random-won-1',
+      mode: 'random',
+      status: 'won',
+      hardMode: false,
+    });
+
+    expect(mockedApplyEndlessEndCounters).not.toHaveBeenCalled();
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'best_streak',
+      'uid-1',
+      'Player One',
+      4,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'sharpshooter',
+      'uid-1',
+      'Player One',
+      6,
+    );
+    expect(submitLeaderboardScore).not.toHaveBeenCalledWith(
+      'daily_streak',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
     );
   });
 });

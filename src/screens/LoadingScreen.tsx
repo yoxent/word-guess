@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { layout } from '../constants/layout';
+import { typography } from '../constants/typography';
 
 export function LoadingScreen() {
   const theme = useTheme();
@@ -16,13 +17,14 @@ export function LoadingScreen() {
           padding: layout.screenPadding,
         },
         title: {
+          ...typography.display,
           fontSize: 36,
-          fontWeight: '800',
           color: theme.colors.text.primary,
           marginBottom: 8,
         },
         subtitle: {
-          fontSize: 16,
+          ...typography.small,
+          fontSize: 14,
           color: theme.colors.text.secondary,
           marginBottom: 24,
         },

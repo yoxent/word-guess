@@ -135,10 +135,10 @@ export function StatsScreen() {
           textAlign: 'center',
         },
         perModeValue: {
-          ...typography.body,
+          ...typography.small,
           color: theme.colors.text.primary,
           fontWeight: '700',
-          fontSize: 16,
+          marginTop: 2,
         },
         perModeHard: {
           ...typography.small,
@@ -172,7 +172,7 @@ export function StatsScreen() {
         },
         tableCell: {
           textAlign: 'center',
-          ...typography.body,
+          ...typography.small,
           color: theme.colors.text.primary,
         },
         // Guess distribution — Wordle-style horizontal bars (even spacing, no chart-kit)
@@ -189,7 +189,6 @@ export function StatsScreen() {
           color: theme.colors.text.secondary,
           width: 20,
           textAlign: 'center',
-          fontWeight: '700',
         },
         distributionBarTrack: {
           flex: 1,
@@ -208,9 +207,7 @@ export function StatsScreen() {
           paddingHorizontal: 8,
         },
         distributionCount: {
-          ...typography.statLabel,
-          fontWeight: '700',
-          fontSize: 12,
+          ...typography.small,
         },
       }),
     [theme],
@@ -326,8 +323,8 @@ export function StatsScreen() {
                   <Text style={styles.perModeLabel} numberOfLines={1}>
                     {label}
                   </Text>
-                  <Text style={styles.perModeValue}>{normal}</Text>
-                  <Text style={styles.perModeHard}>🔥 {hard}</Text>
+                  <Text style={styles.perModeValue}>Normal {normal}</Text>
+                  <Text style={styles.perModeHard}>Hard {hard}</Text>
                 </View>
               );
             })}

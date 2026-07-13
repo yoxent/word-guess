@@ -102,8 +102,13 @@ export default function App() {
     // Configure auth provider once at startup (Play Games or Google)
     configureAuth();
 
-    // Attempt silent / auto sign-in — never blocks gameplay
-    useAuthStore.getState().googleSignInSilently();
+    // Brief delay so the Activity / Play Games SDK can finish auto-auth
+    // before the first silent check (native module also polls ~3s).
+    const timer = setTimeout(() => {
+      useAuthStore.getState().googleSignInSilently();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [isReady]);
 
   // D-139: Periodic sync queue drain (every 30s while signed in) + AppState foreground drain
