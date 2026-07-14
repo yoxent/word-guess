@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getStats, saveGameResult } from '../services/storage';
+import { recordGameToProfile } from '../services/statsProfile';
 import type { PlayerStats, GameMode, GuessFeedback } from '../types';
 
 /** Module-level dedupe so GameScreen + ResultModal can both call safely. */
@@ -62,7 +63,16 @@ export const useStatsStore = create<StatsState>()((set, get) => ({
       extraGuessesUsed: result.extraGuessesUsed,
       completedAt: result.completedAt,
     });
-    const stats = await getStats();
+    // Apply on top of the profile (restore-safe) rather than re-reading
+    // getStats(), which would be a no-op once a profile exists anyway.
+    const stats = await recordGameToProfile({
+      mode: result.mode,
+      letterCount: result.letterCount,
+      guesses: result.guesses,
+      won: result.won,
+      hardMode: result.hardMode,
+      completedAt: result.completedAt,
+    });
     set({
       stats,
       lastGameResult: {

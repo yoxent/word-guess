@@ -7,6 +7,7 @@ export {
   clearActiveGame,
   initDatabase,
   getStats,
+  computeStatsFromHistory,
   saveGameResult,
   getAuthToken,
   setAuthToken,
@@ -16,7 +17,17 @@ export {
   setEndlessStreak,
   getEndlessTotalWords,
   incrementEndlessTotalWords,
+  setEndlessTotalWords,
+  getStatsOwnerPlayerId,
+  setStatsOwnerPlayerId,
+  readStatsProfile,
+  writeStatsProfile,
+  clearStatsProfile,
 } from './storage';
+export type { StoredStatsProfile } from './storage';
+
+export { applyGameToStats, recordGameToProfile, emptyStats as emptyPlayerStats } from './statsProfile';
+export type { GameForStats } from './statsProfile';
 
 export { evaluateGuess, validateHardMode, isValidGuess } from './wordLogic';
 

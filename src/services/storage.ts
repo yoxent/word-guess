@@ -166,7 +166,8 @@ async function computeGamesByLength(db: SQLite.SQLiteDatabase): Promise<Record<n
   return result;
 }
 
-export async function getStats(): Promise<PlayerStats | null> {
+/** Recomputes aggregate stats from `game_history` only (ignores the syncable profile). */
+export async function computeStatsFromHistory(): Promise<PlayerStats | null> {
   const database = await ensureDb();
 
   const row = await database.getFirstAsync<{
@@ -288,6 +289,59 @@ export function incrementEndlessTotalWords(): number {
   const next = current + 1;
   mmkv.set(ENDLESS_TOTAL_KEY, next);
   return next;
+}
+
+export function setEndlessTotalWords(n: number): void {
+  mmkv.set(ENDLESS_TOTAL_KEY, Math.max(0, Math.floor(n)));
+}
+
+// ── Stats profile: syncable aggregate source of truth (cloud restore-safe) ──
+const STATS_OWNER_KEY = 'stats_owner_player_id';
+const STATS_PROFILE_KEY = 'stats_profile_v1';
+
+export type StoredStatsProfile = {
+  stats: PlayerStats;
+  updatedAtMs: number;
+};
+
+export function getStatsOwnerPlayerId(): string | null {
+  return mmkv.getString(STATS_OWNER_KEY) ?? null;
+}
+
+export function setStatsOwnerPlayerId(playerId: string | null): void {
+  if (playerId == null) {
+    mmkv.remove(STATS_OWNER_KEY);
+  } else {
+    mmkv.set(STATS_OWNER_KEY, playerId);
+  }
+}
+
+export function readStatsProfile(): StoredStatsProfile | null {
+  const raw = mmkv.getString(STATS_PROFILE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export function writeStatsProfile(profile: StoredStatsProfile): void {
+  mmkv.set(STATS_PROFILE_KEY, JSON.stringify(profile));
+}
+
+export function clearStatsProfile(): void {
+  mmkv.remove(STATS_PROFILE_KEY);
+}
+
+/**
+ * App-facing stats reader. Delegates to the profile-aware source of truth in
+ * `statsProfile.ts` so existing `storage.getStats` imports keep working while
+ * a restored/synced profile always wins over recomputing from history.
+ *
+ * Uses a lazy require (not a static re-export) to sidestep the storage <->
+ * statsProfile circular import: statsProfile.ts imports `computeStatsFromHistory`,
+ * `readStatsProfile`, and `writeStatsProfile` from this module, so resolving the
+ * reverse reference at module-load time would grab a not-yet-initialized export.
+ */
+export async function getStats(): Promise<PlayerStats | null> {
+  const statsProfile: typeof import('./statsProfile') = require('./statsProfile');
+  return statsProfile.getStats();
 }
 
 // ── AsyncStorage: auth tokens only (D-23) ──
