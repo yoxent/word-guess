@@ -96,15 +96,16 @@ export async function syncPlayerProfileOnAuth(params: {
     const ownerMismatch = owner != null && owner !== playerId;
 
     // On any account switch — not only the missing-cloud case below — drop
-    // whatever `game_result` snapshot the *prior* owner queued before this
-    // sync ever merges/pushes. If this sync's own push later fails (network
-    // drop, quota, etc.) it re-enqueues under the *new* owner's id, but a
-    // stale prior-owner entry left in place until then could otherwise be
-    // drained (by the periodic/foreground drain, which runs independently
-    // of this function's `{ ok: false }` result) and pushed to the new
-    // account under its name.
+    // whatever `game_result` / `leaderboard_score` snapshots the *prior*
+    // owner queued before this sync ever merges/pushes. If this sync's own
+    // push later fails (network drop, quota, etc.) it re-enqueues under the
+    // *new* owner's id, but stale prior-owner entries left in place until
+    // then could otherwise be drained (by the periodic/foreground drain,
+    // which runs independently of this function's `{ ok: false }` result)
+    // and pushed to the new account under its name.
     if (ownerMismatch) {
       await removeEventsByType('game_result');
+      await removeEventsByType('leaderboard_score');
     }
 
     const local = readLocalSlice();

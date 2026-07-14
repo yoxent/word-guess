@@ -263,9 +263,39 @@ describe('syncPlayerProfileOnAuth', () => {
 
     expect(result).toEqual({ ok: true, action: 'replace' });
     expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('game_result');
-    // Called once for the early owner-mismatch clear, and again after the
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_score');
+    // Called once for the early game_result clear, once for the early
+    // leaderboard_score clear, and again for game_result after the
     // successful push at the end of the function.
-    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(2);
+    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(3);
+  });
+
+  it('owner mismatch → also clears stale leaderboard_score queue events, not just game_result', async () => {
+    (storage.getStatsOwnerPlayerId as jest.Mock).mockReturnValue('A');
+    (storage.readStatsProfile as jest.Mock).mockReturnValue({
+      stats: emptyStats({ totalGames: 50, wins: 40 }),
+      updatedAtMs: 5000,
+    });
+    (firestoreService.getPlayerStatsResult as jest.Mock).mockResolvedValue({ kind: 'missing' });
+
+    const callOrder: string[] = [];
+    (syncQueue.removeEventsByType as jest.Mock).mockImplementation(async (type: string) => {
+      callOrder.push(type);
+      return 1;
+    });
+    (storage.writeStatsProfile as jest.Mock).mockImplementation(() => {
+      callOrder.push('hydrate');
+    });
+
+    const result = await syncPlayerProfileOnAuth({ playerId: 'B', playerName: 'Bob' });
+
+    expect(result).toEqual({ ok: true, action: 'replace' });
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_score');
+    // Both prior-owner clears happen before hydrate — i.e. before this
+    // sync's own writes/push — so a concurrent drain can't push a stale
+    // account-A leaderboard score under account B either.
+    expect(callOrder.slice(0, 2).sort()).toEqual(['game_result', 'leaderboard_score']);
+    expect(callOrder.indexOf('leaderboard_score')).toBeLessThan(callOrder.indexOf('hydrate'));
   });
 
   it('no owner mismatch (first sign-in, owner null) → does not call removeEventsByType early', async () => {

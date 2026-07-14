@@ -136,11 +136,28 @@ export default function App() {
       return false;
     };
 
+    // Sequenced, not parallel: drain must not race the profile sync's own
+    // `removeEventsByType('game_result' | 'leaderboard_score')` / re-enqueue,
+    // or a prior-owner (or pre-merge) snapshot could be pushed before the
+    // sync has a chance to supersede it. Soft-fail via `.catch()` so a pull
+    // error can't skip the drain that follows. Shared by both the periodic
+    // and the AppState foreground triggers below.
+    const syncThenDrain = (authState: ReturnType<typeof useAuthStore.getState>) => {
+      syncPlayerProfileOnAuth({
+        playerId: authState.playerId,
+        playerName: authState.playerName ?? 'Player',
+      })
+        .catch(() => {})
+        .then(() => {
+          syncQueue.drainQueue(drainHandler);
+        });
+    };
+
     // Periodic drain every 30s while app is active
     const intervalId = setInterval(() => {
       const authState = useAuthStore.getState();
       if (hasSignedInPlayer(authState)) {
-        syncQueue.drainQueue(drainHandler);
+        syncThenDrain(authState);
       }
     }, 30000);
 
@@ -150,19 +167,7 @@ export default function App() {
       if (state === 'active') {
         const authState = useAuthStore.getState();
         if (hasSignedInPlayer(authState)) {
-          // Sequenced, not parallel: drain must not race the profile sync's
-          // own `removeEventsByType('game_result')` / re-enqueue, or a
-          // prior-owner (or pre-merge) snapshot could be pushed before the
-          // sync has a chance to supersede it. Soft-fail via `.catch()` so a
-          // pull error can't skip the drain that follows.
-          syncPlayerProfileOnAuth({
-            playerId: authState.playerId,
-            playerName: authState.playerName ?? 'Player',
-          })
-            .catch(() => {})
-            .then(() => {
-              syncQueue.drainQueue(drainHandler);
-            });
+          syncThenDrain(authState);
         }
       }
     });
