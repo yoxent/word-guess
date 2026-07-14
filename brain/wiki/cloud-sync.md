@@ -1,5 +1,5 @@
 # cloud-sync
-updated: 2026-07-12 (getTokens + accessToken credential; debug.keystore SHA)
+updated: 2026-07-14 (stats profile restore)
 tags: [cloud, firebase, firestore, sync, leaderboard, auth, phase-5]
 related: [google-signin, phase-structure, architecture, tech-stack, key-risks]
 
@@ -181,9 +181,27 @@ All sync is **fire-and-forget** — never blocks UI transition.
 | D-139 partial | Only auth drain trigger implemented | Added periodic 30s timer + AppState foreground drain in App.tsx |
 | Daily streak stale | recordGame() not awaited before read | Computed as `baseStreak + (won ? 1 : 0)` |
 
+## Stats profile restore (2026-07-14)
+
+Design spec: [`docs/superpowers/specs/2026-07-14-stats-cloud-restore-design.md`](../../docs/superpowers/specs/2026-07-14-stats-cloud-restore-design.md) (see **Future / Deferred** there for backlog items not in this slice).
+
+### Profile source of truth
+- **Local aggregate SOT:** MMKV `stats_profile_v1` (`readStatsProfile` / `writeStatsProfile`) holds the syncable `PlayerStats` aggregate + `updatedAtMs`; endless counters stay in separate MMKV keys and are hydrated with the profile.
+- **Cloud mirror:** `playerStats/{playerId}` — pull/merge on sign-in, push after merge.
+- **Owner binding:** `statsOwnerPlayerId` — account switch (`owner ≠ current playerId`) replaces local with cloud (no cross-account merge).
+- Stats screen always reads local profile (signed-out OK); leaderboards personal footer uses same profile via `getLeaderboardMetrics()`.
+
+### Sign-in sequence (`syncPlayerProfileOnAuth`)
+Pull → `mergePlayerStats` → hydrate SQLite/MMKV → `statsStore.loadStats()` → push merged profile → `reconcileLocalLeaderboardScores()` → drain queue.
+
+### Sync queue supersede
+- **Account switch:** pending `game_result` events cleared immediately (`removeEventsByType`) so a prior owner's stale snapshots cannot drain into the new account.
+- **After successful merge push:** all pending `game_result` events removed — merged profile supersedes queued full snapshots; push failure re-enqueues one `game_result` under the current owner.
+
 ## Deferred to v2
 - Server-side leaderboard validation (Cloud Functions)
 - Real-time Firestore onSnapshot for leaderboard updates
 - Push notifications
 - Email/password or Apple Sign-In
 - Cross-device settings sync (stats-only for v1)
+- Multi-device concurrent play, hydrate UI polish, vector clocks — see design spec **Future / Deferred**
