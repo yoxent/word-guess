@@ -461,7 +461,7 @@ export function HomeScreen() {
           <Animated.View style={fadeSlide(cardAnims[0])}>
             <ModeCard
               mode="daily"
-              icon="🌅"
+              icon="wb-sunny"
               title="Daily Challenge"
               subtitle={dailySubtitle}
               progress={dailyProgress.fraction}
@@ -472,7 +472,7 @@ export function HomeScreen() {
           <Animated.View style={fadeSlide(cardAnims[1])}>
             <ModeCard
               mode="endless"
-              icon="🔄"
+              icon="all-inclusive"
               title="Endless"
               subtitle="Keep guessing, build your streak"
               onPress={handleEndless}
@@ -481,7 +481,7 @@ export function HomeScreen() {
           <Animated.View style={fadeSlide(cardAnims[2])}>
             <ModeCard
               mode="random"
-              icon="🎲"
+              icon="casino"
               title="Random"
               subtitle="Surprise word length"
               onPress={handleRandom}

@@ -27,7 +27,7 @@ describe('ModeCard', () => {
     render(
       <ModeCard
         mode="daily"
-        icon="📅"
+        icon="wb-sunny"
         title="Daily Challenge"
         subtitle="6 puzzles today"
         onPress={mockOnPress}
@@ -41,7 +41,7 @@ describe('ModeCard', () => {
     render(
       <ModeCard
         mode="daily"
-        icon="📅"
+        icon="wb-sunny"
         title="Daily Challenge"
         subtitle="6 puzzles today"
         onPress={mockOnPress}
@@ -57,7 +57,7 @@ describe('ModeCard', () => {
       const { unmount } = render(
         <ModeCard
           mode={mode}
-          icon="🎮"
+          icon="casino"
           title={`${mode} mode`}
           subtitle="test"
           onPress={mockOnPress}
@@ -72,7 +72,7 @@ describe('ModeCard', () => {
     render(
       <ModeCard
         mode="daily"
-        icon="📅"
+        icon="wb-sunny"
         title="Daily Challenge"
         subtitle="Playing"
         progress={0.5}
@@ -87,7 +87,7 @@ describe('ModeCard', () => {
     render(
       <ModeCard
         mode="daily"
-        icon="📅"
+        icon="wb-sunny"
         title="Daily Challenge"
         subtitle="Completed"
         onPress={mockOnPress}

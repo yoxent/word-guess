@@ -521,13 +521,13 @@ function VolumeSlider({
       accessibilityValue={{ min: 0, max: 100, now: Math.round(visual * 100) }}
     >
       <View style={styles.sliderTrack} pointerEvents="none">
-        <View style={[styles.sliderFill, { width: fillPercent }]} />
+        <View style={[styles.sliderFill, { width: fillPercent as `${number}%` }]} />
       </View>
       <View
         style={[
           styles.thumbHitArea,
           {
-            left: thumbPercent,
+            left: thumbPercent as `${number}%`,
             transform: [{ translateX: -THUMB_HIT_SIZE / 2 }],
           },
         ]}

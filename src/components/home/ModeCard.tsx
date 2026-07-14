@@ -7,6 +7,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 
@@ -20,13 +22,17 @@ const GRADIENTS = {
   random: ['#FFA726', '#FF9800'],      // orange
 } as const;
 
+/** Matches title text on the gradient card. */
+const TITLE_COLOR = '#FFFFFF';
+
 type ModeGradient = keyof typeof GRADIENTS;
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
 interface ModeCardProps {
   /** Mode identifier — determines gradient color. */
   mode: ModeGradient;
-  /** Icon emoji or MaterialIcons name (rendered as emoji string). */
-  icon: string;
+  /** MaterialIcons name (same icons as LengthPickerModal). */
+  icon: MaterialIconName;
   /** Mode title (e.g. "Daily Challenge"). */
   title: string;
   /** Subtitle or status text (e.g. "6 puzzles today"). */
@@ -89,18 +95,19 @@ export function ModeCard({
         header: {
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 10,
         },
         icon: {
-          fontSize: 28,
           width: 36,
           height: 36,
-          textAlign: 'center',
-          lineHeight: 36,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         titleText: {
           ...typography.cardTitle,
-          color: '#FFFFFF',
+          color: TITLE_COLOR,
+          flex: 1,
         },
         subtitleText: {
           ...typography.small,
@@ -174,8 +181,10 @@ export function ModeCard({
           style={styles.gradient}
         >
           <View style={styles.header}>
-            <Text style={styles.icon}>{icon}</Text>
             <Text style={styles.titleText}>{title}</Text>
+            <View style={styles.icon}>
+              <MaterialIcons name={icon} size={28} color={TITLE_COLOR} />
+            </View>
           </View>
           <Text style={styles.subtitleText}>{subtitle}</Text>
 

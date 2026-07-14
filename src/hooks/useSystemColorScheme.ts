@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 
 export function resolveSystemColorScheme(
-  appearanceScheme: ColorSchemeName,
-  hookScheme: ColorSchemeName,
+  appearanceScheme: ColorSchemeName | null | undefined,
+  hookScheme: ColorSchemeName | null | undefined,
 ): 'light' | 'dark' {
   return appearanceScheme === 'dark' || hookScheme === 'dark' ? 'dark' : 'light';
 }
