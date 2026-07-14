@@ -1,12 +1,20 @@
 // Mock all native dependencies
-jest.mock('react-native-mmkv', () => ({
-  createMMKV: jest.fn().mockReturnValue({
+// testSetup.ts mocks ../services/storage globally for component tests —
+// restore the real module for this unit suite.
+jest.unmock('../storage');
+
+jest.mock('react-native-mmkv', () => {
+  // Singleton store so storage.ts and this test share the same mock instance.
+  const store = {
     getString: jest.fn(),
     set: jest.fn(),
     remove: jest.fn(),
     getNumber: jest.fn(),
-  }),
-}));
+  };
+  return {
+    createMMKV: jest.fn(() => store),
+  };
+});
 
 jest.mock('expo-sqlite', () => ({
   openDatabaseAsync: jest.fn().mockResolvedValue({

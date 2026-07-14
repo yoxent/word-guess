@@ -155,6 +155,7 @@ export default function App() {
     // error can't skip the drain that follows. Shared by both the periodic
     // and the AppState foreground triggers below.
     const syncThenDrain = (authState: ReturnType<typeof useAuthStore.getState>) => {
+      if (!hasSignedInPlayer(authState)) return;
       syncPlayerProfileOnAuth({
         playerId: authState.playerId,
         playerName: authState.playerName ?? 'Player',

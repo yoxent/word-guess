@@ -109,7 +109,9 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     if (!isRevealing) {
       // Active row (typing) or empty/future row.
       // Text is always visible during typing.
-      cancelAnimation(flipProgress, scale, textOpacity);
+      cancelAnimation(flipProgress);
+      cancelAnimation(scale);
+      cancelAnimation(textOpacity);
       textOpacity.value = 1;
       flipProgress.value = 0;
       scale.value = 1;
@@ -119,7 +121,9 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     const staggerDelay = index * TILE_STAGGER_DELAY;
 
     // Stop any in-flight worklets before scheduling a new reveal sequence.
-    cancelAnimation(flipProgress, scale, textOpacity);
+    cancelAnimation(flipProgress);
+    cancelAnimation(scale);
+    cancelAnimation(textOpacity);
 
     if (reduceMotion) {
       // 2026-07-10: When reduceMotion is on, skip the rotateX flip BUT
