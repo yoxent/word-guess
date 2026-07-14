@@ -65,14 +65,21 @@ export const useStatsStore = create<StatsState>()((set, get) => ({
     });
     // Apply on top of the profile (restore-safe) rather than re-reading
     // getStats(), which would be a no-op once a profile exists anyway.
-    const stats = await recordGameToProfile({
-      mode: result.mode,
-      letterCount: result.letterCount,
-      guesses: result.guesses,
-      won: result.won,
-      hardMode: result.hardMode,
-      completedAt: result.completedAt,
-    });
+    // `gameAlreadyInHistory: true` because saveGameResult (above) already
+    // persisted this game — without the flag, the no-profile branch would
+    // backfill from history (which already includes this game) AND apply it
+    // again, double-counting it.
+    const stats = await recordGameToProfile(
+      {
+        mode: result.mode,
+        letterCount: result.letterCount,
+        guesses: result.guesses,
+        won: result.won,
+        hardMode: result.hardMode,
+        completedAt: result.completedAt,
+      },
+      { gameAlreadyInHistory: true }
+    );
     set({
       stats,
       lastGameResult: {

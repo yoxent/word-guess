@@ -41,7 +41,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 jest.unmock('../storage');
 
 import { applyGameToStats, emptyStats, getStats, recordGameToProfile } from '../statsProfile';
-import { readStatsProfile, writeStatsProfile } from '../storage';
+import { readStatsProfile, writeStatsProfile, saveGameResult } from '../storage';
 import type { PlayerStats } from '../../types';
 
 const mmkvModule = require('react-native-mmkv');
@@ -209,6 +209,97 @@ describe('statsProfile', () => {
       const next = await recordGameToProfile(game);
       expect(next.totalGames).toBe(1);
       expect(next.wins).toBe(1);
+    });
+
+    it('does NOT double-apply when gameAlreadyInHistory is true and history already reflects the game', async () => {
+      // computeStatsFromHistory here stands in for a post-saveGameResult read:
+      // total_games already counts the game passed to recordGameToProfile.
+      mockNonEmptyHistory(); // total_games: 2, total_wins: 1
+      const next = await recordGameToProfile(game, { gameAlreadyInHistory: true });
+      // Must equal the history snapshot exactly (2), not 3 (double-counted).
+      expect(next.totalGames).toBe(2);
+      expect(next.wins).toBe(1);
+    });
+
+    it('still applies on top of history when gameAlreadyInHistory is false/omitted (legacy behavior for pre-existing history not yet including the game)', async () => {
+      mockNonEmptyHistory(); // total_games: 2, total_wins: 1 (does not include `game`)
+      const next = await recordGameToProfile(game);
+      expect(next.totalGames).toBe(3);
+      expect(next.wins).toBe(2);
+    });
+
+    it('regression: no double-count with real saveGameResult ordering (stateful history mock)', async () => {
+      // Reproduces production ordering exactly: saveGameResult() (the real
+      // storage.ts function, not a stub) inserts a row into a stateful
+      // in-memory table BEFORE recordGameToProfile(..., { gameAlreadyInHistory: true })
+      // reads computeStatsFromHistory(). If the fix regresses, this game would
+      // be counted twice (once from history, once from applyGameToStats).
+      const rows: Array<{
+        mode: string;
+        hard_mode: number;
+        guesses: number;
+        won: number;
+        completed_at: string;
+      }> = [];
+
+      mockDb.runAsync.mockImplementation((_sql: string, ...args: unknown[]) => {
+        // Column order from storage.saveGameResult's INSERT:
+        // id, mode, word, letter_count, guesses, won, hard_mode, extra_guesses_used, completed_at
+        const [, mode, , , guesses, won, hardMode, , completedAt] = args as [
+          string, string, string, number, number, number, number, number, string
+        ];
+        rows.push({ mode, hard_mode: hardMode, guesses, won, completed_at: completedAt });
+        return Promise.resolve(undefined);
+      });
+
+      mockDb.getFirstAsync.mockImplementation((sql: string) => {
+        if (sql.includes('total_games')) {
+          return Promise.resolve({
+            total_games: rows.length,
+            total_wins: rows.filter((r) => r.won === 1).length,
+            last_date: rows[rows.length - 1]?.completed_at ?? null,
+          });
+        }
+        if (sql.includes('ORDER BY completed_at DESC LIMIT 1')) {
+          const last = rows[rows.length - 1];
+          return Promise.resolve(last ? { mode: last.mode, hard_mode: last.hard_mode } : null);
+        }
+        return Promise.resolve(null);
+      });
+      mockDb.getAllAsync.mockImplementation(() => Promise.resolve([]));
+
+      expect(readStatsProfile()).toBeNull();
+
+      await saveGameResult({
+        id: 'g1',
+        mode: 'daily',
+        word: 'APPLE',
+        letterCount: 5,
+        guesses: 3,
+        won: true,
+        hardMode: false,
+        extraGuessesUsed: 0,
+        completedAt: '2026-03-01T00:00:00.000Z',
+      });
+
+      const next = await recordGameToProfile(
+        {
+          mode: 'daily',
+          letterCount: 5,
+          guesses: 3,
+          won: true,
+          hardMode: false,
+          completedAt: '2026-03-01T00:00:00.000Z',
+        },
+        { gameAlreadyInHistory: true }
+      );
+
+      expect(rows.length).toBe(1); // sanity: exactly one row was ever saved
+      expect(next.totalGames).toBe(1); // not 2 — must not double-count
+      expect(next.wins).toBe(1);
+
+      const persisted = readStatsProfile();
+      expect(persisted!.stats.totalGames).toBe(1);
     });
   });
 });

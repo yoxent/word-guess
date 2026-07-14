@@ -65,6 +65,21 @@ describe('statsStore', () => {
 
   describe('recordGame', () => {
     it('saves game result and applies it on the (profile-backed) stats aggregate', async () => {
+      // computeStatsFromHistory mirrors real ordering: saveGameResult() already
+      // persisted this game by the time recordGameToProfile reads history, so
+      // the mocked snapshot already includes it (no profile exists yet).
+      (storage.computeStatsFromHistory as jest.Mock).mockResolvedValue({
+        totalGames: 1,
+        wins: 1,
+        winRate: 100,
+        currentStreak: 1,
+        maxStreak: 1,
+        guessDistribution: [],
+        gamesByLength: { 5: { played: 1, won: 1 } },
+        lastGameDate: '2026-07-10T15:30:00Z',
+        perModeStreaks: { random_normal: { current: 1, max: 1 } },
+      });
+
       const gameResult = {
         id: 'test123',
         mode: 'random',
@@ -92,7 +107,7 @@ describe('statsStore', () => {
         extraGuessesUsed: 0,
         completedAt: '2026-07-10T15:30:00Z',
       });
-      // No profile and no history (both mocked to null) → started from empty stats.
+      // No profile → backfilled straight from the (already-updated) history snapshot.
       expect(state.stats?.totalGames).toBe(1);
       expect(state.stats?.wins).toBe(1);
       expect(storage.writeStatsProfile).toHaveBeenCalledWith(
@@ -100,6 +115,45 @@ describe('statsStore', () => {
       );
       expect(state.lastGameResult?.word).toBe('APPLE');
       expect(state.lastGameResult?.won).toBe(true);
+    });
+
+    it('does not double-count the just-saved game when no profile exists yet (history already includes it)', async () => {
+      // Mirrors real ordering: saveGameResult() already persisted this game to
+      // game_history by the time recordGameToProfile reads computeStatsFromHistory,
+      // so the mock reflects a history snapshot that already includes it.
+      (storage.readStatsProfile as jest.Mock).mockReturnValue(null);
+      (storage.computeStatsFromHistory as jest.Mock).mockResolvedValue({
+        totalGames: 1,
+        wins: 1,
+        winRate: 100,
+        currentStreak: 1,
+        maxStreak: 1,
+        guessDistribution: [],
+        gamesByLength: { 5: { played: 1, won: 1 } },
+        lastGameDate: '2026-07-10T15:30:00Z',
+        perModeStreaks: { random_normal: { current: 1, max: 1 } },
+      });
+
+      const gameResult = {
+        id: 'test789',
+        mode: 'random',
+        word: 'APPLE',
+        letterCount: 5,
+        guesses: 4,
+        won: true,
+        hardMode: false,
+        extraGuessesUsed: 0,
+        completedAt: '2026-07-10T15:30:00Z',
+        feedback: [],
+      };
+
+      await useStatsStore.getState().recordGame(gameResult);
+      const state = useStatsStore.getState();
+
+      // Must equal the history snapshot exactly (1 game), not 2 (which a
+      // double-apply-on-top-of-history-that-already-has-it bug would produce).
+      expect(state.stats?.totalGames).toBe(1);
+      expect(state.stats?.wins).toBe(1);
     });
 
     it('applies on top of an existing profile without recomputing from history (restore-safe)', async () => {

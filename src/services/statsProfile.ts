@@ -103,13 +103,45 @@ export async function getStats(): Promise<PlayerStats | null> {
   return fromDb;
 }
 
+export type RecordGameToProfileOptions = {
+  /**
+   * Set when `game` has already been persisted to `game_history` (e.g. the
+   * caller already ran `saveGameResult`) before calling this function. In
+   * that case, if no profile exists yet, `computeStatsFromHistory()` already
+   * reflects `game`, so it must NOT be applied a second time — doing so would
+   * double-count it. Defaults to `false` for callers that pass a game which
+   * is not yet in history (the profile-less branch then applies it on top of
+   * whatever history already contains).
+   */
+  gameAlreadyInHistory?: boolean;
+};
+
 /**
  * Applies a completed game on top of the current profile (or, absent one, on
  * top of history) and persists the result. Never re-derives from history when
  * a profile already exists, so a cloud-restored profile survives the next game.
  */
-export async function recordGameToProfile(game: GameForStats): Promise<PlayerStats> {
-  const prev = readStatsProfile()?.stats ?? (await computeStatsFromHistory()) ?? emptyStats();
+export async function recordGameToProfile(
+  game: GameForStats,
+  options: RecordGameToProfileOptions = {}
+): Promise<PlayerStats> {
+  const profile = readStatsProfile();
+
+  if (profile) {
+    const next = applyGameToStats(profile.stats, game);
+    writeStatsProfile({ stats: next, updatedAtMs: Date.now() });
+    return next;
+  }
+
+  if (options.gameAlreadyInHistory) {
+    // `game` is already reflected in `game_history` — backfill straight from
+    // history instead of applying it again on top of itself.
+    const fromHistory = (await computeStatsFromHistory()) ?? emptyStats();
+    writeStatsProfile({ stats: fromHistory, updatedAtMs: Date.now() });
+    return fromHistory;
+  }
+
+  const prev = (await computeStatsFromHistory()) ?? emptyStats();
   const next = applyGameToStats(prev, game);
   writeStatsProfile({ stats: next, updatedAtMs: Date.now() });
   return next;
