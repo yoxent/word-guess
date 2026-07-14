@@ -60,6 +60,7 @@ export {
   drainQueue,
   getQueueLength,
   clearQueue,
+  removeEventsByType,
 } from './syncQueue';
 export type { SyncEvent } from './syncQueue';
 
@@ -77,6 +78,9 @@ export {
   getLeaderboardMetrics,
 } from './leaderboardMetrics';
 export type { LeaderboardMetrics } from './leaderboardMetrics';
+
+export { syncPlayerProfileOnAuth } from './playerProfileSync';
+export type { SyncPlayerProfileResult } from './playerProfileSync';
 
 export {
   configureAuth,

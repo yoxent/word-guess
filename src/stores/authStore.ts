@@ -6,6 +6,7 @@ import type { AuthState } from '../types';
 import * as authService from '../services/authService';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
+import { syncPlayerProfileOnAuth } from '../services/playerProfileSync';
 import { hasSignedInPlayer } from '../utils/authState';
 
 // ── Types ──
@@ -31,6 +32,7 @@ const drainHandler = async (event: syncQueue.SyncEvent): Promise<boolean> => {
       authState.playerId,
       authState.playerName ?? 'Player',
       event.data.stats as any,
+      event.data.endless as any,
     );
   }
   if (event.type === 'leaderboard_score') {
@@ -87,6 +89,10 @@ export const useAuthStore = create<AuthStoreState>()(
             result.idToken ?? 'play_games_session',
           );
 
+          await syncPlayerProfileOnAuth({
+            playerId: result.user.id,
+            playerName: result.user.name ?? 'Player',
+          });
           syncQueue.drainQueue(drainHandler).catch(() => {});
 
           set({ isAuthPending: false });
@@ -131,6 +137,10 @@ export const useAuthStore = create<AuthStoreState>()(
               'silent_token',
             );
 
+            await syncPlayerProfileOnAuth({
+              playerId: result.user.id,
+              playerName: result.user.name ?? 'Player',
+            });
             syncQueue.drainQueue(drainHandler).catch(() => {});
 
             return true;

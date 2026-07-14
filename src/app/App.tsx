@@ -12,6 +12,7 @@ import { applyNativeThemeMode, useSettingsStore } from '../stores/settingsStore'
 import { useAdStore } from '../stores/adStore';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
+import { syncPlayerProfileOnAuth } from '../services/playerProfileSync';
 import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
 import { hasSignedInPlayer } from '../utils/authState';
@@ -123,6 +124,7 @@ export default function App() {
           authState.playerId,
           authState.playerName ?? 'Player',
           event.data.stats as any,
+          event.data.endless as any,
         );
       }
       if (event.type === 'leaderboard_score') {
@@ -142,11 +144,16 @@ export default function App() {
       }
     }, 30000);
 
-    // AppState foreground drain
+    // AppState foreground drain + profile sync retry (D-4: recovers from a
+    // `kind === 'error'` pull or an offline sign-in that skipped the pull).
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
         const authState = useAuthStore.getState();
         if (hasSignedInPlayer(authState)) {
+          syncPlayerProfileOnAuth({
+            playerId: authState.playerId,
+            playerName: authState.playerName ?? 'Player',
+          }).catch(() => {});
           syncQueue.drainQueue(drainHandler);
         }
       }

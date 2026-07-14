@@ -206,3 +206,20 @@ export async function getQueueLength(): Promise<number> {
 export async function clearQueue(): Promise<void> {
   await writeQueue([]);
 }
+
+/**
+ * Remove all queued events of a given type — used to supersede stale
+ * `game_result` entries once a freshly-merged profile has been pushed
+ * (D-4/playerProfileSync), so a queued pre-merge snapshot can't later
+ * clobber the merged cloud doc.
+ * Returns the number of events removed.
+ */
+export async function removeEventsByType(
+  type: SyncEvent['type'],
+): Promise<number> {
+  const queue = await readQueue();
+  const next = queue.filter((e) => e.type !== type);
+  const removed = queue.length - next.length;
+  if (removed > 0) await writeQueue(next);
+  return removed;
+}
