@@ -49,10 +49,11 @@ export type { VolumeLevel } from './sound';
 export {
   updatePlayerStats,
   getPlayerStats,
+  getPlayerStatsResult,
   submitLeaderboardScore,
   getLeaderboard,
 } from './firestoreService';
-export type { LeaderboardType } from './firestoreService';
+export type { LeaderboardType, CloudPlayerProfile, GetPlayerStatsResult } from './firestoreService';
 
 export {
   enqueueEvent,

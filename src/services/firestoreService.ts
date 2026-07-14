@@ -17,6 +17,8 @@ import {
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
 import { shouldWriteLeaderboardScore } from './leaderboardWritePolicy';
 import { LEADERBOARD_TOP_N } from '../constants/leaderboard';
+import { getEndlessStreak, getEndlessTotalWords } from './storage';
+import type { EndlessCounters } from './mergePlayerStats';
 
 // ── Types ──
 
@@ -26,6 +28,18 @@ export type LeaderboardType =
   | 'endless_total'
   | 'best_streak'
   | 'sharpshooter';
+
+export type CloudPlayerProfile = {
+  stats: PlayerStats;
+  endless: EndlessCounters;
+  updatedAtMs: number;
+  playerName?: string;
+};
+
+export type GetPlayerStatsResult =
+  | { kind: 'found'; profile: CloudPlayerProfile }
+  | { kind: 'missing' }
+  | { kind: 'error' };
 
 function isTransientFirestoreError(err: unknown): boolean {
   const anyErr = err as { code?: string; message?: string } | null;
@@ -72,14 +86,24 @@ export async function updatePlayerStats(
   playerId: string,
   playerName: string,
   stats: PlayerStats,
+  endless?: EndlessCounters,
 ): Promise<boolean> {
   try {
+    // No explicit endless payload (legacy call sites) → mirror current MMKV
+    // counters so the cloud doc never regresses to missing endless fields.
+    const endlessPayload: EndlessCounters = endless ?? {
+      endlessTotalWords: getEndlessTotalWords(),
+      endlessStreakNormal: getEndlessStreak(false),
+      endlessStreakHard: getEndlessStreak(true),
+    };
+
     await setDoc(
       doc(collection(db, PLAYER_STATS_COLLECTION), playerId),
       {
         playerId,
         playerName,
         ...stats,
+        ...endlessPayload,
         updatedAt: serverTimestamp(),
       },
       { merge: true },
@@ -91,28 +115,67 @@ export async function updatePlayerStats(
 }
 
 /**
- * Fetch a player's stats document from Firestore.
- * Returns null if not found or if Firestore is unavailable.
+ * Fetch a player's stats document from Firestore, distinguishing "not found"
+ * from "read failed" so callers (e.g. merge/restore flow) don't mistake a
+ * transient error for a brand-new player.
  */
-export async function getPlayerStats(
+export async function getPlayerStatsResult(
   playerId: string,
-): Promise<PlayerStats | null> {
+): Promise<GetPlayerStatsResult> {
   try {
     const docSnap = await getDoc(
       doc(collection(db, PLAYER_STATS_COLLECTION), playerId),
     );
 
-    if (!docSnap.exists) return null;
+    if (!docSnap.exists) return { kind: 'missing' };
 
     const data = docSnap.data();
-    if (!data) return null;
+    if (!data) return { kind: 'missing' };
 
-    // Strip Firestore metadata fields before returning PlayerStats
-    const { playerId: _pid, playerName: _pn, updatedAt: _ua, ...stats } = data;
-    return stats as unknown as PlayerStats;
+    const {
+      playerId: _pid,
+      playerName,
+      updatedAt,
+      endlessTotalWords,
+      endlessStreakNormal,
+      endlessStreakHard,
+      ...stats
+    } = data as Record<string, unknown>;
+
+    const updatedAtMs =
+      updatedAt != null && typeof (updatedAt as { toMillis?: () => number }).toMillis === 'function'
+        ? (updatedAt as { toMillis: () => number }).toMillis()
+        : 0;
+
+    return {
+      kind: 'found',
+      profile: {
+        stats: stats as unknown as PlayerStats,
+        endless: {
+          endlessTotalWords: typeof endlessTotalWords === 'number' ? endlessTotalWords : 0,
+          endlessStreakNormal: typeof endlessStreakNormal === 'number' ? endlessStreakNormal : 0,
+          endlessStreakHard: typeof endlessStreakHard === 'number' ? endlessStreakHard : 0,
+        },
+        updatedAtMs,
+        playerName: typeof playerName === 'string' ? playerName : undefined,
+      },
+    };
   } catch {
-    return null;
+    return { kind: 'error' };
   }
+}
+
+/**
+ * Fetch a player's stats document from Firestore.
+ * Returns null if not found or if Firestore is unavailable.
+ * @deprecated Prefer `getPlayerStatsResult` in new sync code — it
+ * distinguishes "missing" from "error" and includes endless + updatedAtMs.
+ */
+export async function getPlayerStats(
+  playerId: string,
+): Promise<PlayerStats | null> {
+  const result = await getPlayerStatsResult(playerId);
+  return result.kind === 'found' ? result.profile.stats : null;
 }
 
 /**
