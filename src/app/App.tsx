@@ -69,30 +69,42 @@ export default function App() {
     // prevents flash of unstyled text. If loading fails, app continues
     // with system fonts.
     const init = async () => {
-      await loadFonts();
+      try {
+        await loadFonts();
 
-      // Open SQLite before any game can complete — stats writes need it
-      await initDatabase();
+        // Open SQLite before any game can complete — stats writes need it
+        await initDatabase();
 
-      // Fire-and-forget: fetch Remote Config ad unit IDs (does not block startup)
-      fetchAdUnitIds();
+        // Resolve live ad unit IDs before preload so we never lock onto test ads
+        // from an empty Remote Config race (production falls back to baked-in IDs).
+        try {
+          await fetchAdUnitIds();
+        } catch (error) {
+          console.warn('[App] Remote Config ad unit fetch failed', error);
+        }
 
-      // Preload ads early so they're ready by the time user reaches game screen
-      useAdStore.getState().preloadInterstitial();
-      useAdStore.getState().preloadRewarded();
+        try {
+          useAdStore.getState().preloadInterstitial();
+          useAdStore.getState().preloadRewarded();
+        } catch (error) {
+          console.warn('[App] Ad preload failed', error);
+        }
 
-      // Initialize sound system (loads BGM + SFX players) — fire-and-forget
-      sound.init();
-      // BGM start is handled by sound.init() (plays if volume > 0)
+        // Initialize sound system (loads BGM + SFX players) — fire-and-forget
+        sound.init();
+        // BGM start is handled by sound.init() (plays if volume > 0)
 
-      if (__DEV__) {
-        console.timeEnd('startup-init');
+        if (__DEV__) {
+          console.timeEnd('startup-init');
+        }
+      } catch (error) {
+        console.error('[App] Startup init failed', error);
+      } finally {
+        // D-175: No artificial delay — Home screen stagger entrance handles visual transition
+        setIsReady(true);
       }
-
-      // D-175: No artificial delay — Home screen stagger entrance handles visual transition
-      setIsReady(true);
     };
-    init();
+    void init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,13 +112,13 @@ export default function App() {
   useEffect(() => {
     if (!isReady) return;
 
-    // Configure auth provider once at startup (Play Games or Google)
+    // Play Games SDK initializes natively; this is a stable configure hook.
     configureAuth();
 
     // Brief delay so the Activity / Play Games SDK can finish auto-auth
     // before the first silent check (native module also polls ~3s).
     const timer = setTimeout(() => {
-      useAuthStore.getState().googleSignInSilently();
+      useAuthStore.getState().signInSilently();
     }, 500);
 
     return () => clearTimeout(timer);

@@ -1,9 +1,9 @@
-# Google Sign-In
-updated: 2026-07-13 (Play Games primary path; Google kept as fallback until verified)
-tags: [auth, firebase, google, play-games, known-pain, eas, signing]
+# Play Games Auth
+updated: 2026-07-14 (Google Sign-In removed; Play Games is the only auth path)
+tags: [auth, firebase, play-games, known-pain, eas, signing]
 related: [key-risks, tech-stack, phase-structure, dev-workflow, android-build-setup, cloud-sync]
 
-## Firebase project (kept)
+## Firebase project
 | Field | Value |
 |-------|--------|
 | Project ID | `word-guess-8fbee` |
@@ -13,16 +13,18 @@ related: [key-risks, tech-stack, phase-structure, dev-workflow, android-build-se
 
 Repo points at this project via `.firebaserc` + root/`android/app` `google-services.json`. Do not create a second Firebase project for this app.
 
-## Auth provider strategy (2026-07-13)
+## Auth path (Android only)
 
-| Path | When |
-|------|------|
-| **Play Games → Firebase** (Android) | Primary once `PLAY_GAMES_APP_ID` is set — auto sign-in on launch, Settings button for interactive fallback |
-| **Google Sign-In → Firebase** | Fallback while Play Games App ID is unset, or `EXPO_PUBLIC_AUTH_PROVIDER=google` |
+**Play Games → Firebase Auth** is the only sign-in provider.
+
+1. Play Games SDK auto-auth (silent) on cold start, or interactive `GamesSignInClient.signIn()` from Settings / Leaderboard
+2. `requestServerSideAccess(webClientId)` → server auth code
+3. Native `PlayGamesAuthProvider.getCredential(code)` → Firebase Auth
+4. Player identity for Firestore is the **Firebase Auth UID** (`resolveFirebasePlayerId`)
 
 Code: `src/config/auth.ts`, `src/services/authService.ts`, native module `modules/play-games-auth`.
 
-**Do not remove Google Sign-In** until Play Games auto + Settings sign-in are verified on a Play/dev build with Games Services configured.
+Google Sign-In (`@react-native-google-signin`) was removed on 2026-07-14. Disable the Google provider in Firebase Console Auth if still enabled — only **Play Games** is required.
 
 ### Play Games setup checklist
 1. Play Console → Grow → Play Games Services → create/link game to Firebase project `word-guess-8fbee`
@@ -35,34 +37,10 @@ Code: `src/config/auth.ts`, `src/services/authService.ts`, native module `module
 6. Or set `android/app/src/main/res/values/strings.xml` → `game_services_project_id` and uncomment `APP_ID` meta-data in `AndroidManifest.xml`
 7. `npx expo run:android` — cold start should silent-auth; Settings can force interactive sign-in
 
-Player identity for Firestore remains **Firebase Auth UID** (`resolveFirebasePlayerId`).
-
-## Legacy Google Sign-In flow
-1. User taps "Sign in with Google" → `GoogleSignin.signIn()`
-2. `GoogleSignin.getTokens()` → `{ idToken, accessToken }`
-3. `GoogleAuthProvider.credential(idToken, accessToken)` then `signInWithCredential`
-4. Firebase Auth creates/returns user session
-5. Stats sync to Firestore using playerId; leaderboard queries by playerId
-
-Same token exchange for silent sign-in (`signInSilently` → `getTokens` → credential).
-
 ## Critical: Web client ID
-Pass **Web** client ID (Firebase → Web credentials / `client_type: 3` in `google-services.json`) to `GoogleSignin.configure()` and Play Games `requestServerSideAccess`. NOT the Android client ID. #1 cause of `DEVELOPER_ERROR`.
+Pass **Web** client ID (Firebase → Web credentials / `client_type: 3` in `google-services.json`) to Play Games `requestServerSideAccess`. NOT the Android client ID.
 
 Current Web client ID: `src/config/auth.ts` → `FIREBASE_WEB_CLIENT_ID`.
-
-## Critical: accessToken for Firebase Auth
-RN Firebase Auth native credential path can throw:
-
-`auth/unknown — accessToken cannot be empty`
-
-**Fix:** always call `GoogleSignin.getTokens()` after a successful Google sign-in / silent sign-in and pass **both** tokens:
-
-```ts
-GoogleAuthProvider.credential(idToken, accessToken)
-```
-
-Passing only `idToken` is not enough on this stack (`@react-native-firebase/auth` 25.x + `@react-native-google-signin/google-signin` 16.x).
 
 ## SHA-1 fingerprints (register ALL that sign installs)
 | Key | Source | When |
@@ -72,43 +50,14 @@ Passing only `idToken` is not enough on this stack (`@react-native-firebase/auth
 | Upload | EAS / local upload keystore | EAS / Play upload builds |
 | Play App Signing | Play Console → App Integrity | Production Play Store |
 
-**Gotcha (2026-07-12):** Debug APK was signed with `android/app/debug.keystore` SHA-1 `5e8f1606…f625`, while Firebase only had `~/.android/debug.keystore` (`9430f852…`). Symptom: Google account picker opens then fails. Always verify the **installed APK** cert:
-
-```powershell
-adb pull (adb shell pm path com.vorithstudio.wordguess).Replace('package:','') "$env:TEMP\wg.apk"
-# then: apksigner verify --print-certs "$env:TEMP\wg.apk"
-```
-
-After adding a SHA in Firebase, download/update both `google-services.json` copies (repo root + `android/app/`). OAuth client creation can take a few minutes to propagate.
-
-## Prerequisites (console)
-- Firebase Auth → Sign-in method → **Google enabled**
-- Google Auth Platform → **Branding** → User support email set
-- Publishing status **Production** is fine for basic `email`/`profile` scopes (no Test users list). **Testing** requires adding test-user emails
-- `google-services.json` in project root and `android/app/`
-- OAuth scopes: `profile`, `email` (minimal)
-
-## Logging / diagnosis
-- Prefer Metro / ReactNativeJS logs over raw `*:E` logcat — system GMS noise hides the real error
-- Useful signal: `[authService] signInWithGoogle failed` with `code` / `message`
-- Codes: 10 = configuration/SHA, 7 = network, 12500 = Play Services, `auth/*` = Firebase credential/provider
+After adding a SHA in Firebase / Play Console credentials, rebuild. OAuth client creation can take a few minutes to propagate.
 
 ## Silent sign-in on app startup
-- `GoogleSignin.signInSilently()` on launch (non-blocking)
-- On success: `getTokens()` + Firebase credential exchange
+- `signInSilently()` on launch (non-blocking) → Play Games non-interactive path
+- On success: Firebase session + local `authStore` player
 - On failure (no prior session): show Sign in in Settings
 - Never block gameplay on auth
 
-## EAS-managed credentials (production build signing)
-
-```bash
-eas credentials --platform android   # production profile → SHA-1
-eas build --platform android --profile production
-```
-
-Register debug + upload + Play App Signing SHA-1s in Firebase → Android app → Add fingerprint.
-
-## SHA-1 troubleshooting
-- **Code 10 (DEVELOPER_ERROR)**: signing cert of the installed build ≠ any Firebase fingerprint
-- Debug works, release fails: missing upload / Play App Signing SHA-1
-- Account picker then bounce: often SHA mismatch **or** missing `accessToken` on credential (check JS error)
+## Logging / diagnosis
+- Prefer Metro / ReactNativeJS logs over raw `*:E` logcat
+- Native reject codes: `E_SILENT_FAILED`, `E_NOT_AUTHENTICATED`, `E_SERVER_AUTH`, `E_FIREBASE`, `E_CONFIG`

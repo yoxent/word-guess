@@ -1,22 +1,11 @@
 /**
- * Auth provider selection.
+ * Play Games → Firebase Auth configuration.
  *
- * `play_games` — Android Play Games Services auto sign-in (production path).
- * `google` — legacy Google Sign-In (kept until Play Games is verified in a
- *            Play-signed / Games-configured build, then remove).
- *
- * Override with EXPO_PUBLIC_AUTH_PROVIDER=google if you need to fall back.
+ * Auth is Android-only via Play Games Services. The Web client ID is used for
+ * Play Games `requestServerSideAccess` (server auth code → Firebase credential).
  */
-export type AuthProviderId = 'play_games' | 'google';
 
-const envProvider = process.env.EXPO_PUBLIC_AUTH_PROVIDER as
-  | AuthProviderId
-  | undefined;
-
-export const AUTH_PROVIDER: AuthProviderId =
-  envProvider === 'google' ? 'google' : 'play_games';
-
-/** Firebase Web client ID — used for Google Sign-In and Play Games server auth. */
+/** Firebase Web client ID — used for Play Games server auth. */
 export const FIREBASE_WEB_CLIENT_ID =
   '765565366850-kadse78msbqs0r8gab1gue4faoukbngu.apps.googleusercontent.com';
 
@@ -34,5 +23,5 @@ export function getPlayGamesAppId(): string {
 }
 
 export function isPlayGamesConfigured(): boolean {
-  return AUTH_PROVIDER === 'play_games' && getPlayGamesAppId().length > 0;
+  return getPlayGamesAppId().length > 0;
 }

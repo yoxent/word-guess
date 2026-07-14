@@ -1,30 +1,21 @@
 /**
- * Auth service — Play Games (primary) + optional legacy Google Sign-In.
+ * Auth service — Play Games → Firebase Auth (Android).
  *
- * Play Games path (Android):
+ * Flow:
  *   PlayGamesSdk auto / interactive sign-in
  *   → requestServerSideAccess(webClientId)
  *   → native PlayGamesAuthProvider → Firebase Auth
  *   → persist Firebase UID as playerId (Firestore rules require auth.uid)
- *
- * Google path is gated by AUTH_PROVIDER === 'google' until Play Games is verified.
  */
 
 import { Platform } from 'react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 import Constants from 'expo-constants';
 import PlayGamesAuth from '../../modules/play-games-auth';
-import {
-  AUTH_PROVIDER,
-  FIREBASE_WEB_CLIENT_ID,
-  PLAY_GAMES_APP_ID,
-} from '../config/auth';
+import { FIREBASE_WEB_CLIENT_ID, PLAY_GAMES_APP_ID } from '../config/auth';
 import { resolveFirebasePlayerId } from '../utils/authState';
 
 const firebaseAuth = auth();
-
-const OAUTH_SCOPES: string[] = ['profile', 'email'];
 
 export interface AuthUser {
   id: string;
@@ -35,8 +26,6 @@ export interface AuthUser {
 
 export interface SignInResult {
   user: AuthUser;
-  /** Present for Google path only; Play Games uses Firebase session. */
-  idToken?: string;
 }
 
 export type SilentlySignInResult = { user: AuthUser };
@@ -46,6 +35,7 @@ export enum AuthErrorCode {
   IN_PROGRESS = 'IN_PROGRESS',
   PLAY_SERVICES_NOT_AVAILABLE = 'PLAY_SERVICES_NOT_AVAILABLE',
   CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
+  UNSUPPORTED_PLATFORM = 'UNSUPPORTED_PLATFORM',
   UNKNOWN = 'UNKNOWN',
 }
 
@@ -70,33 +60,22 @@ function playGamesAppIdFromConfig(): string {
   ).trim();
 }
 
-/**
- * Play Games is active only when selected AND App ID is configured.
- * Until Play Console Games Services is wired, we keep the Google path so
- * leaderboards/auth still work during the migration.
- */
+/** True when Play Games auth can run (Android + App ID configured). */
+export function isPlayGamesAuthAvailable(): boolean {
+  return Platform.OS === 'android' && playGamesAppIdFromConfig().length > 0;
+}
+
+/** @deprecated Use isPlayGamesAuthAvailable — Play Games is the only provider. */
 export function isUsingPlayGamesAuth(): boolean {
-  return (
-    AUTH_PROVIDER === 'play_games' &&
-    Platform.OS === 'android' &&
-    playGamesAppIdFromConfig().length > 0
-  );
+  return isPlayGamesAuthAvailable();
 }
 
-/** Call once at startup. Configures Google when that path is still active. */
+/**
+ * Call once at startup. Play Games SDK initializes natively; this is a
+ * no-op kept so App.tsx has a stable configure hook.
+ */
 export function configureAuth(): void {
-  if (!isUsingPlayGamesAuth()) {
-    GoogleSignin.configure({
-      webClientId: FIREBASE_WEB_CLIENT_ID,
-      offlineAccess: false,
-      scopes: OAUTH_SCOPES,
-    });
-  }
-}
-
-/** @deprecated Use configureAuth — kept for older call sites during migration. */
-export function configureGoogleSignIn(): void {
-  configureAuth();
+  // Native PlayGamesSdk.initialize runs in PlayGamesAuthModule OnCreate.
 }
 
 function mapNativePlayGamesError(error: unknown): AuthError {
@@ -104,7 +83,11 @@ function mapNativePlayGamesError(error: unknown): AuthError {
   const code = anyErr?.code ?? '';
   const message = anyErr?.message ?? 'Play Games sign-in failed.';
 
-  if (code === 'E_SILENT_FAILED' || code === 'E_NOT_AUTHENTICATED') {
+  if (code === 'E_SILENT_FAILED') {
+    return new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, message);
+  }
+  if (code === 'E_NOT_AUTHENTICATED') {
+    // Games UI closed without a session — cancel or Games Services misconfig.
     return new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, message);
   }
   if (code === 'E_CONFIG' || code === 'E_SERVER_AUTH' || code === 'E_FIREBASE') {
@@ -114,6 +97,13 @@ function mapNativePlayGamesError(error: unknown): AuthError {
 }
 
 async function signInWithPlayGames(interactive: boolean): Promise<SignInResult> {
+  if (Platform.OS !== 'android') {
+    throw new AuthError(
+      AuthErrorCode.UNSUPPORTED_PLATFORM,
+      'Sign-in is only available on Android via Play Games.',
+    );
+  }
+
   const appId = playGamesAppIdFromConfig();
   if (!appId) {
     throw new AuthError(
@@ -148,188 +138,48 @@ async function signInWithPlayGames(interactive: boolean): Promise<SignInResult> 
   }
 }
 
-async function getFirebaseGoogleCredential(
-  idToken: string,
-): Promise<FirebaseAuthTypes.AuthCredential> {
-  const tokens = await GoogleSignin.getTokens();
-  const firebaseIdToken = tokens.idToken || idToken;
-
-  if (!tokens.accessToken) {
-    throw new AuthError(
-      AuthErrorCode.CONFIGURATION_ERROR,
-      'Google Sign-In failed — no accessToken returned for Firebase Auth credential exchange.',
-    );
-  }
-
-  return auth.GoogleAuthProvider.credential(firebaseIdToken, tokens.accessToken);
-}
-
-async function signInWithGoogleInteractive(): Promise<SignInResult> {
-  try {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    const response = await GoogleSignin.signIn();
-
-    if (response.type === 'cancelled') {
-      throw new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, 'Sign-in was cancelled.');
-    }
-
-    const { idToken, user: googleUser } = response.data;
-    if (!idToken) {
-      throw new AuthError(
-        AuthErrorCode.CONFIGURATION_ERROR,
-        'Google Sign-In failed — no idToken returned. Check Web client ID and SHA-1 fingerprints.',
-      );
-    }
-
-    const credential = await getFirebaseGoogleCredential(idToken);
-    await firebaseAuth.signInWithCredential(credential);
-
-    const firebaseUser = firebaseAuth.currentUser;
-    const playerId = resolveFirebasePlayerId(firebaseUser?.uid);
-    if (!firebaseUser || !playerId) {
-      throw new AuthError(
-        AuthErrorCode.CONFIGURATION_ERROR,
-        'Firebase Auth sign-in succeeded but no currentUser was available.',
-      );
-    }
-
-    return {
-      user: {
-        id: playerId,
-        name: firebaseUser.displayName ?? googleUser.name ?? null,
-        email: firebaseUser.email ?? googleUser.email ?? null,
-        photo: firebaseUser.photoURL ?? googleUser.photo ?? null,
-      },
-      idToken,
-    };
-  } catch (error: unknown) {
-    if (error instanceof AuthError) throw error;
-
-    const typedError = error as { code?: string | number; message?: string };
-    console.error('[authService] signInWithGoogle failed', {
-      code: typedError.code,
-      message: typedError.message,
-      error,
-    });
-
-    if (
-      typedError.code === statusCodes.SIGN_IN_CANCELLED ||
-      typedError.code === 'SIGN_IN_CANCELLED'
-    ) {
-      throw new AuthError(AuthErrorCode.SIGN_IN_CANCELLED, 'Sign-in was cancelled.');
-    }
-    if (typedError.code === statusCodes.IN_PROGRESS) {
-      throw new AuthError(AuthErrorCode.IN_PROGRESS, 'Sign-in is already in progress.');
-    }
-    if (typedError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      throw new AuthError(
-        AuthErrorCode.PLAY_SERVICES_NOT_AVAILABLE,
-        'Google Play Services are not available. Please update Google Play Services.',
-      );
-    }
-    if (typeof typedError.code === 'string' && typedError.code.startsWith('auth/')) {
-      throw new AuthError(
-        AuthErrorCode.CONFIGURATION_ERROR,
-        `Firebase Auth failed (${typedError.code}): ${typedError.message ?? 'check Auth providers in Firebase Console.'}`,
-      );
-    }
-    throw new AuthError(
-      AuthErrorCode.CONFIGURATION_ERROR,
-      `Google Sign-In failed (${typedError.code ?? 'unknown'}: ${typedError.message ?? 'no message'}).`,
-    );
-  }
-}
-
 /** Interactive sign-in (Settings / Leaderboard button). */
 export async function signIn(): Promise<SignInResult> {
-  if (isUsingPlayGamesAuth()) {
-    return signInWithPlayGames(true);
-  }
-  return signInWithGoogleInteractive();
-}
-
-/** @deprecated Prefer signIn() — Google-only entry kept for migration. */
-export async function signInWithGoogle(): Promise<SignInResult> {
-  return signInWithGoogleInteractive();
+  return signInWithPlayGames(true);
 }
 
 /**
  * Startup / silent sign-in. Never throws — returns null when no session.
- * Play Games: uses non-interactive path (auto-auth from PGS v2).
- * Google: GoogleSignin.signInSilently().
+ * Uses Play Games non-interactive path (auto-auth from PGS v2).
  */
 export async function signInSilently(): Promise<SilentlySignInResult | null> {
   try {
-    if (isUsingPlayGamesAuth()) {
-      // Wait for Firebase disk restore before assuming there is no session.
-      const restored = await waitForFirebaseAuthReady();
-      if (restored) return restored;
-
-      try {
-        const result = await signInWithPlayGames(false);
-        return { user: result.user };
-      } catch (error: unknown) {
-        if (error instanceof AuthError && error.code === AuthErrorCode.SIGN_IN_CANCELLED) {
-          return null;
-        }
-        if (__DEV__) {
-          console.log('[authService] Play Games silent sign-in unavailable', error);
-        }
-        return null;
-      }
+    if (!isPlayGamesAuthAvailable()) {
+      return getCurrentUser();
     }
 
-    const response = await GoogleSignin.signInSilently();
-    if (response.type === 'noSavedCredentialFound') return null;
+    // Wait for Firebase disk restore before assuming there is no session.
+    const restored = await waitForFirebaseAuthReady();
+    if (restored) return restored;
 
-    const { idToken, user: googleUser } = response.data;
-    if (!idToken) return null;
-
-    const credential = await getFirebaseGoogleCredential(idToken);
-    await firebaseAuth.signInWithCredential(credential);
-
-    const firebaseUser = firebaseAuth.currentUser;
-    const playerId = resolveFirebasePlayerId(firebaseUser?.uid);
-    if (!firebaseUser || !playerId) return null;
-
-    return {
-      user: {
-        id: playerId,
-        name: firebaseUser.displayName ?? googleUser.name ?? null,
-        email: firebaseUser.email ?? googleUser.email ?? null,
-        photo: firebaseUser.photoURL ?? googleUser.photo ?? null,
-      },
-    };
+    try {
+      const result = await signInWithPlayGames(false);
+      return { user: result.user };
+    } catch (error: unknown) {
+      if (error instanceof AuthError && error.code === AuthErrorCode.SIGN_IN_CANCELLED) {
+        return null;
+      }
+      if (__DEV__) {
+        console.log('[authService] Play Games silent sign-in unavailable', error);
+      }
+      return null;
+    }
   } catch {
     return null;
   }
 }
 
 export async function signOut(): Promise<void> {
-  if (isUsingPlayGamesAuth()) {
-    try {
-      await PlayGamesAuth.signOutFirebase();
-    } catch {
-      // Firebase sign-out failure is non-fatal — clear local state anyway
-    }
-    return;
-  }
-
   try {
-    await GoogleSignin.signOut();
+    await PlayGamesAuth.signOutFirebase();
   } catch {
-    // ignore
+    // Firebase sign-out failure is non-fatal — clear local state anyway
   }
-  try {
-    await firebaseAuth.signOut();
-  } catch {
-    // ignore
-  }
-}
-
-/** @deprecated Prefer signOut(). */
-export async function signOutFromGoogle(): Promise<void> {
-  await signOut();
 }
 
 export function getCurrentUser(): SilentlySignInResult | null {
@@ -408,5 +258,5 @@ export function onAuthStateChanged(
 }
 
 export function getSignInButtonLabel(): string {
-  return isUsingPlayGamesAuth() ? 'Sign in with Play Games' : 'Sign in with Google';
+  return 'Sign in with Play Games';
 }

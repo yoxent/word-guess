@@ -81,8 +81,40 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
           ...typography.body,
           color: theme.colors.text.secondary,
           textAlign: 'center',
-          marginBottom: 24,
+          marginBottom: 16,
           lineHeight: 22,
+        },
+        hardModeCard: {
+          width: '100%',
+          backgroundColor: theme.colors.mode === 'dark' ? '#2A1F12' : '#FFF3E0',
+          borderRadius: 14,
+          borderWidth: 2,
+          borderColor: theme.colors.brand.secondary,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          marginBottom: 20,
+        },
+        hardModeTitleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginBottom: 6,
+        },
+        hardModeIcon: {
+          fontSize: 16,
+        },
+        hardModeTitle: {
+          ...typography.caption,
+          fontWeight: '700',
+          color: theme.colors.brand.secondary,
+          textAlign: 'center',
+        },
+        hardModeText: {
+          ...typography.small,
+          color: theme.colors.brand.secondary,
+          textAlign: 'center',
+          lineHeight: 18,
         },
         gotItButton: {
           backgroundColor: theme.colors.brand.primary,
@@ -172,8 +204,22 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
 
           {/* Rules text */}
           <Text style={styles.rulesText}>
-            Guess the word in {6} tries. Each guess must be a valid word.
+            Guess the word before you run out of tries. Each guess must be a valid word.
           </Text>
+
+          <View
+            style={styles.hardModeCard}
+            accessible
+            accessibilityLabel="Hard Mode rules"
+          >
+            <View style={styles.hardModeTitleRow}>
+              <Text style={styles.hardModeIcon}>🔥</Text>
+              <Text style={styles.hardModeTitle}>Hard Mode</Text>
+            </View>
+            <Text style={styles.hardModeText}>
+              Turn it on from the Home screen. Every new guess must keep green letters in the same spots and include all revealed yellow letters somewhere in the word.
+            </Text>
+          </View>
 
           {/* Got it button */}
           <TouchableOpacity

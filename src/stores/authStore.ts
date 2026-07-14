@@ -15,10 +15,14 @@ interface AuthStoreState extends AuthState {
   isAuthPending: boolean;
   authError: string | null;
   setPlayer: (playerId: string, playerName: string, token: string) => Promise<void>;
+  /** Clear local auth flags only (no provider call). */
   signOut: () => Promise<void>;
-  googleSignIn: () => Promise<boolean>;
-  googleSignOut: () => Promise<void>;
-  googleSignInSilently: () => Promise<boolean>;
+  /** Interactive Play Games sign-in (Settings / Leaderboard). */
+  signIn: () => Promise<boolean>;
+  /** Sign out from Play Games / Firebase + clear local auth state. */
+  signOutAccount: () => Promise<void>;
+  /** Silent / auto sign-in on startup. */
+  signInSilently: () => Promise<boolean>;
   clearAuthError: () => void;
 }
 
@@ -57,8 +61,6 @@ export const useAuthStore = create<AuthStoreState>()(
       isAuthPending: false,
       authError: null,
 
-      // ── Existing actions ──
-
       setPlayer: async (playerId, playerName, token) => {
         await setAuthToken(token);
         set({ isLoggedIn: true, playerId, playerName, authToken: token });
@@ -74,19 +76,17 @@ export const useAuthStore = create<AuthStoreState>()(
         });
       },
 
-      // ── New Google Sign-In actions ──
-
       /**
-       * Interactive sign-in (Play Games primary, or Google when AUTH_PROVIDER=google).
+       * Interactive Play Games sign-in → Firebase Auth.
        */
-      googleSignIn: async () => {
+      signIn: async () => {
         set({ isAuthPending: true, authError: null });
         try {
           const result = await authService.signIn();
           await get().setPlayer(
             result.user.id,
             result.user.name ?? 'Player',
-            result.idToken ?? 'play_games_session',
+            'play_games_session',
           );
 
           await syncPlayerProfileOnAuth({
@@ -108,9 +108,9 @@ export const useAuthStore = create<AuthStoreState>()(
       },
 
       /**
-       * Sign out from auth provider + clear local auth state.
+       * Sign out from Play Games / Firebase + clear local auth state.
        */
-      googleSignOut: async () => {
+      signOutAccount: async () => {
         set({ isAuthPending: true });
         try {
           await authService.signOut();
@@ -122,12 +122,12 @@ export const useAuthStore = create<AuthStoreState>()(
       },
 
       /**
-       * Silent / auto sign-in on startup (Play Games auto-auth or Google silent).
+       * Silent / auto sign-in on startup (Play Games auto-auth).
        * Soft-fail: do not wipe a persisted session if silent auth is merely
        * racing Play Games / Firebase restore — only clear when we know there
        * is no Firebase user after the attempt.
        */
-      googleSignInSilently: async () => {
+      signInSilently: async () => {
         try {
           const result = await authService.signInSilently();
           if (result) {
@@ -170,9 +170,6 @@ export const useAuthStore = create<AuthStoreState>()(
         }
       },
 
-      /**
-       * Clear auth error state (e.g., after user dismisses error message).
-       */
       clearAuthError: () => {
         set({ authError: null });
       },

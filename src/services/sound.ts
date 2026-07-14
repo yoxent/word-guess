@@ -10,22 +10,30 @@ export type VolumeLevel = number;
 
 // Module-level state
 let _sfxPlayers: Record<string, AudioPlayer> = {};
+/** Round-robin pool so rapid key taps don't pause/seek the same player. */
+let _keypressPool: AudioPlayer[] = [];
+let _keypressPoolIndex = 0;
 let _bgmPlayer: AudioPlayer | null = null;
 let _currentBgmVolume: VolumeLevel = 0.75;
 let _currentSfxVolume: VolumeLevel = 0.75;
 
+const KEYPRESS_POOL_SIZE = 3;
+
 /**
- * Initialize the audio system. Loads the BGM player (looping) and the four
- * SFX players. Audio mode is configured to:
- *  - play in silent mode (iOS)
- *  - NOT keep playing in background
- *  - duck other audio (so the BGM gets quieter when SFX plays)
+ * Initialize the audio system. Loads the BGM player (looping) and SFX
+ * players. BGM and SFX are separate AudioPlayer instances — they already
+ * mix on distinct tracks. Keypresses use a small pool so fast typing can
+ * overlap without restarting a single clip.
+ *
+ * Audio mode mixes with other apps (`mixWithOthers`). Intra-app SFX/BGM
+ * balancing for longer clips uses light programmatic ducking (not for
+ * keypress — rapid ducking was the main BGM volume "eating" complaint).
  */
 export async function init(): Promise<void> {
   await setAudioModeAsync({
     playsInSilentMode: true,
     shouldPlayInBackground: false,
-    interruptionMode: 'duckOthers',
+    interruptionMode: 'mixWithOthers',
   });
 
   // Read current volume settings from the store
@@ -33,9 +41,8 @@ export async function init(): Promise<void> {
   _currentBgmVolume = settings.bgmVolume;
   _currentSfxVolume = settings.sfxVolume;
 
-  // Load SFX players
+  // Load one-shot SFX (reveal / win / loss)
   const soundFiles: Record<string, number> = {
-    keypress: require('../../assets/sounds/keypress.wav'),
     reveal: require('../../assets/sounds/reveal.wav'),
     win: require('../../assets/sounds/win.wav'),
     loss: require('../../assets/sounds/lose.wav'),
@@ -48,6 +55,19 @@ export async function init(): Promise<void> {
       _sfxPlayers[name] = player;
     } catch (e) {
       console.warn(`[sound] Failed to load SFX ${name}:`, e);
+    }
+  }
+
+  // Keypress pool — separate players so concurrent taps don't thrash one clip
+  const keypressSource = require('../../assets/sounds/keypress.wav');
+  _keypressPool = [];
+  for (let i = 0; i < KEYPRESS_POOL_SIZE; i++) {
+    try {
+      const player = createAudioPlayer(keypressSource);
+      player.volume = _currentSfxVolume;
+      _keypressPool.push(player);
+    } catch (e) {
+      console.warn(`[sound] Failed to load keypress pool player ${i}:`, e);
     }
   }
 
@@ -111,6 +131,13 @@ export function setSfxVolume(v: VolumeLevel): void {
       console.warn('[sound] Failed to set SFX player volume:', e);
     }
   }
+  for (const player of _keypressPool) {
+    try {
+      player.volume = v;
+    } catch (e) {
+      console.warn('[sound] Failed to set keypress pool volume:', e);
+    }
+  }
 }
 
 /**
@@ -146,28 +173,30 @@ export function resumeBgm(): void {
   }
 }
 
-// ── SFX playback (with BGM ducking) ──
+// ── SFX playback (with optional BGM ducking for longer clips) ──
 
 /**
- * How long to duck the BGM (reduce to 30% of its intended volume) while
- * each SFX plays. After the duration elapses, the BGM is restored to
- * its intended volume. These are approximate — slightly too long is
- * fine, slightly too short risks a brief volume jump mid-tail.
+ * How long to duck the BGM while longer SFX play. Keypress intentionally
+ * does NOT duck — short taps at normal volumes rarely clip, and rapid
+ * duck/restore was lowering BGM continuously while typing.
+ *
+ * Longer win/loss/reveal clips still get a light duck so BGM+SFX don't
+ * stack past 1.0 and distort (see key-risks P34).
  */
 const SFX_DUCK_DURATION_MS: Record<string, number> = {
-  keypress: 200,
   reveal: 350,
   win: 2200,
   loss: 1800,
 };
-const DUCK_RATIO = 0.3;
+const DUCK_RATIO = 0.45;
 let _duckRestoreTimer: ReturnType<typeof setTimeout> | null = null;
 
 function duckBgmForSfx(name: string): void {
+  const duckMs = SFX_DUCK_DURATION_MS[name];
+  if (duckMs == null) return; // keypress / unknown — leave BGM alone
   if (!_bgmPlayer || _currentBgmVolume <= 0) return;
   _bgmPlayer.volume = _currentBgmVolume * DUCK_RATIO;
   if (_duckRestoreTimer) clearTimeout(_duckRestoreTimer);
-  const duckMs = SFX_DUCK_DURATION_MS[name] ?? 300;
   _duckRestoreTimer = setTimeout(() => {
     if (_bgmPlayer) {
       _bgmPlayer.volume = _currentBgmVolume;
@@ -194,12 +223,6 @@ function play(name: string): void {
 
   void (async () => {
     try {
-      // Duck the BGM while the SFX plays. Without this, the combined
-      // audio output of BGM + SFX can exceed 1.0 and clip — which the
-      // user hears as static / distortion. We restore the BGM to its
-      // intended volume after the SFX has finished.
-      // We set the player volume directly (bypassing setBgmVolume) so
-      // the play/pause transition logic in setBgmVolume isn't disturbed.
       duckBgmForSfx(name);
       if (player.playing) {
         player.pause();
@@ -213,7 +236,24 @@ function play(name: string): void {
 }
 
 export function playKeyPress(): void {
-  play('keypress');
+  if (_currentSfxVolume === 0) return;
+  if (_keypressPool.length === 0) return;
+
+  const player = _keypressPool[_keypressPoolIndex % _keypressPool.length];
+  _keypressPoolIndex = (_keypressPoolIndex + 1) % _keypressPool.length;
+
+  void (async () => {
+    try {
+      // No BGM duck — keypresses are short and frequent.
+      if (player.playing) {
+        player.pause();
+      }
+      await player.seekTo(0);
+      player.play();
+    } catch (e) {
+      console.warn('[sound] Failed to play keypress:', e);
+    }
+  })();
 }
 
 export function playReveal(): void {

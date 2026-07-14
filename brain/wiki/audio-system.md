@@ -10,7 +10,7 @@ related: [toggle-side-effects, key-risks, architecture, tech-stack, ui-config-re
 | Track | Asset | Behavior |
 |-------|-------|----------|
 | BGM | `assets/sounds/bgm.wav` (~32s) | One looping `AudioPlayer`, `loop = true` |
-| SFX | keypress / reveal / win / lose `.wav` | Four players; `seekTo(0); play()` per trigger |
+| SFX | keypress / reveal / win / lose `.wav` | Keypress: 3-player pool; others: one player each. `seekTo(0); play()` per trigger |
 
 Volumes: continuous `[0, 1]` via `bgmVolume` / `sfxVolume` in `settingsStore` (10% snap). Wired by [toggle-side-effects](toggle-side-effects.md) — `App.tsx` useEffect + live slider calls.
 
@@ -37,8 +37,8 @@ Mid-range volume changes update `player.volume` only — never `play()`/`pause()
 - **Foreground:** BGM plays if `bgmVolume > 0`
 - **AppState `background` / `inactive`:** `pauseBgm()`
 - **AppState `active`:** `resumeBgm()` only if `bgmVolume > 0`
-- **Audio mode:** `playsInSilentMode: true`, `shouldPlayInBackground: false`, `interruptionMode: 'duckOthers'`
-- **SFX ducking:** while SFX plays, BGM volume → 30% of intended for ~200–2200ms, then restore (bypasses `setBgmVolume` play/pause logic)
+- **Audio mode:** `playsInSilentMode: true`, `shouldPlayInBackground: false`, `interruptionMode: 'mixWithOthers'`
+- **SFX ducking:** only reveal / win / loss lightly duck BGM (~45% for their clip length). **Keypress does not duck** — rapid duck/restore was continuous BGM volume drop while typing. Keypress uses a 3-player round-robin pool so fast taps don't thrash one clip.
 
 ## Intentional vs not
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,7 +26,7 @@ interface GuessRowProps {
   hintTile?: HintTile | null;
 }
 
-export function GuessRow({
+function GuessRowComponent({
   guess,
   feedback,
   isActive,
@@ -120,6 +120,9 @@ export function GuessRow({
     </Animated.View>
   );
 }
+
+/** Skip re-renders for completed / empty rows while the player types. */
+export const GuessRow = memo(GuessRowComponent);
 
 const styles = StyleSheet.create({
   row: {

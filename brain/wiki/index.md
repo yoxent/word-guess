@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-12 (Google Sign-In SHA/accessToken; Settings row/slider layout)
+updated: 2026-07-14 (Play Games–only auth; Google Sign-In removed)
 tags: [index, mvp, phase-6-executed]
 related: []
 
@@ -17,7 +17,7 @@ related: []
 | game-modes | Free Play, Random, Daily, Endless, Hard Mode rules | gameplay, modes, game-design |
 | key-risks | Critical and moderate risks with mitigations and phase mapping | risks, pitfalls |
 | phase-structure | 6-phase roadmap, dependencies, dev workflow | roadmap, phases, planning |
-| google-signin | Google Sign-In — Web client ID, android/app debug.keystore SHA, accessToken+idToken credential, OAuth branding | auth, firebase, google |
+| google-signin | Play Games → Firebase Auth — Web client ID for server auth, App ID, silent + interactive sign-in | auth, firebase, play-games |
 | animation-system | Reanimated tile flip animations, confetti, timing constants, keyboard delay, input queuing | animation, reanimated, tile-flip |
 | git-conventions | Gitignore design, tracked vs ignored files, brain vs CLAUDE.md | git, workflow, conventions |
 | dev-workflow | Android Studio setup, Metro dev loop, EAS cloud builds, .easignore upload rules, dual-tool coexistence | workflow, android-studio, metro, dev-loop, eas-build |

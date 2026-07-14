@@ -212,7 +212,7 @@ export function LeaderboardScreen() {
           marginBottom: 24,
           lineHeight: 22,
         },
-        googleSignInButton: {
+        signInButton: {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -228,7 +228,7 @@ export function LeaderboardScreen() {
           shadowRadius: 8,
           elevation: 4,
         },
-        googleSignInText: {
+        signInButtonText: {
           ...typography.button,
           color: theme.colors.button.primary.fg,
         },
@@ -466,7 +466,7 @@ export function LeaderboardScreen() {
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isAuthPending = useAuthStore((s) => s.isAuthPending);
-  const googleSignIn = useAuthStore((s) => s.googleSignIn);
+  const signIn = useAuthStore((s) => s.signIn);
   const stats = useStatsStore((s) => s.stats);
 
   const [activeTab, setActiveTab] = useState<LeaderboardType>('daily_streak');
@@ -586,8 +586,8 @@ export function LeaderboardScreen() {
             Sign in with Play Games to see how you rank against other players.
           </Text>
           <TouchableOpacity
-            style={styles.googleSignInButton}
-            onPress={() => googleSignIn()}
+            style={styles.signInButton}
+            onPress={() => signIn()}
             activeOpacity={0.7}
             disabled={isAuthPending}
           >
@@ -596,11 +596,11 @@ export function LeaderboardScreen() {
             ) : (
               <>
                 <MaterialIcons
-                  name="sports-esports"
+                  name="login"
                   size={20}
                   color="#FFFFFF"
                 />
-                <Text style={styles.googleSignInText}>
+                <Text style={styles.signInButtonText}>
                   Sign in with Play Games
                 </Text>
               </>

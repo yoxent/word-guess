@@ -16,12 +16,14 @@ const ROWS = [
   ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
 ];
 
+const ALL_KEYS = ROWS.flat().filter((k) => k !== '');
+
 function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
 }
 
-/** Individual key with spring press animation (transform only). */
-function KeyboardKey({
+/** Individual key with lightweight press scale (transform only, native driver). */
+const KeyboardKey = memo(function KeyboardKey({
   label,
   displayText,
   fontSize,
@@ -45,20 +47,19 @@ function KeyboardKey({
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () => {
-    Animated.spring(scale, {
+    // timing is cheaper than spring under rapid multi-key input
+    Animated.timing(scale, {
       toValue: 0.92,
+      duration: 60,
       useNativeDriver: true,
-      friction: 5,
-      tension: 50,
     }).start();
   };
 
   const onPressOut = () => {
-    Animated.spring(scale, {
+    Animated.timing(scale, {
       toValue: 1,
+      duration: 80,
       useNativeDriver: true,
-      friction: 5,
-      tension: 50,
     }).start();
   };
 
@@ -97,7 +98,7 @@ function KeyboardKey({
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 const keyStyles = StyleSheet.create({
   key: {
@@ -150,22 +151,26 @@ function KeyboardComponent() {
     [theme],
   );
 
-  const session = useGameStore((s) => s.session);
+  // Narrow selectors — full `session` re-rendered every letter before.
+  const keyColors = useGameStore((s) => s.session?.keyColors);
+  const pendingKeyColors = useGameStore((s) => s.session?.pendingKeyColors);
+  const letterCount = useGameStore((s) => s.session?.letterCount ?? 5);
+  const status = useGameStore((s) => s.session?.status);
   const addLetter = useGameStore((s) => s.addLetter);
   const removeLetter = useGameStore((s) => s.removeLetter);
   const submitGuess = useGameStore((s) => s.submitGuess);
-  const currentGuess = useGameStore((s) => s.currentGuess);
+  const currentGuessLength = useGameStore((s) => s.currentGuess.length);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
-  const hapticEnabled = useSettingsStore((s) => s.hapticEnabled);
 
-  const isPlaying = session?.status === 'playing';
+  const isPlaying = status === 'playing';
   const isBlocked = !isPlaying || isRevealing;
 
   const handlePress = useCallback(
     (key: string) => {
-      if (hapticEnabled) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      // Read haptic at press time — avoids re-subscribing the whole keyboard
+      if (useSettingsStore.getState().hapticEnabled) {
+        Haptics.selectionAsync().catch(() => {});
       }
       sound.playKeyPress();
 
@@ -184,13 +189,22 @@ function KeyboardComponent() {
         addLetter(key);
       }
     },
-    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter, hapticEnabled],
+    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter],
   );
+
+  // Stable per-key handlers so memoized KeyboardKey can skip re-renders
+  const pressHandlers = useMemo(() => {
+    const map: Record<string, () => void> = {};
+    for (const key of ALL_KEYS) {
+      map[key] = () => handlePress(key);
+    }
+    return map;
+  }, [handlePress]);
 
   const getKeyFeedback = useCallback(
     (key: string): TileFeedback | undefined =>
-      session?.keyColors?.[key] ?? session?.pendingKeyColors?.[key],
-    [session?.keyColors, session?.pendingKeyColors],
+      keyColors?.[key] ?? pendingKeyColors?.[key],
+    [keyColors, pendingKeyColors],
   );
 
   const getKeyBackground = useCallback(
@@ -199,8 +213,8 @@ function KeyboardComponent() {
         return theme.colors.key.special;
       }
       const feedback = getKeyFeedback(key);
-      const status: TileFeedback | 'unused' = feedback ?? 'unused';
-      return keyColorMap[status] || theme.colors.key.unused;
+      const statusKey: TileFeedback | 'unused' = feedback ?? 'unused';
+      return keyColorMap[statusKey] || theme.colors.key.unused;
     },
     [getKeyFeedback, keyColorMap, theme],
   );
@@ -218,14 +232,19 @@ function KeyboardComponent() {
     [getKeyFeedback, theme],
   );
 
+  /**
+   * Letter keys stay enabled while typing — addLetter already no-ops when
+   * the row is full. Only ENTER / BACKSPACE flip with length so we don't
+   * re-render every letter key on each tap.
+   */
   const isKeyDisabled = useCallback(
     (key: string): boolean => {
       if (isBlocked) return true;
-      if (key === 'ENTER') return currentGuess.length < (session?.letterCount ?? 5);
-      if (key === 'BACKSPACE') return currentGuess.length === 0;
-      return currentGuess.length >= (session?.letterCount ?? 5);
+      if (key === 'ENTER') return currentGuessLength < letterCount;
+      if (key === 'BACKSPACE') return currentGuessLength === 0;
+      return false;
     },
-    [isBlocked, currentGuess.length, session?.letterCount],
+    [isBlocked, currentGuessLength, letterCount],
   );
 
   const getKeyDisplay = useCallback((key: string): { text: string; fontSize: number; label: string } => {
@@ -256,7 +275,7 @@ function KeyboardComponent() {
                 wide={isActionKey(key)}
                 disabled={disabled}
                 dimmed={feedback === 'absent'}
-                onPress={() => handlePress(key)}
+                onPress={pressHandlers[key]}
               />
             );
           })}

@@ -1,41 +1,41 @@
 # cloud-sync
-updated: 2026-07-14 (stats profile restore)
+updated: 2026-07-14 (Play Games–only auth; stats profile restore)
 tags: [cloud, firebase, firestore, sync, leaderboard, auth, phase-5]
 related: [google-signin, phase-structure, architecture, tech-stack, key-risks]
 
 ## Phase 5 overview
-Optional Google Sign-In enabling cloud-synced stats and competitive leaderboards for Daily/Endless modes. 3 plans across 3 waves. Mode: mvp. Depends on Phase 4 (Monetization).
+Optional Play Games sign-in enabling cloud-synced stats and competitive leaderboards for Daily/Endless modes. 3 plans across 3 waves. Mode: mvp. Depends on Phase 4 (Monetization).
 
 **8 requirements:** CLOUD-01 through CLOUD-08
 
-## Google Sign-In + Firebase Auth
+## Play Games + Firebase Auth
 
 ### Architecture
 ```
-User taps "Sign in with Google" button
-  → authService.signInWithGoogle()
-    → GoogleSignin.signIn() → idToken
-    → GoogleSignin.getTokens() → { idToken, accessToken }
-    → GoogleAuthProvider.credential(idToken, accessToken)
-    → signInWithCredential(firebaseAuth, credential)  // modular API
+User taps "Sign in with Play Games" (or silent auto-auth on launch)
+  → authService.signIn() / signInSilently()
+    → PlayGamesAuth.signInWithFirebase(webClientId, interactive)
+      → GamesSignInClient (silent poll or interactive signIn)
+      → requestServerSideAccess(webClientId) → server auth code
+      → PlayGamesAuthProvider.getCredential(code) → Firebase Auth
     → authStore.setPlayer(firebaseUser)
     → drain syncQueue (deferred scores)
 ```
 
-### Key rules (D-113-D-118)
-- **Web client ID** passed to `GoogleSignin.configure()`, NOT Android client ID (P4, #1 cause of DEVELOPER_ERROR)
-- SHA-1 fingerprints in Firebase must include the cert that **actually signs** the install (`android/app/debug.keystore` for local debug, plus upload + Play App Signing)
-- After Google sign-in / silent sign-in: `getTokens()` then `GoogleAuthProvider.credential(idToken, accessToken)` — idToken alone can fail with `accessToken cannot be empty`
-- OAuth scopes: `profile` + `email` only (minimal)
-- Silent sign-in on app startup via `GoogleSignin.signInSilently()` — never blocks gameplay
-- Sign-out calls both `GoogleSignin.signOut()` + `auth().signOut()`
-- Console: Google provider enabled; Branding support email set (see [google-signin](google-signin.md))
+### Key rules
+- **Web client ID** passed to Play Games `requestServerSideAccess`, NOT Android client ID
+- SHA-1 fingerprints in Play Console / Firebase must include the cert that **actually signs** the install
+- Firebase Auth → enable **Play Games** provider (Google Sign-In provider is unused)
+- Silent sign-in on app startup via Play Games non-interactive path — never blocks gameplay
+- Sign-out calls Firebase `signOut` via native module
+- Details: [google-signin](google-signin.md) (page kept as Play Games auth doc)
 
 ### Files
 | File | Role |
 |------|------|
-| `src/services/authService.ts` | GoogleSignIn + Firebase Auth wrapper (configure, signIn, signOut, signInSilently, getCurrentUser, onAuthStateChanged) |
-| `src/stores/authStore.ts` | Extended with googleSignIn, googleSignOut, googleSignInSilently |
+| `src/services/authService.ts` | Play Games + Firebase Auth wrapper |
+| `src/stores/authStore.ts` | signIn, signOutAccount, signInSilently |
+| `modules/play-games-auth` | Native Expo module (PGS → Firebase) |
 
 ### Settings UI (D-124-D-127)
 - Placeholder `"Sign in — coming in Phase 5"` replaced with working `signInButton` row type
@@ -46,7 +46,7 @@ User taps "Sign in with Google" button
 ### Cold-start hydration (plan-checker finding)
 - Zustand persist rehydrates async — brief flash of `isLoggedIn: false` on cold start
 - Mitigation: `_hasHydrated` gating for auth-dependent UI
-- `googleSignInSilently` clears stale `isLoggedIn: true` when silent sign-in returns null
+- `signInSilently` clears stale `isLoggedIn: true` when silent sign-in returns null
 
 ## Firestore data model (D-128-D-132)
 
@@ -102,7 +102,7 @@ Events with retryCount >= 6 discarded on next drain attempt
 ### Drain triggers (D-139)
 | Trigger | Mechanism | Location |
 |---------|-----------|----------|
-| Auth state change (sign-in) | drainQueue() after setPlayer | authStore.googleSignIn |
+| Auth state change (sign-in) | drainQueue() after setPlayer | authStore.signIn |
 | Periodic timer | setInterval 30s | App.tsx useEffect |
 | App foreground | AppState 'active' listener | App.tsx useEffect |
 

@@ -21,9 +21,20 @@ function getTitle(mode: GameMode): string {
     case 'daily':
       return 'Daily Challenge';
     case 'endless':
-      return 'Endless — Pick a length';
+      return 'Endless';
     default:
       return 'Choose word length';
+  }
+}
+
+function getSubtitle(mode: GameMode): string | null {
+  switch (mode) {
+    case 'daily':
+      return 'Complete all 6 lengths!';
+    case 'endless':
+      return 'Pick a length';
+    default:
+      return null;
   }
 }
 
@@ -147,7 +158,7 @@ export function LengthPickerModal({
     [theme],
   );
 
-  const isDaily = mode === 'daily';
+  const subtitle = getSubtitle(mode);
 
   // ── Scale+fade open animation (Phase 7D) ──
   const cardScale = useRef(new Animated.Value(0.9)).current;
@@ -191,8 +202,8 @@ export function LengthPickerModal({
 
           <Text style={styles.title}>{getTitle(mode)}</Text>
 
-          {isDaily && (
-            <Text style={styles.subtitle}>Complete all 6 lengths!</Text>
+          {subtitle != null && (
+            <Text style={styles.subtitle}>{subtitle}</Text>
           )}
 
           <View style={styles.grid}>

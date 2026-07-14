@@ -84,19 +84,15 @@ export type { SyncPlayerProfileResult } from './playerProfileSync';
 
 export {
   configureAuth,
-  configureGoogleSignIn,
   signIn,
-  signInWithGoogle,
   signOut,
-  signOutFromGoogle,
   signInSilently,
   getCurrentUser,
   onAuthStateChanged,
   getSignInButtonLabel,
+  isPlayGamesAuthAvailable,
   isUsingPlayGamesAuth,
   AuthError,
   AuthErrorCode,
 } from './authService';
 export type { SignInResult, SilentlySignInResult, AuthUser } from './authService';
-/** @deprecated Use SignInResult */
-export type { SignInResult as GoogleSignInResult } from './authService';

@@ -706,8 +706,8 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           height: 12,
         },
         sliderInset: {
-          // Room for the thumb hit target at 0% / 100%.
-          paddingHorizontal: THUMB_HIT_SIZE / 2,
+          // Room for the thumb at 0% / 100% — keep ≥ THUMB_SIZE/2 so it doesn't clip.
+          paddingHorizontal: Math.ceil(THUMB_SIZE / 2) + 4,
         },
         sliderTouchArea: {
           height: TOUCH_HEIGHT,

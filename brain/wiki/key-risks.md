@@ -293,5 +293,5 @@ The following attributionTag entry was appended to P37 but is a separate issue:
 ### P24: Zustand persist hydration race on cold start (CAUGHT AT PLAN-CHECK)
 - Cause: authStore persisted to AsyncStorage. On cold start, rehydration is async — isLoggedIn briefly false before persisted true loads.
 - Impact: Brief flash of "not signed in" UI on app launch for authenticated users.
-- Fix: Gate auth-dependent UI with `_hasHydrated`. `googleSignInSilently` clears stale isLoggedIn on failure.
+- Fix: Gate auth-dependent UI with `_hasHydrated`. `signInSilently` clears stale isLoggedIn on failure.
 - Phase: 5

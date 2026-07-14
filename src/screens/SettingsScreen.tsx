@@ -83,8 +83,8 @@ export function SettingsScreen() {
   // Auth state
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const playerName = useAuthStore(s => s.playerName);
-  const googleSignIn = useAuthStore(s => s.googleSignIn);
-  const googleSignOut = useAuthStore(s => s.googleSignOut);
+  const signIn = useAuthStore(s => s.signIn);
+  const signOutAccount = useAuthStore(s => s.signOutAccount);
   const isAuthPending = useAuthStore(s => s.isAuthPending);
 
   const showToast = useCallback((message: string, isSuccess: boolean) => {
@@ -92,20 +92,20 @@ export function SettingsScreen() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const handleGoogleSignIn = useCallback(async () => {
-    const success = await googleSignIn();
+  const handleSignIn = useCallback(async () => {
+    const success = await signIn();
     if (success) {
       showToast('Signed in successfully!', true);
     } else {
       const error = useAuthStore.getState().authError;
       showToast(error ?? 'Sign-in failed.', false);
     }
-  }, [googleSignIn, showToast]);
+  }, [signIn, showToast]);
 
-  const handleGoogleSignOut = useCallback(async () => {
-    await googleSignOut();
+  const handleSignOut = useCallback(async () => {
+    await signOutAccount();
     showToast('Signed out', true);
-  }, [googleSignOut, showToast]);
+  }, [signOutAccount, showToast]);
 
   const handleRestore = useCallback(async () => {
     try {
@@ -181,8 +181,8 @@ export function SettingsScreen() {
                     config={row}
                     onRestore={row.type === 'restore' ? handleRestore : undefined}
                     onPurchase={row.type === 'purchase' ? handlePurchase : undefined}
-                    onSignIn={row.type === 'signInButton' ? handleGoogleSignIn : undefined}
-                    onSignOut={row.type === 'signInButton' ? handleGoogleSignOut : undefined}
+                    onSignIn={row.type === 'signInButton' ? handleSignIn : undefined}
+                    onSignOut={row.type === 'signInButton' ? handleSignOut : undefined}
                     isLoggedIn={row.type === 'signInButton' ? isLoggedIn : undefined}
                     playerName={row.type === 'signInButton' ? playerName : undefined}
                   />

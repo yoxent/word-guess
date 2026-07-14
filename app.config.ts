@@ -42,7 +42,6 @@ const config: ExpoConfig = {
     'react-native-iap',
     '@react-native-firebase/app',
     '@react-native-firebase/auth',
-    '@react-native-google-signin/google-signin',
     [
       'react-native-google-mobile-ads',
       {

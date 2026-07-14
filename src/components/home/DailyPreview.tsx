@@ -14,7 +14,8 @@ interface DailyPreviewProps {
 /**
  * Daily Preview — shows today's progress across all 6 word lengths (5–10).
  * Each length is a pill badge: green checkmark for completed, outline for
- * incomplete. Shown below mode cards on the home screen.
+ * incomplete. Shown below mode cards on the home screen. Pills stay on one
+ * row (including "10") via nowrap + equal flex shrink.
  */
 export function DailyPreview({ completedLengths }: DailyPreviewProps) {
   const theme = useTheme();
@@ -40,18 +41,25 @@ export function DailyPreview({ completedLengths }: DailyPreviewProps) {
         },
         grid: {
           flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: 8,
+          flexWrap: 'nowrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 6,
+          width: '100%',
         },
         pill: {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 4,
+          justifyContent: 'center',
+          gap: 2,
           paddingVertical: 6,
-          paddingHorizontal: 12,
+          paddingHorizontal: 8,
           borderRadius: 20,
           minHeight: 34,
+          flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: 0,
+          minWidth: 0,
         },
         pillCompleted: {
           backgroundColor: theme.colors.status.success,

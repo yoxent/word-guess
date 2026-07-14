@@ -1,64 +1,70 @@
 import { TestIds } from 'react-native-google-mobile-ads';
-import { getRemoteConfig, fetchAndActivate, getValue } from '@react-native-firebase/remote-config';
+import {
+  getRemoteConfig,
+  fetchAndActivate,
+  getValue,
+} from '@react-native-firebase/remote-config';
 
-// Default test IDs used when Remote Config fetch fails or in dev (D-108)
-const DEFAULT_INTERSTITIAL_ID = __DEV__ ? TestIds.INTERSTITIAL : '';
-const DEFAULT_REWARDED_ID = __DEV__ ? TestIds.REWARDED : '';
+/**
+ * Production AdMob unit IDs (also published in Firebase Remote Config).
+ * Baked in so release builds never fall through to Google test ads when
+ * Remote Config has not finished fetching yet.
+ */
+export const PRODUCTION_INTERSTITIAL_ID =
+  'ca-app-pub-4297882562709937/5589745315';
+export const PRODUCTION_REWARDED_ID =
+  'ca-app-pub-4297882562709937/8970431595';
 
-// Remote Config instance — initialised once at module level
+const DEFAULT_INTERSTITIAL_ID = __DEV__
+  ? TestIds.INTERSTITIAL
+  : PRODUCTION_INTERSTITIAL_ID;
+const DEFAULT_REWARDED_ID = __DEV__
+  ? TestIds.REWARDED
+  : PRODUCTION_REWARDED_ID;
+
 const rc = getRemoteConfig();
-
-let fetched = false;
 
 /**
  * Fetch and activate Remote Config values from Firebase.
- * Fire-and-forget — call on app launch, does not block startup.
- * Falls back silently to compiled-in test IDs on failure (D-108).
+ * Call before preloading ads. Getters always have live production
+ * fallbacks even if this fetch fails.
  */
 export async function fetchAdUnitIds(): Promise<void> {
   try {
     await fetchAndActivate(rc);
-    fetched = true;
   } catch {
-    // Fallback to test IDs on failure (D-108)
-    fetched = false;
+    // Keep compiled-in production IDs (D-108)
   }
 }
 
 /**
  * Returns the interstitial ad unit ID.
  * - In development (`__DEV__`): always uses Google test ad ID
- * - In production: reads from Remote Config key `admob_interstitial_id`
- * - Falls back to empty string if Remote Config fetch hasn't completed
+ * - In production: Remote Config key `admob_interstitial_id`, else live default
  */
 export function getInterstitialAdId(): string {
   if (__DEV__) return TestIds.INTERSTITIAL;
-  if (!fetched) return DEFAULT_INTERSTITIAL_ID;
   try {
-    return (
-      getValue(rc, 'admob_interstitial_id').asString() ||
-      DEFAULT_INTERSTITIAL_ID
-    );
+    const fromRc = getValue(rc, 'admob_interstitial_id').asString();
+    if (fromRc) return fromRc;
   } catch {
-    return DEFAULT_INTERSTITIAL_ID;
+    // fall through
   }
+  return DEFAULT_INTERSTITIAL_ID;
 }
 
 /**
  * Returns the rewarded ad unit ID.
  * - In development (`__DEV__`): always uses Google test ad ID
- * - In production: reads from Remote Config key `admob_rewarded_id`
- * - Falls back to empty string if Remote Config fetch hasn't completed
+ * - In production: Remote Config key `admob_rewarded_id`, else live default
  */
 export function getRewardedAdId(): string {
   if (__DEV__) return TestIds.REWARDED;
-  if (!fetched) return DEFAULT_REWARDED_ID;
   try {
-    return (
-      getValue(rc, 'admob_rewarded_id').asString() ||
-      DEFAULT_REWARDED_ID
-    );
+    const fromRc = getValue(rc, 'admob_rewarded_id').asString();
+    if (fromRc) return fromRc;
   } catch {
-    return DEFAULT_REWARDED_ID;
+    // fall through
   }
+  return DEFAULT_REWARDED_ID;
 }

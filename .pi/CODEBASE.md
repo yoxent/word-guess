@@ -141,7 +141,7 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | gameStore | `src/stores/gameStore.ts` | Session (MMKV save/restore) | Game state — guesses, feedback, currentGuess, keyColors, isRevealing, pendingInputs, session management |
 | settingsStore | `src/stores/settingsStore.ts` | MMKV (persist middleware) | hardMode, sound, haptic, isPro toggles |
 | statsStore | `src/stores/statsStore.ts` | SQLite (via storage service) | Aggregated stats — total games, win%, streaks, guess distribution, games by length |
-| authStore | `src/stores/authStore.ts` | AsyncStorage (persist) | Firebase auth session, Google Sign-In tokens |
+| authStore | `src/stores/authStore.ts` | AsyncStorage (persist) | Firebase auth session (Play Games) |
 | dictionaryStore | `src/stores/dictionaryStore.ts` | In-memory (static require) | Word list loading, validation, random/daily word selection |
 
 | File | Purpose |
@@ -208,7 +208,7 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | `brain/wiki/game-modes.md` | Random/Daily/Endless, Hard Mode rules, tile feedback |
 | `brain/wiki/key-risks.md` | Critical/moderate risks with mitigations and fixes |
 | `brain/wiki/phase-structure.md` | 6-phase roadmap, dependencies, per-phase details |
-| `brain/wiki/google-signin.md` | SHA-1 triple registration, Web client ID |
+| `brain/wiki/google-signin.md` | Play Games → Firebase Auth setup |
 | `brain/wiki/animation-system.md` | Reanimated tile flips, timing, input queue |
 | `brain/wiki/git-conventions.md` | Tracked/ignored files, brain vs CLAUDE.md |
 | `brain/wiki/dev-workflow.md` | Android Studio + Metro coexistence, prebuild caveats |

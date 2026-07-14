@@ -64,13 +64,14 @@ export function StatsScreen() {
         // Overview with progress ring
         overviewTop: {
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'space-around',
           marginBottom: 16,
         },
         overviewStats: {
           flex: 1,
           alignItems: 'center',
+          justifyContent: 'flex-end',
         },
         // Stat grid
         statGrid: {
@@ -109,6 +110,8 @@ export function StatsScreen() {
         streakLabel: {
           ...typography.small,
           color: theme.colors.text.secondary,
+          marginTop: 6,
+          textAlign: 'center',
         },
         // Per-mode streaks — 3 columns (Daily / Endless / Free·Random), normal + hard stacked
         perModeRow: {
@@ -134,16 +137,16 @@ export function StatsScreen() {
           marginBottom: 6,
           textAlign: 'center',
         },
+        // Same type for Normal + Hard — don't override fontWeight (mismatched
+        // weight vs FONTS.caption makes RN fall back to a different system font).
         perModeValue: {
           ...typography.small,
           color: theme.colors.text.primary,
-          fontWeight: '700',
           marginTop: 2,
         },
         perModeHard: {
           ...typography.small,
           color: theme.colors.brand.secondary,
-          fontWeight: '600',
           marginTop: 4,
         },
         // By-length table

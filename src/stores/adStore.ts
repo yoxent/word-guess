@@ -2,11 +2,27 @@ import { create } from 'zustand';
 import {
   InterstitialAd,
   RewardedAd,
-  TestIds,
   AdEventType,
   RewardedAdEventType,
 } from 'react-native-google-mobile-ads';
-import { getInterstitialAdId, getRewardedAdId } from '../services/remoteConfig';
+import {
+  getInterstitialAdId,
+  getRewardedAdId,
+  PRODUCTION_INTERSTITIAL_ID,
+  PRODUCTION_REWARDED_ID,
+} from '../services/remoteConfig';
+
+function resolveInterstitialUnitId(): string {
+  const id = getInterstitialAdId().trim();
+  // Never fall back to Google test ads in release — that is what made
+  // Play Store builds still show "Test Ad" creatives.
+  return id || PRODUCTION_INTERSTITIAL_ID;
+}
+
+function resolveRewardedUnitId(): string {
+  const id = getRewardedAdId().trim();
+  return id || PRODUCTION_REWARDED_ID;
+}
 
 // ---------------------------------------------------------------------------
 // Module-level ad instances — stored outside Zustand (not serializable)
@@ -84,7 +100,7 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     // Clean up any previous ad instance
     cleanupInterstitial();
 
-    const adUnitId = getInterstitialAdId() || TestIds.INTERSTITIAL;
+    const adUnitId = resolveInterstitialUnitId();
     interstitialAd = InterstitialAd.createForAdRequest(adUnitId);
 
     interstitialUnsubscribe = interstitialAd.addAdEventListener(
@@ -118,7 +134,7 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     // Clean up any previous ad instance
     cleanupRewarded();
 
-    const adUnitId = getRewardedAdId() || TestIds.REWARDED;
+    const adUnitId = resolveRewardedUnitId();
     rewardedAd = RewardedAd.createForAdRequest(adUnitId);
 
     rewardedUnsubscribe = rewardedAd.addAdEventListener(

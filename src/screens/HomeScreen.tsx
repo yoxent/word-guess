@@ -117,6 +117,11 @@ export function HomeScreen() {
           gap: 14,
           marginBottom: 8,
         },
+        // Match modesSection width so Today's Challenge pills share the same edges
+        dailyPreviewSection: {
+          width: '100%',
+          maxWidth: 340,
+        },
         // ── Hard Mode ──
         hardModeSection: {
           alignItems: 'center',
@@ -490,7 +495,7 @@ export function HomeScreen() {
         </Animated.View>
 
         {/* ── Daily Preview ── */}
-        <Animated.View style={fadeSlide(previewAnim)}>
+        <Animated.View style={[styles.dailyPreviewSection, fadeSlide(previewAnim)]}>
           <DailyPreview completedLengths={completedDailyLengths} />
         </Animated.View>
       </ScrollView>

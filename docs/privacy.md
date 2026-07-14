@@ -12,11 +12,11 @@ By installing or using the App, you agree to the terms of this Privacy Policy.
 
 ### 1.1 Information You Provide
 
-The App is fully playable **without creating an account or signing in**. If you choose to sign in (via Google Play Games on Android, or Google Sign-In where offered) to enable cloud sync and global leaderboards, we may collect:
+The App is fully playable **without creating an account or signing in**. If you choose to sign in via Google Play Games (Android) to enable cloud sync and global leaderboards, we may collect:
 
-- **Display name** (from your Play Games or Google profile)
-- **Account email address** (when provided by the sign-in provider)
-- **Profile photo URL** (if available from the sign-in provider)
+- **Display name** (from your Play Games profile)
+- **Account email address** (when provided by Play Games)
+- **Profile photo URL** (if available from Play Games)
 - **Player identifier** (a non-personally-identifiable ID used for leaderboard ranking and cloud sync)
 
 If you do not sign in, the App stores your game history and statistics only on your device. We do not transmit your gameplay data to any server until you sign in.
@@ -71,7 +71,6 @@ The App uses the following third-party services, each governed by its own privac
 |---------|---------|----------------|
 | **Google AdMob** | Advertising | <https://support.google.com/admob/answer/6128543> |
 | **Google Play Games Services** | Optional account authentication (Android) | <https://policies.google.com/privacy> |
-| **Google Sign-In** | Optional account authentication (where offered) | <https://policies.google.com/privacy> |
 | **Firebase Authentication** | Account management | <https://firebase.google.com/support/privacy> |
 | **Firebase Firestore** | Cloud storage of stats and leaderboard scores | <https://firebase.google.com/support/privacy> |
 | **Firebase Remote Config** | App configuration (e.g. ad unit IDs) | <https://firebase.google.com/support/privacy> |
@@ -127,7 +126,7 @@ We may update this Privacy Policy from time to time. When we do, we will revise 
 If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
 
 **Vorith Studio**
-Email: <xent.xent@gmail.com>
+Email: <vorithstudio@gmail.com>
 Package: `com.vorithstudio.wordguess`
 
 ---

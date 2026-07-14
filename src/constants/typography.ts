@@ -60,7 +60,7 @@ export const typography: Record<string, TextStyle> = {
   statLabel: {
     fontFamily: FONTS.caption,
     fontSize: Math.round(12 * fontScale),
-    fontWeight: '700',
+    fontWeight: '600', // must match FONTS.caption or RN falls back to system font
     lineHeight: Math.round(16 * fontScale),
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -78,9 +78,9 @@ export const typography: Record<string, TextStyle> = {
    */
   small: {
     fontFamily: FONTS.caption,
-    fontSize: Math.round(12 * fontScale),
-    fontWeight: '700',
-    lineHeight: Math.round(16 * fontScale),
+    fontSize: Math.round(13 * fontScale),
+    fontWeight: '600', // must match FONTS.caption or RN falls back to system font
+    lineHeight: Math.round(17 * fontScale),
     letterSpacing: 0.2,
   },
 } as const;
