@@ -206,4 +206,88 @@ describe('syncPlayerProfileOnAuth', () => {
     );
     expect(storage.setStatsOwnerPlayerId).toHaveBeenCalledWith('B');
   });
+
+  it('owner mismatch + cloud missing → clears stale game_result before merge/hydrate/push, not just on success', async () => {
+    (storage.getStatsOwnerPlayerId as jest.Mock).mockReturnValue('A');
+    (storage.readStatsProfile as jest.Mock).mockReturnValue({
+      stats: emptyStats({ totalGames: 50, wins: 40 }),
+      updatedAtMs: 5000,
+    });
+    (firestoreService.getPlayerStatsResult as jest.Mock).mockResolvedValue({ kind: 'missing' });
+    // Simulate the push itself failing too — the *early* owner-mismatch
+    // clear must still have happened even though this run also re-enqueues
+    // (under the new owner) and returns `{ ok: false }`.
+    (firestoreService.updatePlayerStats as jest.Mock).mockResolvedValue(false);
+
+    const callOrder: string[] = [];
+    (syncQueue.removeEventsByType as jest.Mock).mockImplementation(async () => {
+      callOrder.push('remove');
+      return 1;
+    });
+    (storage.writeStatsProfile as jest.Mock).mockImplementation(() => {
+      callOrder.push('hydrate');
+    });
+    (firestoreService.updatePlayerStats as jest.Mock).mockImplementation(async () => {
+      callOrder.push('push');
+      return false;
+    });
+
+    const result = await syncPlayerProfileOnAuth({ playerId: 'B', playerName: 'Bob' });
+
+    expect(result.ok).toBe(false);
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('game_result');
+    // The owner-mismatch clear ran first — before hydrate and before push —
+    // so a stale account-A snapshot can't be drained under account B either
+    // by a concurrent drain or after this sync returns `{ ok: false }`.
+    expect(callOrder[0]).toBe('remove');
+    expect(callOrder.indexOf('remove')).toBeLessThan(callOrder.indexOf('hydrate'));
+    expect(callOrder.indexOf('remove')).toBeLessThan(callOrder.indexOf('push'));
+  });
+
+  it('owner mismatch + cloud found (merge, not replace) → still clears stale game_result early', async () => {
+    (storage.getStatsOwnerPlayerId as jest.Mock).mockReturnValue('A');
+    (storage.readStatsProfile as jest.Mock).mockReturnValue({
+      stats: emptyStats({ totalGames: 5, wins: 3 }),
+      updatedAtMs: 1000,
+    });
+    (firestoreService.getPlayerStatsResult as jest.Mock).mockResolvedValue({
+      kind: 'found',
+      profile: {
+        stats: emptyStats({ totalGames: 2, wins: 1 }),
+        endless: endless0,
+        updatedAtMs: 1,
+      },
+    });
+
+    const result = await syncPlayerProfileOnAuth({ playerId: 'B', playerName: 'Bob' });
+
+    expect(result).toEqual({ ok: true, action: 'replace' });
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('game_result');
+    // Called once for the early owner-mismatch clear, and again after the
+    // successful push at the end of the function.
+    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(2);
+  });
+
+  it('no owner mismatch (first sign-in, owner null) → does not call removeEventsByType early', async () => {
+    (storage.readStatsProfile as jest.Mock).mockReturnValue({
+      stats: emptyStats({ totalGames: 5, wins: 3 }),
+      updatedAtMs: 1000,
+    });
+    (firestoreService.getPlayerStatsResult as jest.Mock).mockResolvedValue({ kind: 'missing' });
+
+    await syncPlayerProfileOnAuth({ playerId: 'p1', playerName: 'Alice' });
+
+    // Only the post-push supersede call, not an extra early one.
+    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(1);
+  });
+
+  it('unexpected synchronous throw inside the orchestration → returns { ok: false } instead of throwing', async () => {
+    (storage.readStatsProfile as jest.Mock).mockImplementation(() => {
+      throw new Error('MMKV corrupted');
+    });
+
+    await expect(
+      syncPlayerProfileOnAuth({ playerId: 'p1', playerName: 'Alice' }),
+    ).resolves.toEqual({ ok: false });
+  });
 });

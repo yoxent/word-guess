@@ -150,11 +150,19 @@ export default function App() {
       if (state === 'active') {
         const authState = useAuthStore.getState();
         if (hasSignedInPlayer(authState)) {
+          // Sequenced, not parallel: drain must not race the profile sync's
+          // own `removeEventsByType('game_result')` / re-enqueue, or a
+          // prior-owner (or pre-merge) snapshot could be pushed before the
+          // sync has a chance to supersede it. Soft-fail via `.catch()` so a
+          // pull error can't skip the drain that follows.
           syncPlayerProfileOnAuth({
             playerId: authState.playerId,
             playerName: authState.playerName ?? 'Player',
-          }).catch(() => {});
-          syncQueue.drainQueue(drainHandler);
+          })
+            .catch(() => {})
+            .then(() => {
+              syncQueue.drainQueue(drainHandler);
+            });
         }
       }
     });
