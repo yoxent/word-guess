@@ -206,4 +206,3 @@ Documented for revisit. **Not in this slice.**
 3. Signed-out Stats still works from local data.
 4. Account B signing in on a device that had account A’s local data does **not** merge A into B.
 5. Stale queued `game_result` events do not overwrite a fresher merged profile.
-}
