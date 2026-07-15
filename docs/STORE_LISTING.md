@@ -3,6 +3,8 @@
 **Package:** `com.vorithstudio.wordguess`  
 **Version:** 1.0.0  
 
+Declarations Q&A (App access, Data safety, ages, tags): [PLAY_CONSOLE_DECLARATIONS.md](./PLAY_CONSOLE_DECLARATIONS.md)
+
 ---
 
 ## Short description (80 characters max)
