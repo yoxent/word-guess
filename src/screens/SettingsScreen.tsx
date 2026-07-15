@@ -160,6 +160,7 @@ export function SettingsScreen() {
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const playerId = useAuthStore(s => s.playerId);
   const playerName = useAuthStore(s => s.playerName);
+  const playerPhoto = useAuthStore(s => s.playerPhoto);
   const signIn = useAuthStore(s => s.signIn);
   const signOutAccount = useAuthStore(s => s.signOutAccount);
   const isAuthPending = useAuthStore(s => s.isAuthPending);
@@ -299,6 +300,7 @@ export function SettingsScreen() {
                     onSignOut={row.type === 'signInButton' ? handleSignOutPress : undefined}
                     isLoggedIn={row.type === 'signInButton' ? isLoggedIn : undefined}
                     playerName={row.type === 'signInButton' ? playerName : undefined}
+                    playerPhoto={row.type === 'signInButton' ? playerPhoto : undefined}
                     isAuthPending={row.type === 'signInButton' ? isAuthPending : undefined}
                   />
                   {i < section.rows.length - 1 && <View style={styles.divider} />}

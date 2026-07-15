@@ -9,6 +9,7 @@ import {
   LayoutChangeEvent,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -28,6 +29,7 @@ interface SettingsRowProps {
   onSignOut?: () => Promise<void>;
   isLoggedIn?: boolean;
   playerName?: string | null;
+  playerPhoto?: string | null;
   isAuthPending?: boolean;
 }
 
@@ -40,6 +42,7 @@ export function SettingsRow({
   onSignOut,
   isLoggedIn,
   playerName,
+  playerPhoto,
   isAuthPending,
 }: SettingsRowProps) {
   switch (config.type) {
@@ -65,6 +68,7 @@ export function SettingsRow({
           onSignOut={onSignOut}
           isLoggedIn={isLoggedIn}
           playerName={playerName}
+          playerPhoto={playerPhoto}
           isAuthPending={isAuthPending}
         />
       );
@@ -195,6 +199,7 @@ function SignInButtonRow({
   onSignOut,
   isLoggedIn,
   playerName,
+  playerPhoto,
   isAuthPending,
 }: {
   config: SettingsRowConfig & { type: 'signInButton' };
@@ -202,17 +207,41 @@ function SignInButtonRow({
   onSignOut?: () => Promise<void>;
   isLoggedIn?: boolean;
   playerName?: string | null;
+  playerPhoto?: string | null;
   isAuthPending?: boolean;
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
+  const [photoFailed, setPhotoFailed] = useState(false);
+
+  useEffect(() => {
+    setPhotoFailed(false);
+  }, [playerPhoto]);
+
+  const showPhoto =
+    typeof playerPhoto === 'string' &&
+    playerPhoto.length > 0 &&
+    !photoFailed;
 
   if (isLoggedIn) {
     return (
       <View style={styles.row}>
         <View style={styles.signInInfo}>
           <View style={styles.avatarCircle}>
-            <MaterialIcons name="person" size={18} color={theme.colors.icon.inverse} />
+            {showPhoto ? (
+              <Image
+                source={{ uri: playerPhoto }}
+                style={styles.avatarImage}
+                onError={() => setPhotoFailed(true)}
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <MaterialIcons
+                name="person"
+                size={18}
+                color={theme.colors.icon.inverse}
+              />
+            )}
           </View>
           <Text style={styles.playerNameLabel} numberOfLines={1} ellipsizeMode="tail">
             {playerName ?? 'Player'}
@@ -570,6 +599,12 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           justifyContent: 'center',
           alignItems: 'center',
           flexShrink: 0,
+          overflow: 'hidden',
+        },
+        avatarImage: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
         },
         signInLabel: {
           ...typography.settingsRow,

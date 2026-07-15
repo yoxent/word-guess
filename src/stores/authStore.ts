@@ -18,7 +18,12 @@ import { hasSignedInPlayer } from '../utils/authState';
 interface AuthStoreState extends AuthState {
   isAuthPending: boolean;
   authError: string | null;
-  setPlayer: (playerId: string, playerName: string, token: string) => Promise<void>;
+  setPlayer: (
+    playerId: string,
+    playerName: string,
+    token: string,
+    playerPhoto?: string | null,
+  ) => Promise<void>;
   /** Clear local auth flags only (no provider call). */
   signOut: () => Promise<void>;
   /** Interactive Play Games sign-in (Settings / Leaderboard). */
@@ -67,13 +72,20 @@ export const useAuthStore = create<AuthStoreState>()(
       isLoggedIn: false,
       playerId: null,
       playerName: null,
+      playerPhoto: null,
       authToken: null,
       isAuthPending: false,
       authError: null,
 
-      setPlayer: async (playerId, playerName, token) => {
+      setPlayer: async (playerId, playerName, token, playerPhoto = null) => {
         await setAuthToken(token);
-        set({ isLoggedIn: true, playerId, playerName, authToken: token });
+        set({
+          isLoggedIn: true,
+          playerId,
+          playerName,
+          playerPhoto: playerPhoto ?? null,
+          authToken: token,
+        });
       },
 
       signOut: async () => {
@@ -82,6 +94,7 @@ export const useAuthStore = create<AuthStoreState>()(
           isLoggedIn: false,
           playerId: null,
           playerName: null,
+          playerPhoto: null,
           authToken: null,
         });
       },
@@ -103,6 +116,7 @@ export const useAuthStore = create<AuthStoreState>()(
               result.user.id,
               result.user.name ?? 'Player',
               'play_games_session',
+              result.user.photo,
             );
 
             await syncPlayerProfileOnAuth({
@@ -158,6 +172,7 @@ export const useAuthStore = create<AuthStoreState>()(
               result.user.id,
               result.user.name ?? 'Player',
               'silent_token',
+              result.user.photo,
             );
 
             await syncPlayerProfileOnAuth({
@@ -177,6 +192,7 @@ export const useAuthStore = create<AuthStoreState>()(
               isLoggedIn: false,
               playerId: null,
               playerName: null,
+              playerPhoto: null,
               authToken: null,
             });
             clearProEntitlementForSignOut();
@@ -188,6 +204,7 @@ export const useAuthStore = create<AuthStoreState>()(
               isLoggedIn: false,
               playerId: null,
               playerName: null,
+              playerPhoto: null,
               authToken: null,
             });
             clearProEntitlementForSignOut();
@@ -208,6 +225,7 @@ export const useAuthStore = create<AuthStoreState>()(
         isLoggedIn: state.isLoggedIn,
         playerId: state.playerId,
         playerName: state.playerName,
+        playerPhoto: state.playerPhoto,
         authToken: state.authToken,
       }),
     },
