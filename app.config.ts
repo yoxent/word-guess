@@ -54,6 +54,16 @@ const config: ExpoConfig = {
       {
         android: {
           kotlinVersion: '2.3.0',
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+          extraProguardRules: [
+            '-keepattributes SourceFile,LineNumberTable',
+            '-keep class com.facebook.react.** { *; }',
+            '-keep class com.mrousavy.nitro.** { *; }',
+            '-keep class com.google.android.gms.games.** { *; }',
+            '-keep class com.google.firebase.** { *; }',
+            '-keep class com.google.android.gms.ads.** { *; }',
+          ].join('\n'),
         },
       },
     ],

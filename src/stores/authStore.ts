@@ -7,6 +7,10 @@ import * as authService from '../services/authService';
 import * as syncQueue from '../services/syncQueue';
 import * as firestoreService from '../services/firestoreService';
 import { syncPlayerProfileOnAuth } from '../services/playerProfileSync';
+import {
+  applyProEntitlementForSession,
+  clearProEntitlementForSignOut,
+} from '../services/iapService';
 import { hasSignedInPlayer } from '../utils/authState';
 
 // ── Types ──
@@ -25,6 +29,13 @@ interface AuthStoreState extends AuthState {
   signInSilently: () => Promise<boolean>;
   clearAuthError: () => void;
 }
+
+/**
+ * Single-flight lock for interactive sign-in.
+ * Rapid taps (Settings / Leaderboard) must not open stacked Play Games panels.
+ * Cleared in `finally` so cancel / failure always unlocks for a retry.
+ */
+let interactiveSignInInFlight: Promise<boolean> | null = null;
 
 // ── Sync queue drain handler — called after successful sign-in (D-123) ──
 
@@ -78,33 +89,45 @@ export const useAuthStore = create<AuthStoreState>()(
 
       /**
        * Interactive Play Games sign-in → Firebase Auth.
+       * Concurrent callers share one in-flight attempt (no stacked native panels).
        */
       signIn: async () => {
-        set({ isAuthPending: true, authError: null });
-        try {
-          const result = await authService.signIn();
-          await get().setPlayer(
-            result.user.id,
-            result.user.name ?? 'Player',
-            'play_games_session',
-          );
-
-          await syncPlayerProfileOnAuth({
-            playerId: result.user.id,
-            playerName: result.user.name ?? 'Player',
-          });
-          syncQueue.drainQueue(drainHandler).catch(() => {});
-
-          set({ isAuthPending: false });
-          return true;
-        } catch (error: unknown) {
-          const message =
-            error instanceof authService.AuthError
-              ? error.message
-              : 'Sign-in failed. Please try again.';
-          set({ isAuthPending: false, authError: message });
-          return false;
+        if (interactiveSignInInFlight) {
+          return interactiveSignInInFlight;
         }
+
+        interactiveSignInInFlight = (async () => {
+          set({ isAuthPending: true, authError: null });
+          try {
+            const result = await authService.signIn();
+            await get().setPlayer(
+              result.user.id,
+              result.user.name ?? 'Player',
+              'play_games_session',
+            );
+
+            await syncPlayerProfileOnAuth({
+              playerId: result.user.id,
+              playerName: result.user.name ?? 'Player',
+            });
+            syncQueue.drainQueue(drainHandler).catch(() => {});
+            applyProEntitlementForSession(true).catch(() => {});
+
+            return true;
+          } catch (error: unknown) {
+            const message =
+              error instanceof authService.AuthError
+                ? error.message
+                : 'Sign-in failed. Please try again.';
+            set({ authError: message });
+            return false;
+          } finally {
+            interactiveSignInInFlight = null;
+            set({ isAuthPending: false });
+          }
+        })();
+
+        return interactiveSignInInFlight;
       },
 
       /**
@@ -118,6 +141,7 @@ export const useAuthStore = create<AuthStoreState>()(
         } catch {
           await get().signOut();
         }
+        clearProEntitlementForSignOut();
         set({ isAuthPending: false, authError: null });
       },
 
@@ -142,6 +166,7 @@ export const useAuthStore = create<AuthStoreState>()(
               playerName: result.user.name ?? 'Player',
             });
             syncQueue.drainQueue(drainHandler).catch(() => {});
+            applyProEntitlementForSession(true).catch(() => {});
 
             return true;
           }
@@ -155,6 +180,7 @@ export const useAuthStore = create<AuthStoreState>()(
               playerName: null,
               authToken: null,
             });
+            clearProEntitlementForSignOut();
           }
           return false;
         } catch {
@@ -165,6 +191,7 @@ export const useAuthStore = create<AuthStoreState>()(
               playerName: null,
               authToken: null,
             });
+            clearProEntitlementForSignOut();
           }
           return false;
         }

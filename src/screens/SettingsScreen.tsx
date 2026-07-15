@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getAvailablePurchases, requestPurchase, purchaseUpdatedListener, finishTransaction } from 'react-native-iap';
 import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { layout } from '../constants/layout';
@@ -9,6 +16,13 @@ import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
+import { hasSignedInPlayer } from '../utils/authState';
+import {
+  purchasePro,
+  restorePro,
+  setIapUiHandlers,
+  isUserCancelled,
+} from '../services/iapService';
 
 export function SettingsScreen() {
   const theme = useTheme();
@@ -73,26 +87,111 @@ export function SettingsScreen() {
           ...typography.button,
           color: theme.colors.text.inverse,
         },
+        modalOverlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        modalCard: {
+          backgroundColor: theme.colors.surface.card,
+          borderRadius: layout.modalBorderRadius,
+          padding: 28,
+          alignItems: 'center',
+          minWidth: 280,
+          maxWidth: '85%',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
+          shadowRadius: 16,
+          elevation: 8,
+        },
+        modalTitle: {
+          ...typography.heading,
+          color: theme.colors.text.primary,
+          marginBottom: 8,
+        },
+        modalMessage: {
+          ...typography.body,
+          color: theme.colors.text.secondary,
+          textAlign: 'center',
+          marginBottom: 24,
+          lineHeight: 22,
+        },
+        modalButtons: {
+          width: '100%',
+          gap: 10,
+        },
+        modalButtonCancel: {
+          backgroundColor: theme.colors.button.primary.bg,
+          borderRadius: layout.buttonBorderRadius,
+          paddingVertical: 16,
+          paddingHorizontal: 24,
+          alignItems: 'center',
+          minHeight: 54,
+        },
+        modalButtonCancelText: {
+          ...typography.button,
+          color: theme.colors.button.primary.fg,
+        },
+        modalButtonSignOut: {
+          borderRadius: layout.buttonBorderRadius,
+          paddingVertical: 16,
+          paddingHorizontal: 24,
+          alignItems: 'center',
+          minHeight: 54,
+          borderWidth: 1.5,
+          borderColor: theme.colors.status.danger,
+        },
+        modalButtonSignOutText: {
+          ...typography.button,
+          color: theme.colors.status.danger,
+        },
       }),
     [theme],
   );
 
   const isPro = useSettingsStore(s => s.isPro);
   const [toast, setToast] = useState<{ message: string; isSuccess: boolean } | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   // Auth state
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const playerId = useAuthStore(s => s.playerId);
   const playerName = useAuthStore(s => s.playerName);
   const signIn = useAuthStore(s => s.signIn);
   const signOutAccount = useAuthStore(s => s.signOutAccount);
   const isAuthPending = useAuthStore(s => s.isAuthPending);
+  const isSignedIn = hasSignedInPlayer({ isLoggedIn, playerId });
 
   const showToast = useCallback((message: string, isSuccess: boolean) => {
     setToast({ message, isSuccess });
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  useEffect(() => {
+    setIapUiHandlers({
+      onPurchaseSuccess: () => {
+        setIsPurchasing(false);
+        showToast('Welcome to Pro!', true);
+      },
+      onPurchaseError: (message) => {
+        setIsPurchasing(false);
+        showToast(message, false);
+      },
+      onPurchaseCancelled: () => {
+        setIsPurchasing(false);
+      },
+    });
+    return () => setIapUiHandlers({});
+  }, [showToast]);
+
   const handleSignIn = useCallback(async () => {
+    // Store single-flight covers the race before isAuthPending re-renders;
+    // skip if already pending so duplicate waiters don't stack failure toasts.
+    if (useAuthStore.getState().isAuthPending) return;
+
     const success = await signIn();
     if (success) {
       showToast('Signed in successfully!', true);
@@ -102,17 +201,27 @@ export function SettingsScreen() {
     }
   }, [signIn, showToast]);
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOutPress = useCallback((): Promise<void> => {
+    if (useAuthStore.getState().isAuthPending) return Promise.resolve();
+    setShowSignOutConfirm(true);
+    return Promise.resolve();
+  }, []);
+
+  const handleCancelSignOut = useCallback(() => {
+    setShowSignOutConfirm(false);
+  }, []);
+
+  const handleConfirmSignOut = useCallback(async () => {
+    setShowSignOutConfirm(false);
     await signOutAccount();
     showToast('Signed out', true);
   }, [signOutAccount, showToast]);
 
   const handleRestore = useCallback(async () => {
+    if (!hasSignedInPlayer(useAuthStore.getState())) return;
     try {
-      const purchases = await getAvailablePurchases();
-      const hasPro = purchases.some(p => p.productId === 'com.vorithstudio.wordguess.pro');
+      const hasPro = await restorePro();
       if (hasPro) {
-        useSettingsStore.getState().setPro(true);
         showToast('Pro restored!', true);
       } else {
         showToast('No purchases found to restore', false);
@@ -122,34 +231,29 @@ export function SettingsScreen() {
     }
   }, [showToast]);
 
-  const handlePurchase = useCallback(async (productId: string) => {
+  const handlePurchase = useCallback(async (_productId: string) => {
+    if (!hasSignedInPlayer(useAuthStore.getState())) return;
+    if (isPurchasing) return;
+    setIsPurchasing(true);
     try {
-      await requestPurchase({
-        request: {
-          google: { skus: [productId] },
-          apple: { sku: productId },
-        },
-        type: 'in-app',
-      });
-    } catch {
+      await purchasePro();
+      // Success toast comes from purchaseUpdatedListener via setIapUiHandlers.
+      // Keep spinner until listener fires (or error / cancel).
+    } catch (error) {
+      setIsPurchasing(false);
+      if (isUserCancelled(error)) return;
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'PRODUCT_UNAVAILABLE') {
+        showToast('Product unavailable. Please try again later.', false);
+        return;
+      }
+      if (code === 'BILLING_UNAVAILABLE') {
+        showToast('Billing is unavailable on this device.', false);
+        return;
+      }
       showToast('Purchase failed. Please try again.', false);
     }
-  }, [showToast]);
-
-  useEffect(() => {
-    const subscription = purchaseUpdatedListener(async (purchase) => {
-      if (purchase.productId === 'com.vorithstudio.wordguess.pro') {
-        try {
-          await finishTransaction({ purchase, isConsumable: false });
-          useSettingsStore.getState().setPro(true);
-          showToast('Welcome to Pro!', true);
-        } catch {
-          showToast('Purchase verification failed.', false);
-        }
-      }
-    });
-    return () => subscription.remove();
-  }, [showToast]);
+  }, [isPurchasing, showToast]);
 
   const filteredConfig = useMemo(() => {
     return settingsConfig.map(section => ({
@@ -161,12 +265,21 @@ export function SettingsScreen() {
         }
         return row;
       }).filter(row => {
-        if (row.type === 'restore' && row.id === 'restorePurchases' && isPro) return false;
-        if (row.type === 'purchase' && row.id === 'removeAds' && isPro) return false;
+        // Pro status / buy / restore only while signed in — entitlement is
+        // session-bound and Play ownership is confusing when signed out.
+        if (row.type === 'info' && row.id === 'proStatus') {
+          return isSignedIn;
+        }
+        if (row.type === 'purchase' && row.id === 'removeAds') {
+          return isSignedIn && !isPro;
+        }
+        if (row.type === 'restore' && row.id === 'restorePurchases') {
+          return isSignedIn && !isPro;
+        }
         return true;
       }),
     }));
-  }, [isPro]);
+  }, [isPro, isSignedIn]);
 
   return (
     <View style={styles.container}>
@@ -181,10 +294,12 @@ export function SettingsScreen() {
                     config={row}
                     onRestore={row.type === 'restore' ? handleRestore : undefined}
                     onPurchase={row.type === 'purchase' ? handlePurchase : undefined}
+                    isPurchasing={row.type === 'purchase' ? isPurchasing : undefined}
                     onSignIn={row.type === 'signInButton' ? handleSignIn : undefined}
-                    onSignOut={row.type === 'signInButton' ? handleSignOut : undefined}
+                    onSignOut={row.type === 'signInButton' ? handleSignOutPress : undefined}
                     isLoggedIn={row.type === 'signInButton' ? isLoggedIn : undefined}
                     playerName={row.type === 'signInButton' ? playerName : undefined}
+                    isAuthPending={row.type === 'signInButton' ? isAuthPending : undefined}
                   />
                   {i < section.rows.length - 1 && <View style={styles.divider} />}
                 </React.Fragment>
@@ -193,6 +308,43 @@ export function SettingsScreen() {
           </View>
         ))}
       </ScrollView>
+
+      <Modal
+        visible={showSignOutConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelSignOut}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCancelSignOut}>
+          <View
+            style={styles.modalCard}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text style={styles.modalTitle}>Sign Out?</Text>
+            <Text style={styles.modalMessage}>
+              Your progress stays on this device. Pro benefits will pause until
+              you sign back in.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={handleCancelSignOut}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonSignOut}
+                onPress={handleConfirmSignOut}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonSignOutText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
       {toast && (
         <View
           style={[

@@ -1,4 +1,5 @@
 import type { AppSettings } from '../types/settings';
+import { config } from '../constants/config';
 
 // ── Stats Screen ──
 
@@ -47,7 +48,7 @@ export const settingsConfig: SettingsSectionConfig[] = [
     rows: [
       { type: 'signInButton', id: 'signIn' },
       { type: 'info', id: 'proStatus', label: 'Pro', value: '—' },
-      { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'One-time purchase, removes all ads forever', productId: 'com.vorithstudio.wordguess.pro' },
+      { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'One-time purchase, removes all ads forever', productId: config.proProductId },
       { type: 'restore', id: 'restorePurchases', label: 'Restore Purchases' },
     ],
   },

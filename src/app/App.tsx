@@ -15,6 +15,7 @@ import * as firestoreService from '../services/firestoreService';
 import { syncPlayerProfileOnAuth } from '../services/playerProfileSync';
 import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
+import { initIap, applyProEntitlementForSession } from '../services/iapService';
 import { hasSignedInPlayer } from '../utils/authState';
 
 export default function App() {
@@ -93,6 +94,14 @@ export default function App() {
         // Initialize sound system (loads BGM + SFX players) — fire-and-forget
         sound.init();
         // BGM start is handled by sound.init() (plays if volume > 0)
+
+        // Play Billing: connect early, then apply Pro only for a signed-in session
+        try {
+          await initIap();
+          await applyProEntitlementForSession(hasSignedInPlayer(useAuthStore.getState()));
+        } catch (error) {
+          console.warn('[App] IAP init failed', error);
+        }
 
         if (__DEV__) {
           console.timeEnd('startup-init');

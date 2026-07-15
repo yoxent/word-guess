@@ -11,7 +11,8 @@ export const config = {
     resetHourUTC: 0,
     maxClockSkewMinutes: 30,
   },
-  proProductId: 'com.vorithstudio.wordguess.pro',
+  /** Play Console one-time product ID (app package is com.vorithstudio.wordguess). */
+  proProductId: 'word_guess_pro',
   databaseName: 'wordguess.db',
   storageKeys: {
     settings: 'wordguess.settings',

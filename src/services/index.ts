@@ -96,3 +96,14 @@ export {
   AuthErrorCode,
 } from './authService';
 export type { SignInResult, SilentlySignInResult, AuthUser } from './authService';
+
+export {
+  initIap,
+  purchasePro,
+  restorePro,
+  syncProFromStore,
+  applyProEntitlementForSession,
+  clearProEntitlementForSignOut,
+  setIapUiHandlers,
+  teardownIap,
+} from './iapService';

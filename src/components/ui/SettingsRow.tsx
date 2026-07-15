@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -26,20 +27,24 @@ interface SettingsRowProps {
   config: SettingsRowConfig;
   onRestore?: () => Promise<void>;
   onPurchase?: (productId: string) => Promise<void>;
+  isPurchasing?: boolean;
   onSignIn?: () => Promise<void>;
   onSignOut?: () => Promise<void>;
   isLoggedIn?: boolean;
   playerName?: string | null;
+  isAuthPending?: boolean;
 }
 
 export function SettingsRow({
   config,
   onRestore,
   onPurchase,
+  isPurchasing,
   onSignIn,
   onSignOut,
   isLoggedIn,
   playerName,
+  isAuthPending,
 }: SettingsRowProps) {
   switch (config.type) {
     case 'toggle':
@@ -55,7 +60,7 @@ export function SettingsRow({
     case 'restore':
       return <RestoreRow config={config} onRestore={onRestore} />;
     case 'purchase':
-      return <PurchaseRow config={config} onPurchase={onPurchase} />;
+      return <PurchaseRow config={config} onPurchase={onPurchase} isPurchasing={isPurchasing} />;
     case 'signInButton':
       return (
         <SignInButtonRow
@@ -64,6 +69,7 @@ export function SettingsRow({
           onSignOut={onSignOut}
           isLoggedIn={isLoggedIn}
           playerName={playerName}
+          isAuthPending={isAuthPending}
         />
       );
     default:
@@ -233,14 +239,27 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
   );
 }
 
-function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { type: 'purchase' }; onPurchase?: (productId: string) => Promise<void> }) {
+function PurchaseRow({
+  config,
+  onPurchase,
+  isPurchasing,
+}: {
+  config: SettingsRowConfig & { type: 'purchase' };
+  onPurchase?: (productId: string) => Promise<void>;
+  isPurchasing?: boolean;
+}) {
   const theme = useTheme();
   const styles = useStyles(theme);
   return (
     <TouchableOpacity
       style={styles.row}
-      onPress={() => onPurchase?.(config.productId)}
+      onPress={() => {
+        if (isPurchasing) return;
+        onPurchase?.(config.productId);
+      }}
       activeOpacity={0.7}
+      disabled={isPurchasing}
+      accessibilityState={{ disabled: !!isPurchasing, busy: !!isPurchasing }}
     >
       <View style={{ flex: 1, marginRight: 12 }}>
         <Text style={[styles.labelInline, { color: theme.colors.brand.primary }]}>
@@ -249,7 +268,11 @@ function PurchaseRow({ config, onPurchase }: { config: SettingsRowConfig & { typ
         {config.description && <Text style={styles.purchaseDescription}>{config.description}</Text>}
       </View>
       <View style={styles.buyBadge}>
-        <Text style={styles.buyBadgeText}>Buy</Text>
+        {isPurchasing ? (
+          <ActivityIndicator size="small" color={theme.colors.brand.primary} />
+        ) : (
+          <Text style={styles.buyBadgeText}>Buy</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -261,12 +284,14 @@ function SignInButtonRow({
   onSignOut,
   isLoggedIn,
   playerName,
+  isAuthPending,
 }: {
   config: SettingsRowConfig & { type: 'signInButton' };
   onSignIn?: () => Promise<void>;
   onSignOut?: () => Promise<void>;
   isLoggedIn?: boolean;
   playerName?: string | null;
+  isAuthPending?: boolean;
 }) {
   const theme = useTheme();
   const styles = useStyles(theme);
@@ -286,9 +311,14 @@ function SignInButtonRow({
           style={styles.signOutButton}
           onPress={onSignOut}
           activeOpacity={0.7}
+          disabled={isAuthPending}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.signOutText}>Sign Out</Text>
+          {isAuthPending ? (
+            <ActivityIndicator size="small" color={theme.colors.text.secondary} />
+          ) : (
+            <Text style={styles.signOutText}>Sign Out</Text>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -299,14 +329,23 @@ function SignInButtonRow({
       style={styles.row}
       onPress={onSignIn}
       activeOpacity={0.7}
+      disabled={isAuthPending}
     >
       <View style={styles.signInInfo}>
-        <MaterialIcons name="login" size={20} color={theme.colors.brand.primary} />
-        <Text style={styles.signInLabel}>{getSignInButtonLabel()}</Text>
+        {isAuthPending ? (
+          <ActivityIndicator size="small" color={theme.colors.brand.primary} />
+        ) : (
+          <MaterialIcons name="login" size={20} color={theme.colors.brand.primary} />
+        )}
+        <Text style={styles.signInLabel}>
+          {isAuthPending ? 'Signing in…' : getSignInButtonLabel()}
+        </Text>
       </View>
-      <View style={styles.chevron}>
-        <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
-      </View>
+      {!isAuthPending && (
+        <View style={styles.chevron}>
+          <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
