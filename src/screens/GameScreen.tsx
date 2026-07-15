@@ -27,6 +27,10 @@ import {
   markDailyCompleted,
 } from '../services/storage';
 import { getDailyDateString } from '../services/dailySeed';
+import { syncLeaderboardForSession } from '../services/leaderboardService';
+import { updatePlayerStats } from '../services/firestoreService';
+import { enqueueEvent } from '../services/syncQueue';
+import { useAuthStore } from '../stores/authStore';
 import {
   TILE_FLIP_DURATION,
   TILE_STAGGER_DELAY,
@@ -108,25 +112,21 @@ function recordEndGameSideEffects(currentSession: GameSession): void {
 
     const stats = useStatsStore.getState().stats;
 
-    import('../services/leaderboardService').then(({ syncLeaderboardForSession }) => {
-      void syncLeaderboardForSession(currentSession);
-    });
+    void syncLeaderboardForSession(currentSession);
 
-    import('../stores/authStore').then(({ useAuthStore: authStoreRef }) => {
-      const authState = authStoreRef.getState();
-      if (hasSignedInPlayer(authState) && stats) {
-        import('../services/firestoreService').then(({ updatePlayerStats }) => {
-          updatePlayerStats(authState.playerId, authState.playerName ?? 'Player', stats);
-        });
-      } else if (stats) {
-        import('../services/syncQueue').then(({ enqueueEvent }) => {
-          enqueueEvent('game_result', {
-            playerName: 'Player',
-            stats,
-          });
-        });
-      }
-    });
+    const authState = useAuthStore.getState();
+    if (hasSignedInPlayer(authState) && stats) {
+      void updatePlayerStats(
+        authState.playerId,
+        authState.playerName ?? 'Player',
+        stats,
+      );
+    } else if (stats) {
+      void enqueueEvent('game_result', {
+        playerName: 'Player',
+        stats,
+      });
+    }
   };
 
   void persistAndSync();

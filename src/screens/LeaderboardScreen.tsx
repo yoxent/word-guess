@@ -467,20 +467,18 @@ export function LeaderboardScreen() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isAuthPending = useAuthStore((s) => s.isAuthPending);
   const signIn = useAuthStore((s) => s.signIn);
-  const stats = useStatsStore((s) => s.stats);
 
   const [activeTab, setActiveTab] = useState<LeaderboardType>('daily_streak');
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  /** Snapshot only on enter / pull / tab load — not while idle. */
+  const [localScore, setLocalScore] = useState(0);
   const requestIdRef = useRef(0);
   const activeTabRef = useRef(activeTab);
   const hasFocusedRef = useRef(false);
   activeTabRef.current = activeTab;
-
-  const localMetrics = useMemo(() => getLeaderboardMetrics(stats), [stats]);
-  const localScore = localScoreForTab(activeTab, localMetrics);
 
   const loadLeaderboard = useCallback(
     async (type: LeaderboardType = activeTabRef.current) => {
@@ -500,6 +498,12 @@ export function LeaderboardScreen() {
           return;
         }
         setData(result);
+        setLocalScore(
+          localScoreForTab(
+            type,
+            getLeaderboardMetrics(useStatsStore.getState().stats),
+          ),
+        );
       } catch {
         if (
           !shouldApplyLeaderboardResult(

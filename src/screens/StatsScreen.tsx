@@ -17,9 +17,19 @@ import { layout } from '../constants/layout';
 import { statsConfig } from '../config/ui';
 import { StatCard } from '../components/ui/StatCard';
 import { ProgressRing } from '../components/ui/ProgressRing';
+import { HelpTooltip } from '../components/ui/HelpTooltip';
 import { useStatsStore, useSettingsStore } from '../stores';
+import type { PlayerStats } from '../types';
 
 const SCREEN_PADDING = layout.screenPadding;
+
+/** Matches `applyGameToStats` / `computeStatsFromHistory` (D-76). */
+const CURRENT_STREAK_HELP =
+  "Win streak for the mode you last played (Daily, Endless, or Random — Normal or Hard). Switch modes and this number follows that mode's streak.";
+
+/** Matches max of all per-mode max streaks. */
+const BEST_STREAK_HELP =
+  'Your longest win streak across any mode or difficulty — not tied to one category.';
 
 export function StatsScreen() {
   const theme = useTheme();
@@ -107,10 +117,16 @@ export function StatsScreen() {
           ...typography.cardTitle,
           color: theme.colors.brand.secondary,
         },
+        streakLabelRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+          marginTop: 6,
+        },
         streakLabel: {
           ...typography.small,
           color: theme.colors.text.secondary,
-          marginTop: 6,
           textAlign: 'center',
         },
         // Per-mode streaks — 3 columns (Daily / Endless / Free·Random), normal + hard stacked
@@ -216,38 +232,41 @@ export function StatsScreen() {
     [theme],
   );
 
-  const stats = useStatsStore((s) => s.stats);
   const isLoading = useStatsStore((s) => s.isLoading);
   const loadStats = useStatsStore((s) => s.loadStats);
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = React.useState(false);
+  /** Snapshot only updated on enter / pull — store changes while idle do not refresh the UI. */
+  const [displayStats, setDisplayStats] = React.useState<PlayerStats | null>(
+    () => useStatsStore.getState().stats,
+  );
 
   // Entrance animation — start visible when reduceMotion so cards never stay at opacity 0
   const cardAnims = useRef(
     statsConfig.map(() => new Animated.Value(reduceMotion ? 1 : 0)),
   ).current;
 
-  useEffect(() => {
+  const refreshDisplay = useCallback(async () => {
     if (__DEV__) {
       console.time('stats-read');
     }
-    loadStats();
+    await loadStats();
     if (__DEV__) {
       console.timeEnd('stats-read');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setDisplayStats(useStatsStore.getState().stats);
+  }, [loadStats]);
 
-  // Reload when returning from a completed game
+  // Refresh when entering the page (not while idle on it)
   useFocusEffect(
     useCallback(() => {
-      loadStats();
-    }, [loadStats]),
+      void refreshDisplay();
+    }, [refreshDisplay]),
   );
 
   useEffect(() => {
-    if (!stats) return;
+    if (!displayStats) return;
     if (reduceMotion) {
       cardAnims.forEach((anim) => anim.setValue(1));
       return;
@@ -262,13 +281,15 @@ export function StatsScreen() {
     );
     Animated.stagger(80, animations).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats, reduceMotion]);
+  }, [displayStats, reduceMotion]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadStats();
+    await refreshDisplay();
     setRefreshing(false);
-  }, [loadStats]);
+  }, [refreshDisplay]);
+
+  const stats = displayStats;
 
   // ── Internal Content Components (must be before early returns for clarity) ──
 
@@ -296,7 +317,14 @@ export function StatsScreen() {
               <Text style={{ fontSize: 18 }}>🔥</Text>
               <Text style={styles.streakText}>{stats.currentStreak}</Text>
             </View>
-            <Text style={styles.streakLabel}>Current Streak</Text>
+            <View style={styles.streakLabelRow}>
+              <Text style={styles.streakLabel}>Current Streak</Text>
+              <HelpTooltip
+                label="Current Streak"
+                helpText={CURRENT_STREAK_HELP}
+                size={14}
+              />
+            </View>
           </View>
           <View style={styles.overviewStats}>
             <Text style={styles.statValue}>{stats.wins}</Text>
@@ -305,7 +333,14 @@ export function StatsScreen() {
               <Text style={{ fontSize: 18 }}>🏆</Text>
               <Text style={styles.streakText}>{stats.maxStreak}</Text>
             </View>
-            <Text style={styles.streakLabel}>Best Streak</Text>
+            <View style={styles.streakLabelRow}>
+              <Text style={styles.streakLabel}>Best Streak</Text>
+              <HelpTooltip
+                label="Best Streak"
+                helpText={BEST_STREAK_HELP}
+                size={14}
+              />
+            </View>
           </View>
         </View>
 
