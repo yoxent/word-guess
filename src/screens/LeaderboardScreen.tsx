@@ -333,10 +333,15 @@ export function LeaderboardScreen() {
           fontSize: 28,
           marginBottom: 4,
         },
+        // Medal panels use fixed light pastels — always dark text for contrast
+        // in both themes (dark-mode text.primary would wash out on cream/silver).
         podiumName: {
           ...typography.small,
           fontWeight: '700',
-          color: theme.colors.text.primary,
+          color:
+            theme.colors.mode === 'dark'
+              ? theme.colors.text.inverse
+              : theme.colors.text.primary,
           textAlign: 'center',
         },
         podiumFlair: {
@@ -356,6 +361,11 @@ export function LeaderboardScreen() {
           fontWeight: '800',
           color: theme.colors.brand.primary,
           marginTop: 2,
+        },
+        // Highlight only — keep medal pastel bg so name contrast stays correct.
+        podiumCurrentPlayer: {
+          borderWidth: 2,
+          borderColor: theme.colors.brand.primary,
         },
 
         entryRow: {
@@ -714,7 +724,7 @@ export function LeaderboardScreen() {
                   backgroundColor: medal.bg,
                   borderColor: medal.color,
                 },
-                entry.isCurrentPlayer && styles.currentPlayerRow,
+                entry.isCurrentPlayer && styles.podiumCurrentPlayer,
               ]}
             >
               <Text style={styles.podiumMedal}>{medal.icon}</Text>
