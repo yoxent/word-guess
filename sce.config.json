@@ -1,0 +1,30 @@
+{
+  "embedding": {
+    "provider": "openai-compatible",
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "model": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "dimensions": 2048,
+    "batchSize": 1,
+    "apiKeyEnv": "OPENROUTER_API_KEY"
+  },
+  "indexing": {
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "App.tsx",
+      "app.config.ts",
+      "AGENTS.md",
+      "docs/**/*.md"
+    ],
+    "ignore": [
+      "**/__tests__/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "node_modules/**",
+      "android/**",
+      "ios/**",
+      ".expo/**",
+      "dist/**"
+    ]
+  }
+}
