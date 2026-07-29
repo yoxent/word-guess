@@ -83,6 +83,20 @@ jest.mock('../services/storage', () => ({
   getActiveGame: jest.fn().mockReturnValue(null),
   saveActiveGame: jest.fn(),
   clearActiveGame: jest.fn(),
+  toActiveGameSlot: (mode: string, letterCount: number, hardMode: boolean) => ({
+    mode,
+    letterCount,
+    hardMode,
+  }),
+  activeGameSlotFromSession: (session: {
+    mode: string;
+    letterCount: number;
+    hardMode: boolean;
+  }) => ({
+    mode: session.mode,
+    letterCount: session.letterCount,
+    hardMode: session.hardMode,
+  }),
 }));
 
 // Mock sound service

@@ -31,6 +31,7 @@ import {
   getDailyCompletedLengths,
   getActiveGame,
   clearActiveGame,
+  toActiveGameSlot,
 } from '../services';
 import { shouldOfferContinue } from '../utils/activeGame';
 
@@ -290,7 +291,8 @@ export function HomeScreen() {
   // ── Navigation with continue check ──
   const navigateWithContinueCheck = (mode: GameMode, length: number) => {
     const hardMode = useSettingsStore.getState().hardModeEnabled;
-    const saved = getActiveGame(hardMode);
+    const slot = toActiveGameSlot(mode, length, hardMode);
+    const saved = getActiveGame(slot);
     const hasProgress = shouldOfferContinue(saved, mode, length, hardMode);
     if (hasProgress) {
       if (mode === 'daily') {
@@ -300,7 +302,7 @@ export function HomeScreen() {
       const continueLength = mode === 'random' ? saved.letterCount : length;
       setContinueModal({ mode, length: continueLength });
     } else {
-      clearActiveGame(hardMode);
+      clearActiveGame(slot);
       navigation.navigate('Game', { mode, letterCount: length });
     }
   };
@@ -316,7 +318,10 @@ export function HomeScreen() {
 
   const handleNewGame = () => {
     if (!continueModal) return;
-    clearActiveGame(useSettingsStore.getState().hardModeEnabled);
+    const hardMode = useSettingsStore.getState().hardModeEnabled;
+    clearActiveGame(
+      toActiveGameSlot(continueModal.mode, continueModal.length, hardMode),
+    );
     const length =
       continueModal.mode === 'random'
         ? Math.floor(Math.random() * 6) + 5

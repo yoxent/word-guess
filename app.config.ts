@@ -22,7 +22,8 @@ const config: ExpoConfig = {
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#f5f5f0',
+      // Matches navy grid in adaptive-icon.png so OEM masks don't show a cream halo
+      backgroundColor: '#151C53',
     },
     package: 'com.vorithstudio.wordguess',
     googleServicesFile:

@@ -3,7 +3,7 @@ import type { MMKV } from 'react-native-mmkv';
 import type { StateStorage } from 'zustand/middleware';
 import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AppSettings, GameSession, PlayerStats } from '../types';
+import type { AppSettings, GameMode, GameSession, PlayerStats } from '../types';
 import { config } from '../constants/config';
 
 /** Max possible win attempt count: 10-letter base (11) + Pro rewarded extras (3) = 14 */
@@ -23,6 +23,53 @@ export const mmkvZustandStorage: StateStorage = {
 const SETTINGS_KEY = 'wordguess.settings';
 const ACTIVE_GAME_KEY = 'wordguess.activeGame';
 
+/** Identifies one in-progress game slot (modes no longer overwrite each other). */
+export type ActiveGameSlot = {
+  mode: GameMode;
+  letterCount: number;
+  hardMode: boolean;
+};
+
+export function toActiveGameSlot(
+  mode: GameMode,
+  letterCount: number,
+  hardMode: boolean,
+): ActiveGameSlot {
+  return { mode, letterCount, hardMode };
+}
+
+export function activeGameSlotFromSession(
+  session: Pick<GameSession, 'mode' | 'letterCount' | 'hardMode'>,
+): ActiveGameSlot {
+  return {
+    mode: session.mode,
+    letterCount: session.letterCount,
+    hardMode: session.hardMode,
+  };
+}
+
+function activeGameKey(slot: ActiveGameSlot): string {
+  const difficulty = slot.hardMode ? 'hard' : 'normal';
+  // Random keeps a single slot regardless of length (matches resume rules).
+  if (slot.mode === 'random') {
+    return `${ACTIVE_GAME_KEY}_${difficulty}_random`;
+  }
+  return `${ACTIVE_GAME_KEY}_${difficulty}_${slot.mode}_${slot.letterCount}`;
+}
+
+/** Pre-multi-slot keys (one game per hard/normal). Migrated on read. */
+function legacyActiveGameKey(hardMode: boolean): string {
+  return `${ACTIVE_GAME_KEY}_${hardMode ? 'hard' : 'normal'}`;
+}
+
+function sessionMatchesSlot(session: GameSession, slot: ActiveGameSlot): boolean {
+  if (session.hardMode !== slot.hardMode || session.mode !== slot.mode) {
+    return false;
+  }
+  if (slot.mode === 'random') return true;
+  return session.letterCount === slot.letterCount;
+}
+
 export function getSettings(): AppSettings | null {
   const raw = mmkv.getString(SETTINGS_KEY);
   return raw ? JSON.parse(raw) : null;
@@ -32,21 +79,45 @@ export function saveSettings(settings: AppSettings): void {
   mmkv.set(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-function activeGameKey(hardMode: boolean): string {
-  return `${ACTIVE_GAME_KEY}_${hardMode ? 'hard' : 'normal'}`;
-}
+export function getActiveGame(slot: ActiveGameSlot): GameSession | null {
+  const raw = mmkv.getString(activeGameKey(slot));
+  if (raw) {
+    return JSON.parse(raw) as GameSession;
+  }
 
-export function getActiveGame(hardMode: boolean): GameSession | null {
-  const raw = mmkv.getString(activeGameKey(hardMode));
-  return raw ? JSON.parse(raw) : null;
+  // Migrate legacy single-slot saves (one game for all modes).
+  const legacyRaw = mmkv.getString(legacyActiveGameKey(slot.hardMode));
+  if (!legacyRaw) return null;
+  const legacy = JSON.parse(legacyRaw) as GameSession;
+  if (!sessionMatchesSlot(legacy, slot)) return null;
+
+  // Promote into the new per-mode key and drop the shared legacy slot so a
+  // later mode cannot keep reading/overwriting the same blob.
+  mmkv.set(activeGameKey(slot), legacyRaw);
+  mmkv.remove(legacyActiveGameKey(slot.hardMode));
+  return legacy;
 }
 
 export function saveActiveGame(game: GameSession): void {
-  mmkv.set(activeGameKey(game.hardMode), JSON.stringify(game));
+  const slot = activeGameSlotFromSession(game);
+  mmkv.set(activeGameKey(slot), JSON.stringify(game));
+  // Avoid leaving a stale shared legacy blob that could resurrect the wrong mode.
+  mmkv.remove(legacyActiveGameKey(game.hardMode));
 }
 
-export function clearActiveGame(hardMode: boolean): void {
-  mmkv.remove(activeGameKey(hardMode));
+export function clearActiveGame(slot: ActiveGameSlot): void {
+  mmkv.remove(activeGameKey(slot));
+  // If a legacy blob matches this slot, clear it too.
+  const legacyRaw = mmkv.getString(legacyActiveGameKey(slot.hardMode));
+  if (!legacyRaw) return;
+  try {
+    const legacy = JSON.parse(legacyRaw) as GameSession;
+    if (sessionMatchesSlot(legacy, slot)) {
+      mmkv.remove(legacyActiveGameKey(slot.hardMode));
+    }
+  } catch {
+    // ignore corrupt legacy
+  }
 }
 
 // ── SQLite: game history / stats (D-22) ──

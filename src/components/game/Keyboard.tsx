@@ -4,19 +4,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
+import { getKeyboardKeys, getKeyboardRows } from '../../constants/keyboardLayouts';
 import { FONTS } from '../../utils/fonts';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
 import { useSettingsStore } from '../../stores/settingsStore';
 import type { TileFeedback } from '../../types';
-
-const ROWS = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
-];
-
-const ALL_KEYS = ROWS.flat().filter((k) => k !== '');
 
 function isActionKey(key: string): boolean {
   return key === 'ENTER' || key === 'BACKSPACE';
@@ -141,6 +134,10 @@ function KeyboardComponent() {
     [],
   );
 
+  const keyboardLayout = useSettingsStore((s) => s.keyboardLayout);
+  const rows = useMemo(() => getKeyboardRows(keyboardLayout), [keyboardLayout]);
+  const allKeys = useMemo(() => getKeyboardKeys(keyboardLayout), [keyboardLayout]);
+
   const keyColorMap = useMemo<Record<string, string>>(
     () => ({
       correct: theme.colors.key.correct,
@@ -160,6 +157,7 @@ function KeyboardComponent() {
   const removeLetter = useGameStore((s) => s.removeLetter);
   const submitGuess = useGameStore((s) => s.submitGuess);
   const currentGuessLength = useGameStore((s) => s.currentGuess.length);
+  const editIndex = useGameStore((s) => s.editIndex);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
 
@@ -195,11 +193,11 @@ function KeyboardComponent() {
   // Stable per-key handlers so memoized KeyboardKey can skip re-renders
   const pressHandlers = useMemo(() => {
     const map: Record<string, () => void> = {};
-    for (const key of ALL_KEYS) {
+    for (const key of allKeys) {
       map[key] = () => handlePress(key);
     }
     return map;
-  }, [handlePress]);
+  }, [handlePress, allKeys]);
 
   const getKeyFeedback = useCallback(
     (key: string): TileFeedback | undefined =>
@@ -234,17 +232,19 @@ function KeyboardComponent() {
 
   /**
    * Letter keys stay enabled while typing — addLetter already no-ops when
-   * the row is full. Only ENTER / BACKSPACE flip with length so we don't
-   * re-render every letter key on each tap.
+   * the row is full (unless a tile is selected for replace). Only ENTER /
+   * BACKSPACE flip with length so we don't re-render every letter key on each tap.
    */
   const isKeyDisabled = useCallback(
     (key: string): boolean => {
       if (isBlocked) return true;
       if (key === 'ENTER') return currentGuessLength < letterCount;
       if (key === 'BACKSPACE') return currentGuessLength === 0;
+      // Allow letter taps when replacing a selected tile even if the row is full
+      if (editIndex != null) return false;
       return false;
     },
-    [isBlocked, currentGuessLength, letterCount],
+    [isBlocked, currentGuessLength, letterCount, editIndex],
   );
 
   const getKeyDisplay = useCallback((key: string): { text: string; fontSize: number; label: string } => {
@@ -255,11 +255,11 @@ function KeyboardComponent() {
 
   return (
     <View style={styles.container}>
-      {ROWS.map((row, i) => (
-        <View key={i} style={styles.row}>
-          {row.map((key) => {
+      {rows.map((row, i) => (
+        <View key={`${keyboardLayout}-${i}`} style={styles.row}>
+          {row.map((key, keyIndex) => {
             if (key === '') {
-              return <View key="spacer" style={styles.spacer} />;
+              return <View key={`spacer-${i}-${keyIndex}`} style={styles.spacer} />;
             }
             const { text, fontSize, label } = getKeyDisplay(key);
             const disabled = isKeyDisabled(key);

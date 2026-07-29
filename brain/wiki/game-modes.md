@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-12 (share two-line header; stats Random columns; ResultModal share/record)
+updated: 2026-07-29 (per-mode active game slots; rewarded progress persists immediately)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup, stats-and-share]
 
@@ -31,16 +31,17 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Player guesses validated against full dictionary (no exclusions)
 
 ## Continue game prompt
-When selecting a game mode from Home, if a saved in-progress game exists:
+When selecting a game mode from Home, if a saved in-progress game exists **for that mode slot**:
 - **Daily mode:** auto-continues without prompt when `mode` + `letterCount` + progress match — daily puzzle slot is consumed for the day
 - **Random mode:** show Continue / New Game modal when **any** saved random game has progress (`guesses`, rewarded hints, or extra attempts used) — **not** keyed by newly rolled letter count. Continue uses saved `letterCount`; New Game clears save and rolls fresh length
 - **Endless mode:** Continue / New Game when `mode` + `letterCount` match
 - Tap outside modal dismisses (cancel)
 - Implemented via `navigateWithContinueCheck()` + `shouldOfferContinue()` in `src/utils/activeGame.ts`
 - **Continue:** navigates to Game → `shouldRestoreActiveGame()` restores MMKV session
-- **New Game:** `clearActiveGame()` then navigates; `startGame()` also clears persisted slot
-- Saved on back nav, unmount cleanup, and AppState background
-- Starting fresh without continue always calls `clearActiveGame()` first so rewarded hints (`extraGuessesUsed`, `letterHintUsed`, boosted `maxAttempts`) do not leak into a new instance
+- **New Game:** `clearActiveGame(slot)` then navigates; `startGame()` also clears that slot only
+- Saved on back nav, unmount cleanup, AppState background, **and immediately after rewarded letter-hint / +1-attempt**
+- Starting a different mode does **not** wipe another mode’s save (per-mode MMKV keys — see [storage-strategy](storage-strategy.md))
+- Starting fresh without continue clears only the target slot so rewarded hints do not leak into a new instance of the same mode/length
 
 ## Streak tracking (per-mode, Phase 3)
 - **Per-mode × difficulty:** Daily / Endless / Random each have normal + hard streaks in SQLite (`daily_*`, `endless_*`, `random_*`; legacy `free` rows count as random).

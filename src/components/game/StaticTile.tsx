@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { TileFeedback } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
@@ -18,10 +18,21 @@ interface StaticTileProps {
   tileSize: number;
   /** Rewarded letter-hint ghost preview (letter is the hinted char). */
   isHintGhost?: boolean;
+  /** Active-row selection for in-place letter replace. */
+  isSelected?: boolean;
+  onPress?: () => void;
 }
 
 /** Plain tile with no Reanimated worklets — safe for completed / idle rows. */
-export function StaticTile({ letter, feedback, index, tileSize, isHintGhost }: StaticTileProps) {
+export function StaticTile({
+  letter,
+  feedback,
+  index,
+  tileSize,
+  isHintGhost,
+  isSelected = false,
+  onPress,
+}: StaticTileProps) {
   const theme = useTheme();
   const colorBlindMode = useSettingsStore((s) => s.colorBlindMode);
   const styles = useMemo(() => createTileStyles(theme), [theme]);
@@ -33,32 +44,8 @@ export function StaticTile({ letter, feedback, index, tileSize, isHintGhost }: S
   const letterColor = showGhost ? theme.colors.key.hintText : getLetterColor(feedback, theme);
   const tileFontSize = Math.round(tileSize * 0.48);
 
-  return (
-    <View
-      accessible
-      accessibilityLabel={
-        showGhost
-          ? `Position ${index + 1}: ${letter.toUpperCase()}, hint`
-          : getAccessibilityLabel(letter, feedback, index)
-      }
-      accessibilityRole="text"
-      style={[
-        {
-          width: tileSize,
-          height: tileSize,
-          borderRadius: layout.tileBorderRadius,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: showGhost ? theme.colors.key.hintDim : feedbackColors[feedback],
-          overflow: 'hidden',
-        },
-        showBorder && styles.tileBorder,
-        showGhost && {
-          borderWidth: 2,
-          borderColor: theme.colors.key.hint,
-        },
-      ]}
-    >
+  const content = (
+    <>
       {!isEmpty && (
         <Text
           style={[
@@ -104,6 +91,61 @@ export function StaticTile({ letter, feedback, index, tileSize, isHintGhost }: S
           />
         </View>
       )}
+    </>
+  );
+
+  const tileStyle = [
+    {
+      width: tileSize,
+      height: tileSize,
+      borderRadius: layout.tileBorderRadius,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      backgroundColor: showGhost ? theme.colors.key.hintDim : feedbackColors[feedback],
+      overflow: 'hidden' as const,
+    },
+    showBorder && styles.tileBorder,
+    showGhost && {
+      borderWidth: 2,
+      borderColor: theme.colors.key.hint,
+    },
+    isSelected && {
+      borderWidth: 2.5,
+      borderColor: theme.colors.brand.primary,
+    },
+  ];
+
+  const accessibilityLabel = showGhost
+    ? `Position ${index + 1}: ${letter.toUpperCase()}, hint`
+    : getAccessibilityLabel(letter, feedback, index);
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessible
+        accessibilityLabel={
+          isSelected
+            ? `${accessibilityLabel}, selected — tap to deselect or type to replace`
+            : `${accessibilityLabel}, tap to select`
+        }
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
+        onPress={onPress}
+        style={tileStyle}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="text"
+      style={tileStyle}
+    >
+      {content}
     </View>
   );
 }

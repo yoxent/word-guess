@@ -57,6 +57,7 @@ HELP WHEN YOU NEED IT
 
 LOOK & FEEL
 • Light, dark, or system theme
+• On-screen keyboard layouts: QWERTY, QWERTZ, AZERTY, or A–Z
 • Background music and sound effects with separate volume controls
 • Optional haptic feedback
 • Simpler Animations if you prefer less motion

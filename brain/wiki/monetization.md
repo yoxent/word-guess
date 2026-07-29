@@ -1,7 +1,7 @@
 # monetization
-updated: 2026-07-12 (letter hint = ghost tile on active row, not keyboard)
+updated: 2026-07-29 (hint persistence: immediate save + per-mode slots; ad reload recovery)
 tags: [ads, iap, monetization, phase-4, remote-config, ad-hints]
-related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns, hooks-order-discipline]
+related: [phase-structure, tech-stack, ui-config-registry, key-risks, architecture, planning-patterns, hooks-order-discipline, storage-strategy]
 
 ## Business model
 Free-to-play with interstitial ads, rewarded video, Pro IAP $1.99. Pro removes interstitials only — rewarded ads remain available to Pro users (gameplay mechanic, not annoyance gate).
@@ -115,6 +115,7 @@ Rewarded fields do **not** carry to a new game instance. `startGame()` calls `cl
 |-------|------|--------|
 | `extraGuessesUsed` | number | Count of +1 Row hints used |
 | `letterHintUsed` | boolean | Whether letter hint has been used |
+| `hintTile` | `{ index, letter } \| null` | Persisted ghost letter (survives app reopen) |
 | `maxAttempts` | number | Base + extra rows |
 
 ### gameStore actions
@@ -125,13 +126,18 @@ Rewarded fields do **not** carry to a new game instance. `startGame()` calls `cl
 
 ### State management
 - `hintTile: { index, letter } | null` in gameStore — ghost letter for the active row
-- Reset to `null` on successful `submitGuess()`, `resetGame()`, and `restoreSession()`
+- Also stored on `session.hintTile` so MMKV active-game saves keep it across reopen
+- Saved immediately on reward (not only on back / background) so a hint-only game is already an in-progress slot
+- Active games are stored per mode (+ length for daily/endless), so starting Endless does not wipe a Daily hint save
+- Cleared on successful `submitGuess()` and `resetGame()` / `startGame()`
+- `restoreSession()` restores `session.hintTile`; older saves with only `letterHintUsed` regenerate a hint
 
 ### Button styling
 - Row uses `alignSelf: 'stretch'` within screen horizontal padding; each button `flex: 1`
 - Labels share `Watch Ad ·` prefix; play icon on attempt, lightbulb on hint
-- Disabled/dimmed when ad not loaded (`!rewardedLoaded`)
+- Dimmed when ad not loaded (`!rewardedLoaded`); tap while dimmed triggers `ensureRewardedReady()` retry
 - Letter Hint row hidden after use
+- Ad load failures auto-retry with backoff; foreground resume also nudges a reload
 
 Pro users can still watch rewarded ads (D-93). The Pro purchase removes interstitials only — rewarded ads are a gameplay mechanic, not an annoyance.
 

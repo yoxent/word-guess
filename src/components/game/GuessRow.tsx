@@ -24,6 +24,9 @@ interface GuessRowProps {
   error?: string | null;
   /** Ghost letter hint for the active row only. */
   hintTile?: HintTile | null;
+  /** Selected tile index for in-place replace (active row only). */
+  editIndex?: number | null;
+  onTilePress?: (index: number) => void;
 }
 
 function GuessRowComponent({
@@ -36,6 +39,8 @@ function GuessRowComponent({
   tileSize,
   error,
   hintTile = null,
+  editIndex = null,
+  onTilePress,
 }: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
@@ -106,6 +111,12 @@ function GuessRowComponent({
           );
         }
 
+        const canSelect =
+          isActive &&
+          !feedback &&
+          onTilePress != null &&
+          i <= guess.length;
+
         return (
           <StaticTile
             key={i}
@@ -114,6 +125,8 @@ function GuessRowComponent({
             index={i}
             tileSize={tileSize}
             isHintGhost={showHintGhost}
+            isSelected={isActive && editIndex === i}
+            onPress={canSelect ? () => onTilePress(i) : undefined}
           />
         );
       })}

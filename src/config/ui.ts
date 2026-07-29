@@ -26,6 +26,7 @@ export type SettingsRowConfig =
   | { type: 'purchase'; id: string; label: string; description?: string; productId: string }
   | { type: 'signInButton'; id: string }  // Phase 5
   | { type: 'themeSelector'; id: string; label: string }  // Phase 6 (06-01)
+  | { type: 'keyboardLayoutSelector'; id: string; label: string }
   // Phase 6 (07-09): 3-position volume slider for BGM and SFX.
   | { type: 'volumeSlider'; id: string; label: string; description?: string; storeKey: 'bgmVolume' | 'sfxVolume' };
 
@@ -72,6 +73,7 @@ export const settingsConfig: SettingsSectionConfig[] = [
     title: 'Appearance',
     rows: [
       { type: 'themeSelector', id: 'theme', label: 'Theme' },
+      { type: 'keyboardLayoutSelector', id: 'keyboardLayout', label: 'Keyboard' },
       {
         type: 'toggle',
         id: 'reduceMotion',

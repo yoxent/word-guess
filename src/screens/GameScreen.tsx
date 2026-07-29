@@ -25,6 +25,8 @@ import {
   saveActiveGame,
   clearActiveGame,
   markDailyCompleted,
+  toActiveGameSlot,
+  activeGameSlotFromSession,
 } from '../services/storage';
 import { getDailyDateString } from '../services/dailySeed';
 import { syncLeaderboardForSession } from '../services/leaderboardService';
@@ -42,6 +44,7 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
+import { HowToPlayModal } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
 import { useNavigation } from '@react-navigation/native';
@@ -74,7 +77,7 @@ function runAfterUiSettle(callback: () => void): void {
 }
 
 function recordEndGameSideEffects(currentSession: GameSession): void {
-  clearActiveGame(currentSession.hardMode);
+  clearActiveGame(activeGameSlotFromSession(currentSession));
 
   if (currentSession.mode === 'daily') {
     markDailyCompleted(getDailyDateString(), currentSession.letterCount);
@@ -157,15 +160,29 @@ export function GameScreen({ route }: Props) {
           alignItems: 'center',
           height: 52,
         },
+        headerLeft: {
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          minWidth: 0,
+          marginRight: 8,
+        },
         backButton: {
           justifyContent: 'center',
           alignItems: 'center',
           padding: 8,
         },
+        helpButton: {
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 8,
+          flexShrink: 0,
+        },
         headerTitle: {
           ...typography.cardTitle,
           color: '#FFFFFF',
           marginLeft: 8,
+          flexShrink: 1,
         },
         hardModeBadge: {
           flexDirection: 'row',
@@ -176,6 +193,7 @@ export function GameScreen({ route }: Props) {
           paddingVertical: 2,
           paddingHorizontal: 8,
           marginLeft: 8,
+          flexShrink: 0,
         },
         hardModeBadgeText: {
           ...typography.small,
@@ -283,6 +301,7 @@ export function GameScreen({ route }: Props) {
   const flushPendingInputs = useGameStore((s) => s.flushPendingInputs);
   const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const appState = useRef(AppState.currentState);
 
   // ── Back button spring animation ──
@@ -308,8 +327,9 @@ export function GameScreen({ route }: Props) {
   // ── Game initialization ──
   useEffect(() => {
     const hardMode = useSettingsStore.getState().hardModeEnabled;
-    const saved = getActiveGame(hardMode);
     const len = letterCount ?? randomLength();
+    const slot = toActiveGameSlot(mode, len, hardMode);
+    const saved = getActiveGame(slot);
     const shouldRestoreSaved = shouldRestoreActiveGame(saved, mode, len, hardMode);
 
     if (shouldRestoreSaved) {
@@ -318,7 +338,7 @@ export function GameScreen({ route }: Props) {
       return;
     }
 
-    clearActiveGame(hardMode);
+    clearActiveGame(slot);
 
     const dictStore = useDictionaryStore.getState();
 
@@ -355,18 +375,22 @@ export function GameScreen({ route }: Props) {
         const currentSession = useGameStore.getState().session;
         if (!currentSession || currentSession.status !== 'playing') {
           const hardMode = useSettingsStore.getState().hardModeEnabled;
-          const saved = getActiveGame(hardMode);
+          const len = letterCount ?? currentSession?.letterCount ?? randomLength();
+          const saved = getActiveGame(toActiveGameSlot(mode, len, hardMode));
           if (saved && saved.status === 'playing') {
             useGameStore.getState().restoreSession(saved);
           }
         }
+        // Ads can fail/expire while backgrounded — nudge a reload so hint
+        // buttons do not stay dim forever.
+        useAdStore.getState().ensureRewardedReady();
       }
 
       appState.current = nextState;
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [mode, letterCount]);
 
   // ── Persist stats when game ends (backup — ResultModal is primary for all modes) ──
   useEffect(() => {
@@ -473,6 +497,10 @@ export function GameScreen({ route }: Props) {
 
   const handleWatchAd = useCallback(async () => {
     const adStore = useAdStore.getState();
+    if (!adStore.rewardedLoaded) {
+      adStore.ensureRewardedReady();
+      return;
+    }
     await adStore.showRewarded(() => {
       // Defer state update to avoid Fabric crash from rapid view updates
       setTimeout(() => {
@@ -483,6 +511,10 @@ export function GameScreen({ route }: Props) {
 
   const handleLetterHint = useCallback(async () => {
     const adStore = useAdStore.getState();
+    if (!adStore.rewardedLoaded) {
+      adStore.ensureRewardedReady();
+      return;
+    }
     await adStore.showRewarded(() => {
       // Defer state update to avoid Fabric crash from rapid view updates
       setTimeout(() => {
@@ -511,28 +543,40 @@ export function GameScreen({ route }: Props) {
       {/* ── Header — mode-colored bg, plain back icon ── */}
       <View style={[styles.header, { paddingTop: insets.top + 6, marginHorizontal: -layout.screenPadding, backgroundColor: headerColor }]}>
         <View style={styles.headerRow}>
-          <Animated.View style={{ transform: [{ scale: backScale }] }}>
-            <TouchableOpacity
-              onPress={handleBack}
-              onPressIn={onBackPressIn}
-              onPressOut={onBackPressOut}
-              style={styles.backButton}
-              activeOpacity={1}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <MaterialIcons name="arrow-back-ios" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-          </Animated.View>
-          <Text style={styles.headerTitle}>
-            {modeLabel} · {session.letterCount} Letters
-          </Text>
-          {hardModeEnabled && session.status === 'playing' && (
-            <View style={styles.hardModeBadge}>
-              <Text style={styles.hardModeBadgeText}>🔥 Hard</Text>
-            </View>
-          )}
+          <View style={styles.headerLeft}>
+            <Animated.View style={{ transform: [{ scale: backScale }] }}>
+              <TouchableOpacity
+                onPress={handleBack}
+                onPressIn={onBackPressIn}
+                onPressOut={onBackPressOut}
+                style={styles.backButton}
+                activeOpacity={1}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <MaterialIcons name="arrow-back-ios" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </Animated.View>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {modeLabel} · {session.letterCount} Letters
+            </Text>
+            {hardModeEnabled && session.status === 'playing' && (
+              <View style={styles.hardModeBadge}>
+                <Text style={styles.hardModeBadgeText}>🔥 Hard</Text>
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.helpButton}
+            onPress={() => setShowHowToPlay(true)}
+            activeOpacity={0.7}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="How to Play"
+          >
+            <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -575,11 +619,11 @@ export function GameScreen({ route }: Props) {
             <TouchableOpacity
               style={[styles.hintButton, !rewardedLoaded && styles.hintButtonDisabled]}
               onPress={handleWatchAd}
-              disabled={!rewardedLoaded}
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
               accessibilityLabel="Watch ad for an extra attempt"
+              accessibilityState={{ disabled: !rewardedLoaded }}
             >
               <MaterialIcons
                 name="play-circle-outline"
@@ -602,11 +646,11 @@ export function GameScreen({ route }: Props) {
             <TouchableOpacity
               style={[styles.hintButton, styles.letterHintButton, !rewardedLoaded && styles.hintButtonDisabled]}
               onPress={handleLetterHint}
-              disabled={!rewardedLoaded}
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
               accessibilityLabel="Watch ad for a letter hint"
+              accessibilityState={{ disabled: !rewardedLoaded }}
             >
               <MaterialIcons
                 name="lightbulb-outline"
@@ -633,6 +677,11 @@ export function GameScreen({ route }: Props) {
 
       {/* ── Result Modal ── */}
       <ResultModal />
+
+      <HowToPlayModal
+        visible={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+      />
     </View>
   );
 }

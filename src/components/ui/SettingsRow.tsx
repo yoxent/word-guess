@@ -19,6 +19,10 @@ import { useSettingsStore, snapVolume } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
 import { getSignInButtonLabel } from '../../services/authService';
 import { HelpTooltip } from './HelpTooltip';
+import {
+  KEYBOARD_LAYOUT_OPTIONS,
+  type KeyboardLayoutId,
+} from '../../constants/keyboardLayouts';
 
 interface SettingsRowProps {
   config: SettingsRowConfig;
@@ -50,6 +54,8 @@ export function SettingsRow({
       return <ToggleRow config={config} />;
     case 'themeSelector':
       return <ThemeSelectorRow config={config} />;
+    case 'keyboardLayoutSelector':
+      return <KeyboardLayoutSelectorRow config={config} />;
     case 'volumeSlider':
       return <VolumeSliderRow config={config} />;
     case 'placeholder':
@@ -296,9 +302,13 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
   const themeMode = useSettingsStore((s) => s.themeMode);
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
 
+  // Stacked layout: a single horizontal row can squeeze "Theme" / segment
+  // labels to ~1 glyph wide on narrow phones, which wraps vertically.
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>Theme</Text>
+    <View style={styles.themeRow}>
+      <Text style={styles.themeLabel} numberOfLines={1}>
+        Theme
+      </Text>
       <View style={styles.segmentedControl}>
         {(['light', 'dark', 'system'] as const).map((mode) => (
           <TouchableOpacity
@@ -317,11 +327,70 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
                 styles.segmentText,
                 themeMode === mode && styles.segmentTextActive,
               ]}
+              numberOfLines={1}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </Text>
           </TouchableOpacity>
         ))}
+      </View>
+    </View>
+  );
+}
+
+// ── Keyboard Layout Selector ──
+
+function KeyboardLayoutSelectorRow({
+  config: _config,
+}: {
+  config: SettingsRowConfig & { type: 'keyboardLayoutSelector' };
+}) {
+  const theme = useTheme();
+  const styles = useStyles(theme);
+  const keyboardLayout = useSettingsStore((s) => s.keyboardLayout);
+  const setKeyboardLayout = useSettingsStore((s) => s.setKeyboardLayout);
+
+  return (
+    <View style={styles.themeRow}>
+      <Text style={styles.themeLabel} numberOfLines={1}>
+        Keyboard
+      </Text>
+      <View style={styles.keyboardLayoutGrid}>
+        {KEYBOARD_LAYOUT_OPTIONS.map((option) => {
+          const selected = keyboardLayout === option.id;
+          return (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.keyboardLayoutOption,
+                selected && styles.segmentActive,
+              ]}
+              onPress={() => setKeyboardLayout(option.id as KeyboardLayoutId)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`${option.label} keyboard, ${option.description}`}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  selected && styles.segmentTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {option.label}
+              </Text>
+              <Text
+                style={[
+                  styles.keyboardLayoutHint,
+                  selected && styles.keyboardLayoutHintActive,
+                ]}
+                numberOfLines={1}
+              >
+                {option.description}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -627,18 +696,29 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           color: c.status.danger,
           fontWeight: '500',
         },
+        themeRow: {
+          paddingVertical: 12,
+        },
+        themeLabel: {
+          ...typography.settingsRow,
+          color: c.text.primary,
+          includeFontPadding: false,
+          marginBottom: 10,
+        },
         segmentedControl: {
           flexDirection: 'row',
+          alignSelf: 'stretch',
           backgroundColor: c.surface.muted,
           borderRadius: 12, // pill segments
           padding: 3,
-          marginLeft: 12,
         },
         segment: {
+          flex: 1,
           paddingVertical: 7,
-          paddingHorizontal: 14,
+          paddingHorizontal: 8,
           borderRadius: 10,
           alignItems: 'center',
+          justifyContent: 'center',
         },
         segmentActive: {
           backgroundColor: c.brand.primary,
@@ -648,10 +728,38 @@ function useStyles(theme: ReturnType<typeof useTheme>) {
           ...typography.small,
           color: c.text.secondary,
           fontWeight: '500',
+          textAlign: 'center',
         },
         segmentTextActive: {
           color: '#FFFFFF',
           fontWeight: '700',
+        },
+        keyboardLayoutGrid: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+        },
+        keyboardLayoutOption: {
+          flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: '47%',
+          paddingVertical: 10,
+          paddingHorizontal: 10,
+          borderRadius: 10,
+          backgroundColor: c.surface.muted,
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 52,
+        },
+        keyboardLayoutHint: {
+          ...typography.small,
+          fontSize: 11,
+          color: c.text.secondary,
+          marginTop: 2,
+          textAlign: 'center',
+        },
+        keyboardLayoutHintActive: {
+          color: 'rgba(255,255,255,0.85)',
         },
         volumeRow: {
           paddingVertical: 12,

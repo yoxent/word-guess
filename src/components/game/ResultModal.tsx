@@ -25,6 +25,7 @@ import { generateShareText } from '../../utils/share';
 import {
   clearActiveGame,
   markDailyCompleted,
+  activeGameSlotFromSession,
 } from '../../services/storage';
 import { applyEndlessEndCounters } from '../../services/endlessLeaderboardCounters';
 import { syncLeaderboardForSession } from '../../services/leaderboardService';
@@ -96,11 +97,16 @@ export function ResultModal() {
           marginBottom: 8,
         },
         word: {
-          ...typography.display,
+          fontFamily: typography.display.fontFamily,
+          fontSize: typography.display.fontSize,
+          fontWeight: typography.display.fontWeight,
+          // No fixed lineHeight — adjustsFontSizeToFit needs room to shrink.
           color: theme.colors.text.primary,
           marginBottom: 4,
-          letterSpacing: 3,
+          letterSpacing: 2,
           textTransform: 'uppercase',
+          textAlign: 'center',
+          alignSelf: 'stretch',
         },
         definition: {
           ...typography.body,
@@ -220,7 +226,7 @@ export function ResultModal() {
         }
 
         await syncLeaderboardForSession(session);
-        clearActiveGame(session.hardMode);
+        clearActiveGame(activeGameSlotFromSession(session));
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,7 +248,7 @@ export function ResultModal() {
       : allTargets;
     const nextWord = pool[Math.floor(Math.random() * pool.length)];
 
-    clearActiveGame(session?.hardMode ?? false);
+    clearActiveGame(activeGameSlotFromSession(session));
     useGameStore.getState().startGame('endless', nextWord, length, hardMode);
   };
 
@@ -427,8 +433,15 @@ export function ResultModal() {
             {isWin ? 'You Won!' : 'Game Over'}
           </Text>
 
-          {/* Word */}
-          <Text style={styles.word}>{session.word.toUpperCase()}</Text>
+          {/* Word — keep on one line; shrink for 8–10 letter answers */}
+          <Text
+            style={styles.word}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {session.word.toUpperCase()}
+          </Text>
 
           {/* Definition */}
           {definition && (

@@ -49,6 +49,8 @@ export function GameBoard() {
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
   const hintTile = useGameStore((s) => s.hintTile);
+  const editIndex = useGameStore((s) => s.editIndex);
+  const setEditIndex = useGameStore((s) => s.setEditIndex);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-dismiss error toast after 1.5s
@@ -153,6 +155,12 @@ export function GameBoard() {
             tileSize={tileSize}
             error={i === completedGuesses && session.status === 'playing' ? error : null}
             hintTile={row.isActive ? hintTile : null}
+            editIndex={row.isActive ? editIndex : null}
+            onTilePress={
+              row.isActive && !isRevealing
+                ? (index) => setEditIndex(index)
+                : undefined
+            }
           />
         ))}
       </View>

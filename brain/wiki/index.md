@@ -1,5 +1,5 @@
 # Brain Wiki Index
-updated: 2026-07-14 (Play Games–only auth; Google Sign-In removed)
+updated: 2026-07-29 (user-feedback polish: layouts, hint persistence, icons, in-game help)
 tags: [index, mvp, phase-6-executed]
 related: []
 

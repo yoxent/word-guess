@@ -3,11 +3,36 @@ import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../type
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { useDictionaryStore } from './dictionaryStore';
 import { config } from '../constants/config';
-import { clearActiveGame } from '../services/storage';
+import { clearActiveGame, saveActiveGame, toActiveGameSlot } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
 /** Ghost letter shown in the active guess row after a rewarded letter hint. */
 export type HintTile = { index: number; letter: string };
+
+/** Pick a letter hint for the answer, preferring positions not already correct. */
+export function pickLetterHint(
+  word: string,
+  feedback: GuessFeedback[][],
+): HintTile {
+  const upper = word.toUpperCase();
+  const correctPositions = new Set<number>();
+  for (const row of feedback) {
+    row.forEach((tile, index) => {
+      if (tile.feedback === 'correct') correctPositions.add(index);
+    });
+  }
+
+  const candidates = upper
+    .split('')
+    .map((letter, index) => ({ letter, index }))
+    .filter(({ index }) => !correctPositions.has(index));
+
+  const pool =
+    candidates.length > 0
+      ? candidates
+      : upper.split('').map((letter, index) => ({ letter, index }));
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 interface GameState {
   session: GameSession | null;
@@ -17,6 +42,11 @@ interface GameState {
   pendingInputs: string[];
   /** Ghost letter at a correct answer index for the current active row only. */
   hintTile: HintTile | null;
+  /**
+   * Selected tile index in the active guess row for in-place replace.
+   * `null` = append mode (type at the end). Tap a filled tile to select it.
+   */
+  editIndex: number | null;
 
   startGame: (mode: GameMode, word: string, letterCount: number, hardMode: boolean) => void;
   addLetter: (letter: string) => void;
@@ -24,6 +54,7 @@ interface GameState {
   submitGuess: () => void;
   resetGame: () => void;
   setCurrentGuess: (guess: string) => void;
+  setEditIndex: (index: number | null) => void;
   restoreSession: (session: GameSession) => void;
   clearError: () => void;
   setIsRevealing: (revealing: boolean) => void;
@@ -50,9 +81,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
   isRevealing: false,
   pendingInputs: [],
   hintTile: null,
+  editIndex: null,
 
   startGame: (mode, word, letterCount, hardMode) => {
-    clearActiveGame(hardMode);
+    clearActiveGame(toActiveGameSlot(mode, letterCount, hardMode));
 
     const session: GameSession = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
@@ -66,24 +98,57 @@ export const useGameStore = create<GameState>()((set, get) => ({
       hardMode,
       extraGuessesUsed: 0,
       letterHintUsed: false,
+      hintTile: null,
       maxAttempts: letterCount + 1,
       startedAt: new Date().toISOString(),
     };
-    set({ session, currentGuess: '', error: null, pendingInputs: [], hintTile: null });
+    set({
+      session,
+      currentGuess: '',
+      error: null,
+      pendingInputs: [],
+      hintTile: null,
+      editIndex: null,
+    });
   },
 
   addLetter: (letter) => {
-    const { session, currentGuess } = get();
+    const { session, currentGuess, editIndex } = get();
     if (!session || session.status !== 'playing') return;
-    if (currentGuess.length >= session.letterCount) return;
     const upper = letter.toUpperCase();
-    set({ currentGuess: currentGuess + upper });
+
+    // Replace a selected letter in-place (keeps the rest of the sequence).
+    if (editIndex != null && editIndex >= 0 && editIndex < currentGuess.length) {
+      const chars = currentGuess.split('');
+      chars[editIndex] = upper;
+      const nextIndex = editIndex + 1;
+      set({
+        currentGuess: chars.join(''),
+        editIndex: nextIndex < chars.length ? nextIndex : null,
+      });
+      return;
+    }
+
+    if (currentGuess.length >= session.letterCount) return;
+    set({ currentGuess: currentGuess + upper, editIndex: null });
   },
 
   removeLetter: () => {
-    const { currentGuess } = get();
+    const { currentGuess, editIndex } = get();
     if (currentGuess.length === 0) return;
-    set({ currentGuess: currentGuess.slice(0, -1) });
+
+    if (editIndex != null && editIndex < currentGuess.length) {
+      const chars = currentGuess.split('');
+      chars.splice(editIndex, 1);
+      const next = chars.join('');
+      set({
+        currentGuess: next,
+        editIndex: next.length === 0 ? null : Math.min(editIndex, next.length - 1),
+      });
+      return;
+    }
+
+    set({ currentGuess: currentGuess.slice(0, -1), editIndex: null });
   },
 
   submitGuess: () => {
@@ -149,20 +214,60 @@ export const useGameStore = create<GameState>()((set, get) => ({
         status: 'playing',
         pendingStatus: gameEnded ? (isWon ? 'won' : 'lost') : undefined,
         completedAt: gameEnded ? new Date().toISOString() : undefined,
+        // Ghost hint is current-row only — clear whether the letter was typed or not.
+        hintTile: null,
       },
       currentGuess: '',
       error: null,
-      // Ghost hint is current-row only — clear whether the letter was typed or not.
       hintTile: null,
+      editIndex: null,
     });
   },
 
-  resetGame: () => set({ session: null, currentGuess: '', error: null, pendingInputs: [], hintTile: null }),
+  resetGame: () =>
+    set({
+      session: null,
+      currentGuess: '',
+      error: null,
+      pendingInputs: [],
+      hintTile: null,
+      editIndex: null,
+    }),
 
-  setCurrentGuess: (guess) => set({ currentGuess: guess }),
+  setCurrentGuess: (guess) => set({ currentGuess: guess, editIndex: null }),
+
+  setEditIndex: (index) => {
+    const { session, currentGuess, isRevealing, editIndex } = get();
+    if (!session || session.status !== 'playing' || isRevealing) return;
+    if (index === null) {
+      set({ editIndex: null });
+      return;
+    }
+    // Filled tiles, or the next empty slot (append caret).
+    if (index < 0 || index > currentGuess.length || index >= session.letterCount) {
+      return;
+    }
+    // Tap again to deselect.
+    set({ editIndex: editIndex === index ? null : index });
+  },
 
   restoreSession: (session) => {
-    set({ session, currentGuess: '', error: null, pendingInputs: [], hintTile: null });
+    // Restore persisted ghost hint. Older saves only had letterHintUsed —
+    // regenerate so the rewarded hint is not lost after reopen.
+    let hintTile = session.hintTile ?? null;
+    let nextSession = session;
+    if (session.letterHintUsed && !hintTile && session.status === 'playing') {
+      hintTile = pickLetterHint(session.word, session.feedback);
+      nextSession = { ...session, hintTile };
+    }
+    set({
+      session: nextSession,
+      currentGuess: '',
+      error: null,
+      pendingInputs: [],
+      hintTile,
+      editIndex: null,
+    });
   },
 
   clearError: () => set({ error: null }),
@@ -235,40 +340,32 @@ export const useGameStore = create<GameState>()((set, get) => ({
       currentGuess: '',
       error: null,
     });
+    // Persist immediately — rewarded progress counts as an in-progress game
+    // even with zero guesses typed yet.
+    const next = get().session;
+    if (next?.status === 'playing') {
+      saveActiveGame(next);
+    }
   },
 
   useLetterHint: () => {
     const { session } = get();
     if (!session || session.status !== 'playing' || session.letterHintUsed) return;
 
-    const word = session.word.toUpperCase();
-
-    // Prefer positions not already marked correct from prior feedback.
-    const correctPositions = new Set<number>();
-    for (const row of session.feedback) {
-      row.forEach((tile, index) => {
-        if (tile.feedback === 'correct') correctPositions.add(index);
-      });
-    }
-
-    const candidates = word
-      .split('')
-      .map((letter, index) => ({ letter, index }))
-      .filter(({ index }) => !correctPositions.has(index));
-
-    // Fallback: any position (e.g. all green somehow mid-session).
-    const pool =
-      candidates.length > 0
-        ? candidates
-        : word.split('').map((letter, index) => ({ letter, index }));
-    const hintTile = pool[Math.floor(Math.random() * pool.length)];
+    const hintTile = pickLetterHint(session.word, session.feedback);
 
     set({
       session: {
         ...session,
         letterHintUsed: true,
+        hintTile,
       },
       hintTile,
     });
+    // Persist immediately so the ghost survives app kill / mode switches.
+    const next = get().session;
+    if (next) {
+      saveActiveGame(next);
+    }
   },
 }));

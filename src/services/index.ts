@@ -5,6 +5,8 @@ export {
   getActiveGame,
   saveActiveGame,
   clearActiveGame,
+  toActiveGameSlot,
+  activeGameSlotFromSession,
   initDatabase,
   getStats,
   computeStatsFromHistory,

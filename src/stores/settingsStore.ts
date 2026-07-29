@@ -37,6 +37,7 @@ interface SettingsState extends AppSettings {
   toggleColorBlindMode: () => void;
   toggleReduceMotion: () => void;
   setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
+  setKeyboardLayout: (layout: AppSettings['keyboardLayout']) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -50,6 +51,7 @@ export const useSettingsStore = create<SettingsState>()(
       colorBlindMode: false,
       reduceMotion: false,
       themeMode: 'system',
+      keyboardLayout: 'qwerty',
       toggleHardMode: () => set((s) => ({ hardModeEnabled: !s.hardModeEnabled })),
       setBgmVolume: (v) => set({ bgmVolume: snapVolume(v) }),
       setSfxVolume: (v) => set({ sfxVolume: snapVolume(v) }),
@@ -61,12 +63,13 @@ export const useSettingsStore = create<SettingsState>()(
         applyNativeThemeMode(mode);
         set({ themeMode: mode });
       },
+      setKeyboardLayout: (layout) => set({ keyboardLayout: layout }),
     }),
     {
       name: 'settings-storage',
       storage: createJSONStorage(() => mmkvZustandStorage),
-      // v3: hardModeEnabled is session-only (not persisted); volumes snap to 10%.
-      version: 3,
+      // v4: keyboardLayout preference
+      version: 4,
       partialize: (state): PersistedSettings => ({
         bgmVolume: state.bgmVolume,
         sfxVolume: state.sfxVolume,
@@ -75,6 +78,7 @@ export const useSettingsStore = create<SettingsState>()(
         colorBlindMode: state.colorBlindMode,
         reduceMotion: state.reduceMotion,
         themeMode: state.themeMode,
+        keyboardLayout: state.keyboardLayout,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as Record<string, unknown> & {
@@ -82,6 +86,7 @@ export const useSettingsStore = create<SettingsState>()(
           hardModeEnabled?: boolean;
           bgmVolume?: number;
           sfxVolume?: number;
+          keyboardLayout?: string;
         };
 
         if (version < 2) {
@@ -103,6 +108,13 @@ export const useSettingsStore = create<SettingsState>()(
           if (typeof state.sfxVolume === 'number') {
             state.sfxVolume = snapVolume(state.sfxVolume);
           }
+        }
+
+        if (version < 4) {
+          state = {
+            ...state,
+            keyboardLayout: state.keyboardLayout ?? 'qwerty',
+          };
         }
 
         return state as typeof persistedState;

@@ -1,5 +1,5 @@
 # architecture
-updated: 2026-07-12 (ResultModal share/stats write, toast UX, stats-and-share link)
+updated: 2026-07-29 (keyboard layouts, multi-slot saves, in-game help, result word fit)
 tags: [architecture, patterns, project-structure]
 related: [tech-stack, storage-strategy, daily-seed, dictionary-preprocessing, game-modes, animation-system, phase-structure, ui-config-registry, design-tokens, cloud-sync, google-signin, accessibility, toggle-side-effects, audio-system, stats-and-share]
 
@@ -72,17 +72,18 @@ src/
 6. **Barrel files** — each directory has `index.ts` re-exporting all exports. Import via relative paths (no `@/` alias — Metro can't resolve TypeScript path aliases).
 7. **Static require() for bundled assets** — Metro cannot resolve dynamic require(). Always use static require() with relative paths.
 8. **Separate component subtrees** — Keyboard isolated as distinct subtree (React.memo) to prevent re-render interference with tile reveal animations.
-9. **Keyboard flex layout** — Keys use `flex: 1` distribution (not minWidth/justifyContent:center). Row fills width evenly, action keys get `flex: 1.5`. Row 2 (9 keys) uses a `flex: 0.5` spacer for QWERTY centering. `screenPadding` reduced to 6px for more game space.
+9. **Keyboard flex layout** — Keys use `flex: 1` distribution (not minWidth/justifyContent:center). Row fills width evenly, action keys get `flex: 1.5`. Row 2 spacers (when present) use `flex: 0.5` for QWERTY/QWERTZ/ABC centering. Layout rows come from `src/constants/keyboardLayouts.ts` via Settings `keyboardLayout` (qwerty | qwertz | azerty | abc).
 10. **Tile text visibility during flip** — Uses dedicated `textOpacity` shared value (separate from `flipProgress`). Normal mode: letter hidden during first half of flip, fades in over second half (timed to reveal simultaneously with new feedback color at the 50% edge-on midpoint). Reduce motion: text appears instantly per-tile after stagger delay (left-to-right stagger preserved). Active/unrevealed tiles: `textOpacity` initializes to 1 (always visible during typing). Safety-net `setTimeout` forces all shared values to final state. See [animation-system](animation-system.md).
 11. **UI Configuration Registry** — Screens driven by data config arrays from `src/config/ui.ts`, not hardcoded JSX. Stats cards and settings rows defined as typed config objects. Screens iterate config → render. Reorder/add/remove by editing config array, not component tree. See [ui-config-registry](ui-config-registry.md).
 12. **Dynamic tile sizing** — `tileSize` not a fixed constant. Computed in GameBoard from `screenWidth`, `wordLength`, `tileGap`, and container padding. Passed as prop through `GameBoard → GuessRow → Tile`. Font scales proportionally (`tileSize × 0.48`). Caps at 56px max, floors at 32px min. Fits all word lengths 5-10 on any screen width.
 13. **Safe area insets** — Home and Game screens use `useSafeAreaInsets()` from `react-native-safe-area-context`. Top offset for status bar, bottom for gesture bar. Container applies `paddingHorizontal: 20` centrally (GameScreen) or `padding: 24` (HomeScreen). Headers use negative margins to span full-width behind the padding.
 14. **Centralized BackHandler** — Single BackHandler.addEventListener in Navigation.tsx, not per-screen listeners. Blocks during tile animation (skip-to-final-state), ad display, and IAP flow (D-165–D-167).
 15. **Theme context via useTheme() hook** (semantic) — src/types/theme.ts defines `ThemeColors` with named groups (surface, text, button, toggle, icon, tile, key, status). src/hooks/useTheme.ts returns `{ colors: { ...semantic } }` built from the raw `lightColors`/`darkColors` palettes in src/constants/colors.ts. Replaces the flat `useColors()` hook (still present as `@deprecated` for the theme builder). Components consume semantically: `theme.colors.button.primary.bg` instead of `colors.accent`. Mode detection: `theme.colors.mode === 'dark'` (replaces the old `colors === darkColors` identity check). React Navigation receives DarkTheme/DefaultTheme based on `theme.colors.mode`. expo-status-bar switches style. 18 files migrated.
-16. **Modal overlay pattern** — How to Play, LengthPickerModal share same pattern: backdrop + centered card + dismiss button. HowToPlayModal triggered from ? icon in Home icon bar.
+16. **Modal overlay pattern** — How to Play, LengthPickerModal share same pattern: backdrop + centered card + dismiss button. HowToPlayModal triggered from ? icon on Home **and** Game headers.
 17. **Performance markers** — console.time/timeEnd guarded by __DEV__, placed at startup-init (was dictionary-load, renamed 2026-07-09), stats read, stats write. Flipper only if visual check reveals jank. Dictionary require() happens synchronously at module load BEFORE useEffect runs, so it cannot be measured from a useEffect — name marker for the actual code path being measured.
 18. **Toggle side effects** — Toggles that flip Zustand state alone are insufficient when the toggled feature has runtime side effects outside the store (audio, haptics, native modules). Wire side effects explicitly: useEffect watching the store value, or read state at call site via `useSettingsStore.getState()`. See [toggle-side-effects](toggle-side-effects.md).
 19. **Hooks before early return** — All hooks must execute in the same order on every render. A `useMemo`/`useEffect`/`useCallback` called AFTER a conditional early return (`if (!x) return null`) violates React Rules of Hooks. On certain re-renders (AppState transition, state change), hook tracking corrupts and downstream components receive stale shared values or render undefined. Fix: move all hooks before any early return; use default values for null/undefined state.
+20. **Active-row letter edit** — Tap a filled tile (or the next empty slot) to set `editIndex`; typing replaces that letter in place without backspacing the rest. Tap again to deselect. Persists only in-memory for the current guess row.
 
 ## Screens
 | Screen | Route | Composed of |
@@ -91,18 +92,18 @@ src/
 | Game | /game | GameBoard, Keyboard, AttemptCounter, ResultModal (overlay), Confetti |
 | Loading | (pre-app) | Branded splash with ActivityIndicator, shown while dictionary loads |
 | Stats | /stats | Overview (Daily/Endless/Random streaks), length table, Wordle-style guess distribution bars — no share FAB |
-| Settings | /settings | ToggleRow, volume sliders (10% steps, large invisible thumb hit target), theme selector, Simpler Animations toggle, haptic toggle with (?) help, Account sign-in / restore / purchase |
+| Settings | /settings | ToggleRow, volume sliders (10% steps, large invisible thumb hit target), theme selector, keyboard layout selector (QWERTY/QWERTZ/AZERTY/A–Z), Simpler Animations toggle, haptic toggle with (?) help, Account sign-in / restore / purchase |
 | Leaderboard | /leaderboard | LeaderboardRow[], AuthPrompt |
 | Result | (removed Phase 6) | Deleted — replaced by ResultModal overlay in Phase 2. Route removed from Navigation.tsx |
 
 ## Game components (Phase 2)
 | Component | Role | Communication |
 |-----------|------|---------------|
-| GameBoard | Grid of GuessRow components | Reads guesses, feedback, currentGuess, error from gameStore. Computes dynamic `tileSize` from screen width + wordLength + tileGap. Passes to GuessRow. |
-| GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. |
+| GameBoard | Grid of GuessRow components | Reads guesses, feedback, currentGuess, error, editIndex from gameStore. Computes dynamic `tileSize` from screen width + wordLength + tileGap. Passes to GuessRow. |
+| GuessRow | Single row of Tiles | Receives letter array, feedback array, `tileSize` prop. Shake animation on error. Active row tiles are tappable for in-place edit. |
 | Tile | Single letter tile with flip animation | Reanimated worklet: flipProgress (0→1), scale (1→1.15→1), interpolateColor, rotateX. Uses `tileSize` prop for width/height + font size. |
-| Keyboard | On-screen QWERTY with per-key color | Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
-| ResultModal | Post-game overlay | Win/loss, word, definition, emoji grid. **Primary** `recordGameIfNeeded` on settle. Win: share icon → clipboard + toast. Endless: Play Next + Back to Menu both `alignSelf: 'stretch'` in full-width `buttonContainer`. Confetti in front of card on win. Interstitial before navigation |
+| Keyboard | On-screen letter keys with per-key color | Layout from settings `keyboardLayout`. Calls addLetter/removeLetter/submitGuess; React.memo; input queue during isRevealing; haptics on press. Error toast overlaid above by GameScreen (absolutely positioned, doesn't affect layout). |
+| ResultModal | Post-game overlay | Win/loss, word (`numberOfLines={1}` + `adjustsFontSizeToFit` so 8–10 letter answers stay on one line), definition, emoji grid. **Primary** `recordGameIfNeeded` on settle. Win: share icon → clipboard + toast. Endless: Play Next + Back to Menu both `alignSelf: 'stretch'` in full-width `buttonContainer`. Confetti in front of card on win. Interstitial before navigation |
 | LengthPickerModal | Length selection grid (5-10) | 2×3 grid, daily mode shows completed lengths disabled with checkmark |
 | Confetti | Win-state particle burst | 40 particles, staggered launch, gravity fall, wide spread, 7 colors |
 
@@ -167,7 +168,7 @@ store.submitGuess(guess):
 - `shouldRestoreActiveGame()` — GameScreen init; random restores without `letterCount` match
 - `hasActiveProgress()` — guesses or rewarded hint usage
 - Endless/Daily still require matching `letterCount`
-- Fresh navigation clears MMKV via `clearActiveGame()` before `startGame()` so rewarded state does not leak
+- Fresh navigation clears only that mode’s MMKV slot via `clearActiveGame(slot)` before `startGame()` so rewarded state does not leak into a new game of the same mode/length — other modes keep their saves
 
 ## Keyboard absent keys (2026-07-11)
 - Keys with `absent` feedback render at **55% opacity** — de-emphasizes ruled-out letters without hiding them

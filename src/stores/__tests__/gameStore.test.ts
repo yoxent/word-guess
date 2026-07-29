@@ -8,6 +8,20 @@ jest.mock('../../services/storage', () => ({
   getActiveGame: jest.fn().mockReturnValue(null),
   saveActiveGame: jest.fn(),
   clearActiveGame: jest.fn(),
+  toActiveGameSlot: (
+    mode: string,
+    letterCount: number,
+    hardMode: boolean,
+  ) => ({ mode, letterCount, hardMode }),
+  activeGameSlotFromSession: (session: {
+    mode: string;
+    letterCount: number;
+    hardMode: boolean;
+  }) => ({
+    mode: session.mode,
+    letterCount: session.letterCount,
+    hardMode: session.hardMode,
+  }),
 }));
 
 jest.mock('../../services/sound', () => ({
@@ -58,6 +72,7 @@ describe('gameStore', () => {
       isRevealing: false,
       pendingInputs: [],
       hintTile: null,
+      editIndex: null,
     });
   });
 
@@ -106,7 +121,11 @@ describe('gameStore', () => {
       useGameStore.getState().startGame('random', 'CRANE', 5, false);
       const session = useGameStore.getState().session;
 
-      expect(clearActiveGame).toHaveBeenCalledWith(false);
+      expect(clearActiveGame).toHaveBeenCalledWith({
+        mode: 'random',
+        letterCount: 5,
+        hardMode: false,
+      });
       expect(session?.extraGuessesUsed).toBe(0);
       expect(session?.letterHintUsed).toBe(false);
       expect(session?.maxAttempts).toBe(6);
@@ -128,6 +147,16 @@ describe('gameStore', () => {
       useGameStore.setState({ hintTile: { index: 0, letter: 'A' } });
       useGameStore.getState().addLetter('A');
       expect(useGameStore.getState().hintTile).toEqual({ index: 0, letter: 'A' });
+    });
+
+    it('replaces a selected letter without deleting the rest', () => {
+      useGameStore.getState().addLetter('A');
+      useGameStore.getState().addLetter('B');
+      useGameStore.getState().addLetter('C');
+      useGameStore.getState().setEditIndex(1);
+      useGameStore.getState().addLetter('X');
+      expect(useGameStore.getState().currentGuess).toBe('AXC');
+      expect(useGameStore.getState().editIndex).toBe(2);
     });
 
     it('does not exceed word length', () => {
@@ -162,6 +191,14 @@ describe('gameStore', () => {
     it('removes last letter', () => {
       useGameStore.getState().removeLetter();
       expect(useGameStore.getState().currentGuess).toBe('A');
+    });
+
+    it('removes the selected letter and keeps neighbors', () => {
+      useGameStore.getState().addLetter('P');
+      useGameStore.getState().setEditIndex(1);
+      useGameStore.getState().removeLetter();
+      expect(useGameStore.getState().currentGuess).toBe('AP');
+      expect(useGameStore.getState().editIndex).toBe(1);
     });
 
     it('does nothing when empty', () => {
@@ -290,12 +327,59 @@ describe('gameStore', () => {
       randomSpy.mockRestore();
     });
 
+    it('persists hintTile on the session so saves keep the ghost letter', () => {
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      useGameStore.getState().useLetterHint();
+      const hint = useGameStore.getState().hintTile;
+      expect(useGameStore.getState().session?.hintTile).toEqual(hint);
+      randomSpy.mockRestore();
+    });
+
+    it('saves the active game immediately after a letter hint ad reward', () => {
+      const { saveActiveGame } = require('../../services/storage');
+      useGameStore.getState().useLetterHint();
+      expect(saveActiveGame).toHaveBeenCalled();
+      const saved = (saveActiveGame as jest.Mock).mock.calls.at(-1)?.[0];
+      expect(saved.letterHintUsed).toBe(true);
+      expect(saved.hintTile).toEqual(useGameStore.getState().hintTile);
+    });
+
     it('does nothing if letter hint already used', () => {
       useGameStore.setState({
         session: { ...useGameStore.getState().session!, letterHintUsed: true },
       });
       useGameStore.getState().useLetterHint();
       expect(useGameStore.getState().hintTile).toBeNull();
+    });
+  });
+
+  describe('restoreSession', () => {
+    it('restores persisted hintTile from the session', () => {
+      useGameStore.getState().startGame('random', 'APPLE', 5, false);
+      const saved = {
+        ...useGameStore.getState().session!,
+        letterHintUsed: true,
+        hintTile: { index: 2, letter: 'P' },
+      };
+      useGameStore.getState().restoreSession(saved);
+      expect(useGameStore.getState().hintTile).toEqual({ index: 2, letter: 'P' });
+      expect(useGameStore.getState().session?.letterHintUsed).toBe(true);
+    });
+
+    it('regenerates hintTile for older saves that only set letterHintUsed', () => {
+      useGameStore.getState().startGame('random', 'APPLE', 5, false);
+      const saved = {
+        ...useGameStore.getState().session!,
+        letterHintUsed: true,
+        hintTile: null,
+      };
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      useGameStore.getState().restoreSession(saved);
+      const hint = useGameStore.getState().hintTile;
+      expect(hint).not.toBeNull();
+      expect(hint?.letter).toBe('APPLE'[hint!.index]);
+      expect(useGameStore.getState().session?.hintTile).toEqual(hint);
+      randomSpy.mockRestore();
     });
   });
 

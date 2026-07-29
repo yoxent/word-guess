@@ -23,6 +23,8 @@ export interface GameSession {
   hardMode: boolean;
   extraGuessesUsed: number;
   letterHintUsed: boolean;
+  /** Persisted ghost letter for the active row after a rewarded letter hint. */
+  hintTile?: { index: number; letter: string } | null;
   maxAttempts: number;
   startedAt: string;
   completedAt?: string;

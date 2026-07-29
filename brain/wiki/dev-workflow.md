@@ -131,7 +131,7 @@ Before EAS production build:
 - Content must cover: AdMob data collection, Google Sign-In data, standard Play Store privacy requirements
 
 ## Asset icons
-Launcher icons: `assets/icon.png` + `assets/adaptive-icon.png` (1024×1024, updated 2026-07-11). Splash: `assets/splash.png` via `expo-splash-screen` plugin in `app.config.ts` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after icon/splash asset changes.
+Launcher icons: `assets/icon.png` + `assets/adaptive-icon.png` (1024×1024). Adaptive foreground keeps artwork in the Android ~66% safe zone with navy pad (`#151C53`, matched in `app.config.ts` `android.adaptiveIcon.backgroundColor`) so OEM circle/squircle masks do not crop “WORD GUESS”. Splash: `assets/splash.png` via `expo-splash-screen` plugin in `app.config.ts` (`resizeMode: contain`, bg `#f5f5f0`). Rebuild native app after icon/splash asset changes.
 
 ## Settings UI gotchas
 - **Volume slider:** PanResponder must use `gestureState.dx` from grant — `locationX` on move can jump to 0 on Android and flash 0% (see `VolumeSlider` in `SettingsRow.tsx`).

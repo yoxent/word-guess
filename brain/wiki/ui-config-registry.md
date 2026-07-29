@@ -1,5 +1,5 @@
 # ui-config-registry
-updated: 2026-07-12 (Settings card/row/slider layout lessons)
+updated: 2026-07-29 (keyboardLayoutSelector; theme stacked layout)
 tags: [architecture, patterns, UI, config-driven, D-77, D-78, D-79, D-80, D-81, D-110, accessibility]
 related: [architecture, phase-structure, storage-strategy, monetization, accessibility, stats-and-share, audio-system, google-signin]
 
@@ -51,15 +51,16 @@ type SettingsRowConfig =
 | `toggle` | Label (left) + RN Switch (right) | Switch bound to settingsStore[storeKey]; track=accent when on, tileEmpty when off |
 | `placeholder` | Label (left) + "Coming soon" text (right) | Non-interactive; swapped to `signInButton` in Phase 5 |
 | `info` | Label (left) + value string (right) | Read-only display, no interaction |
-| `restore` | Tappable row (left) + action text (right) | Calls `getAvailablePurchases()` → sets `isPro` → color-coded toast. Hidden when `isPro === true` (D-100) |
-| `purchase` | Tappable row with price label + subtitle | Calls `requestPurchase()` → `purchaseUpdatedListener` → `finishTransaction` → `setPro(true)` → toast. Hidden when `isPro === true` |
+| `themeSelector` | Stacked label + Light/Dark/System segments | Sets `themeMode`; segments share equal width so labels stay horizontal on narrow phones |
+| `keyboardLayoutSelector` | Stacked label + 2×2 option grid | Sets `keyboardLayout` (`qwerty` \| `qwertz` \| `azerty` \| `abc`); rows from `src/constants/keyboardLayouts.ts` |
+| `volumeSlider` | Label · N% + continuous slider | BGM / SFX volume in 10% steps |
 
 ### Phase 4 sections (from config, Account)
 | Section | Rows |
 |---------|------|
 | Audio & Haptics | BGM + SFX volume sliders (10% steps, label shows `· N%`), `haptic` toggle with optional `helpText` (?) |
 | Account | `signIn` + `proStatus` + `removeAds` + `restorePurchases` |
-| Appearance | `theme` selector + **Simpler Animations** toggle (`reduceMotion`, with `helpText`) |
+| Appearance | `theme` selector + **Keyboard** layout selector (QWERTY / QWERTZ / AZERTY / A–Z) + **Simpler Animations** toggle (`reduceMotion`, with `helpText`) |
 
 **Removed from Settings UI (2026-07-11):** Color Blind Mode toggle (texture code remains in Tile.tsx if store flag set). Accessibility section removed — Simpler Animations moved under Appearance.
 

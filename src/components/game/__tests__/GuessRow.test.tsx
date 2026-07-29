@@ -31,6 +31,9 @@ jest.mock('../../../hooks/useTheme', () => ({
         hintDim: '#81D4FA',
         hintText: '#0D47A1',
       },
+      brand: {
+        primary: '#4A90D9',
+      },
     },
   }),
 }));

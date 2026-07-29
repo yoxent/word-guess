@@ -19,4 +19,6 @@ export interface AppSettings {
   reduceMotion: boolean;
   /** Theme mode: 'light', 'dark', or 'system' (follows device) */
   themeMode: 'light' | 'dark' | 'system';
+  /** On-screen letter keyboard layout */
+  keyboardLayout: 'qwerty' | 'qwertz' | 'azerty' | 'abc';
 }

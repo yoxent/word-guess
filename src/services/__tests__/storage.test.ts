@@ -87,49 +87,117 @@ describe('storage', () => {
     describe('getActiveGame', () => {
       it('returns null when no game saved', () => {
         mockMmkv.getString.mockReturnValue(null);
-        expect(getActiveGame(false)).toBeNull();
-        expect(getActiveGame(true)).toBeNull();
+        expect(
+          getActiveGame({ mode: 'daily', letterCount: 5, hardMode: false }),
+        ).toBeNull();
+        expect(
+          getActiveGame({ mode: 'endless', letterCount: 6, hardMode: true }),
+        ).toBeNull();
       });
 
-      it('reads from key based on hardMode flag', () => {
-        mockMmkv.getString.mockReturnValue(JSON.stringify({ hardMode: true }));
-        expect(getActiveGame(true)).toEqual({ hardMode: true });
-        expect(mockMmkv.getString).toHaveBeenCalledWith('wordguess.activeGame_hard');
+      it('reads from per-mode key based on slot', () => {
+        mockMmkv.getString.mockReturnValue(
+          JSON.stringify({ mode: 'daily', letterCount: 5, hardMode: true }),
+        );
+        expect(
+          getActiveGame({ mode: 'daily', letterCount: 5, hardMode: true }),
+        ).toEqual({ mode: 'daily', letterCount: 5, hardMode: true });
+        expect(mockMmkv.getString).toHaveBeenCalledWith(
+          'wordguess.activeGame_hard_daily_5',
+        );
 
-        mockMmkv.getString.mockReturnValue(JSON.stringify({ hardMode: false }));
-        expect(getActiveGame(false)).toEqual({ hardMode: false });
-        expect(mockMmkv.getString).toHaveBeenCalledWith('wordguess.activeGame_normal');
+        mockMmkv.getString.mockReturnValue(
+          JSON.stringify({ mode: 'random', letterCount: 7, hardMode: false }),
+        );
+        expect(
+          getActiveGame({ mode: 'random', letterCount: 9, hardMode: false }),
+        ).toEqual({ mode: 'random', letterCount: 7, hardMode: false });
+        expect(mockMmkv.getString).toHaveBeenCalledWith(
+          'wordguess.activeGame_normal_random',
+        );
+      });
+
+      it('migrates a matching legacy single-slot save', () => {
+        const legacy = {
+          mode: 'daily',
+          letterCount: 5,
+          hardMode: false,
+          letterHintUsed: true,
+          hintTile: { index: 1, letter: 'P' },
+        };
+        mockMmkv.getString.mockImplementation((key: string) => {
+          if (key === 'wordguess.activeGame_normal_daily_5') return null;
+          if (key === 'wordguess.activeGame_normal') return JSON.stringify(legacy);
+          return null;
+        });
+        expect(
+          getActiveGame({ mode: 'daily', letterCount: 5, hardMode: false }),
+        ).toEqual(legacy);
+        expect(mockMmkv.set).toHaveBeenCalledWith(
+          'wordguess.activeGame_normal_daily_5',
+          JSON.stringify(legacy),
+        );
+        expect(mockMmkv.remove).toHaveBeenCalledWith('wordguess.activeGame_normal');
       });
     });
 
     describe('saveActiveGame', () => {
-      it('saves to _hard key when game.hardMode is true', () => {
-        const game = { id: 'test', word: 'APPLE', hardMode: true };
+      it('saves to per-mode hard key', () => {
+        const game = {
+          id: 'test',
+          word: 'APPLE',
+          mode: 'endless',
+          letterCount: 5,
+          hardMode: true,
+        };
         saveActiveGame(game as any);
         expect(mockMmkv.set).toHaveBeenCalledWith(
-          'wordguess.activeGame_hard',
-          JSON.stringify(game)
+          'wordguess.activeGame_hard_endless_5',
+          JSON.stringify(game),
         );
+        expect(mockMmkv.remove).toHaveBeenCalledWith('wordguess.activeGame_hard');
       });
 
-      it('saves to _normal key when game.hardMode is false', () => {
-        const game = { id: 'test', word: 'APPLE', hardMode: false };
+      it('saves random under a length-agnostic key', () => {
+        const game = {
+          id: 'test',
+          word: 'APPLE',
+          mode: 'random',
+          letterCount: 8,
+          hardMode: false,
+        };
         saveActiveGame(game as any);
         expect(mockMmkv.set).toHaveBeenCalledWith(
-          'wordguess.activeGame_normal',
-          JSON.stringify(game)
+          'wordguess.activeGame_normal_random',
+          JSON.stringify(game),
         );
       });
     });
 
     describe('clearActiveGame', () => {
-      it('removes _hard key when hardMode is true', () => {
-        clearActiveGame(true);
-        expect(mockMmkv.remove).toHaveBeenCalledWith('wordguess.activeGame_hard');
+      it('removes the matching per-mode key', () => {
+        mockMmkv.getString.mockReturnValue(null);
+        clearActiveGame({ mode: 'daily', letterCount: 5, hardMode: true });
+        expect(mockMmkv.remove).toHaveBeenCalledWith(
+          'wordguess.activeGame_hard_daily_5',
+        );
       });
 
-      it('removes _normal key when hardMode is false', () => {
-        clearActiveGame(false);
+      it('clears legacy blob when it matches the slot', () => {
+        mockMmkv.getString.mockImplementation((key: string) => {
+          if (key === 'wordguess.activeGame_normal') {
+            return JSON.stringify({
+              mode: 'endless',
+              letterCount: 6,
+              hardMode: false,
+            });
+          }
+          return null;
+        });
+        clearActiveGame({ mode: 'endless', letterCount: 6, hardMode: false });
+        expect(mockMmkv.remove).toHaveBeenCalledWith(
+          'wordguess.activeGame_normal_endless_6',
+        );
         expect(mockMmkv.remove).toHaveBeenCalledWith('wordguess.activeGame_normal');
       });
     });

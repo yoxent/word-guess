@@ -1,5 +1,5 @@
 # navigation-setup
-updated: 2026-07-11 (back button chevron via headerBackImage, header color per mode, no circle on game back)
+updated: 2026-07-29 (Game header How to Play ?)
 tags: [navigation, react-navigation, screens, stack]
 related: [architecture, phase-structure, tech-stack, game-modes]
 
@@ -30,7 +30,7 @@ Free Play removed (merged into Endless).
 - Home screen: `headerShown: false` — navigation header removed entirely
 - Home navigation replaced by top-right icon bar with MaterialIcons (order left→right): `help-outline` (How to Play), `emoji-events` (Stats/medal), `leaderboard` (Leaderboard), `settings` (Settings)
 - Uses `@expo/vector-icons/MaterialIcons` — installed as explicit dependency
-- Game screen: `headerShown: false`, custom header with plain arrow-back-ios icon (no circle background, 22px, white on colored header). Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: layout.screenPadding` (16). Header spans full width via `marginHorizontal: -layout.screenPadding`. No attempts counter (shown in GameBoard).
+- Game screen: `headerShown: false`, custom header with plain arrow-back-ios icon (no circle background, 22px, white on colored header) and top-right `help-outline` opening `HowToPlayModal`. Shows "{Mode} · {N} Letters". Uses `useSafeAreaInsets()` for status bar offset. `paddingRight` from safe area only (no fixed right padding). Container has `paddingHorizontal: layout.screenPadding` (16). Header spans full width via `marginHorizontal: -layout.screenPadding`. No attempts counter (shown in GameBoard).
 - Result screen: `headerShown: false` — clean reveal experience
 
 ## Screen padding (consistent 16px, 2026-07-09)

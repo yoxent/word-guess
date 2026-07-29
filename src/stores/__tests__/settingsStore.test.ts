@@ -29,6 +29,7 @@ describe('settingsStore', () => {
       colorBlindMode: false,
       reduceMotion: false,
       themeMode: 'system',
+      keyboardLayout: 'qwerty',
     });
   });
 
@@ -118,6 +119,13 @@ describe('settingsStore', () => {
     it('sets theme mode', () => {
       useSettingsStore.getState().setThemeMode('dark');
       expect(useSettingsStore.getState().themeMode).toBe('dark');
+    });
+  });
+
+  describe('setKeyboardLayout', () => {
+    it('sets keyboard layout', () => {
+      useSettingsStore.getState().setKeyboardLayout('azerty');
+      expect(useSettingsStore.getState().keyboardLayout).toBe('azerty');
     });
   });
 });

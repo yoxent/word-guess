@@ -1,7 +1,7 @@
 # Storage Strategy
-updated: 2026-07-12 (SQLite singleflight, random_* streaks, guess dist bins 1–14)
+updated: 2026-07-29 (per-mode active game slots; immediate rewarded saves)
 tags: [storage, persistence, sqlite, mmkv]
-related: [architecture, tech-stack, phase-structure, game-modes, stats-and-share]
+related: [architecture, tech-stack, phase-structure, game-modes, stats-and-share, monetization]
 
 ## Three-tier split
 | Store | Technology | Why |
@@ -44,12 +44,15 @@ stats (computed from queries, cached):
 - On init failure: clear `db` + `dbInitPromise` so a later call can retry
 - Stats write path / dedupe: [stats-and-share](stats-and-share.md)
 
-## Active game keys (hard-mode-aware, 2026-07-11)
-- Hard and normal mode games stored under separate MMKV keys:
-  - `wordguess.activeGame_normal` — hardMode=false
-  - `wordguess.activeGame_hard` — hardMode=true
-- `getActiveGame(hardMode)`, `clearActiveGame(hardMode)` require the flag
-- `saveActiveGame(game)` derives key from `game.hardMode`
+## Active game keys (per-mode slots, 2026-07-29)
+- Modes no longer share one MMKV blob — Daily + Endless can both stay in progress.
+- Keys:
+  - `wordguess.activeGame_{hard|normal}_{mode}_{letterCount}` — daily / endless
+  - `wordguess.activeGame_{hard|normal}_random` — one random slot (length-agnostic)
+- `getActiveGame(slot)`, `clearActiveGame(slot)` take `{ mode, letterCount, hardMode }`
+- `saveActiveGame(game)` derives the slot from the session
+- Legacy `wordguess.activeGame_{hard|normal}` is migrated on read when the saved mode matches the requested slot
+- Letter-hint / +1-attempt ad rewards call `saveActiveGame` immediately so zero-guess rewarded games still count as in-progress
 
 ## Endless streak keys (hard-mode-aware, 2026-07-11)
 - `endless_streak_normal` / `endless_streak_hard` — separate streak counters per difficulty
@@ -90,7 +93,7 @@ Settings store uses persist middleware with this adapter. Game store is session-
 ## 5 stores persistence strategy
 | Store | Persist | Backend |
 |-------|---------|--------|
-| settingsStore | Yes — MMKV (sync), **partial** | MMKV via Zustand adapter. `hardModeEnabled` **excluded** from persist (v3) — session-only on Home pill |
+| settingsStore | Yes — MMKV (sync), **partial** | MMKV via Zustand adapter. `hardModeEnabled` **excluded** from persist (v3+). `keyboardLayout` added in v4 (default `qwerty`) |
 | statsStore | No — SQLite-backed (async) | expo-sqlite via storage service |
 | authStore | Yes — AsyncStorage (async) | AsyncStorage via Zustand adapter |
 | gameStore | No — session only | MMKV (active game save/restore via AppState listener) |
