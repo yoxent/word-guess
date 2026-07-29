@@ -159,6 +159,7 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | `src/services/wordLogic.ts` | Pure functions — `evaluateGuess()`, `validateHardMode()`, `isValidGuess()` |
 | `src/services/dailySeed.ts` | DJB2 hash — deterministic daily word from date + length + private seed |
 | `src/services/storage.ts` | Typed accessors — MMKV (settings, active game, daily tracking, endless streak) + SQLite (game history) + AsyncStorage (auth) |
+| `src/services/remoteConfig.ts` | Firebase Remote Config — ad unit IDs + `min_supported_version` / `isUpdateRequired` |
 | `src/services/sound.ts` | No-op stub with expected API — playKeyPress, playReveal, playWin, playLoss |
 
 | File | Purpose |
@@ -190,6 +191,8 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | File | Purpose |
 |------|---------|
 | `src/utils/share.ts` | `generateShareText(gameResult)` — Wordle-style emoji grid for clipboard |
+| `src/utils/activeGame.ts` | Continue/restore helpers; daily UTC day gate via `startedAt` |
+| `src/utils/semver.ts` | Semver parse/compare for soft update floor |
 
 ---
 
