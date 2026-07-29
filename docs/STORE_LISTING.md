@@ -1,7 +1,7 @@
 # Play Store listing copy — Word Guess
 
 **Package:** `com.vorithstudio.wordguess`  
-**Version:** 1.0.0  
+**Version:** 1.0.1  
 
 Declarations Q&A (App access, Data safety, ages, tags): [PLAY_CONSOLE_DECLARATIONS.md](./PLAY_CONSOLE_DECLARATIONS.md)
 
