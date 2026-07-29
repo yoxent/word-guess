@@ -103,6 +103,7 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | `src/components/ui/Button.tsx` | Base button component |
 | `src/components/ui/StatCard.tsx` | Card container for stats sections (surface bg, shadow, title) |
 | `src/components/ui/SettingsRow.tsx` | Generic row dispatching on type: toggle, placeholder, info, restore |
+| `src/components/ui/UpdateRequiredModal.tsx` | Soft update prompt — Update opens Play Store; Later dismisses |
 
 | File | Purpose |
 |------|---------|
@@ -127,6 +128,7 @@ Expo SDK 57 React Native word-guessing game for Android. TypeScript (strict), Zu
 | `src/constants/config.ts` | Game configuration (base attempts = letterCount+1, word length range 5-10) |
 | `src/constants/animations.ts` | Animation timing (TILE_FLIP_DURATION=200ms, stagger=50ms, confetti count, bounce params) |
 | `src/constants/typography.ts` | 5-size type scale (32px stat → 12px label) |
+| `src/constants/store.ts` | Play Store package id + market/https deep links |
 
 | File | Purpose |
 |------|---------|

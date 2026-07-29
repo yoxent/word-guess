@@ -48,7 +48,7 @@ One daily word per word length (5-10). Same seed, different `length` in hash →
 - Each length (5-10) independently playable once per day
 - Completed = win or loss state reached
 - Completed length disabled in picker (greyed + checkmark) for rest of UTC day
-- In-progress game persists in MMKV, resumes on return (if daily hasn't reset)
+- In-progress game persists in MMKV, resumes on return **only if `startedAt` is still today’s UTC date** (same-day gate in `shouldRestoreActiveGame` / `shouldOfferContinue`)
 - Completed lengths tracked in MMKV per UTC date via `markDailyCompleted(date, length)`
 
 ## UTC handling (critical)

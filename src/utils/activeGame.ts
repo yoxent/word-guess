@@ -1,4 +1,5 @@
 import type { GameMode, GameSession } from '../types';
+import { getDailyDateString } from '../services/dailySeed';
 
 /** Saved game has meaningful progress worth offering Continue. */
 export function hasActiveProgress(session: GameSession): boolean {
@@ -8,6 +9,12 @@ export function hasActiveProgress(session: GameSession): boolean {
       session.extraGuessesUsed > 0 ||
       session.letterHintUsed)
   );
+}
+
+/** Daily saves expire at UTC midnight (D-58). Non-daily modes always pass. */
+export function isDailySaveCurrent(saved: GameSession): boolean {
+  if (saved.mode !== 'daily') return true;
+  return getDailyDateString(new Date(saved.startedAt)) === getDailyDateString();
 }
 
 /**
@@ -31,7 +38,12 @@ export function shouldOfferContinue(
   length: number,
   hardMode: boolean,
 ): saved is GameSession {
-  return !!saved && hasActiveProgress(saved) && matchesResumeTarget(saved, mode, length, hardMode);
+  return (
+    !!saved &&
+    hasActiveProgress(saved) &&
+    matchesResumeTarget(saved, mode, length, hardMode) &&
+    isDailySaveCurrent(saved)
+  );
 }
 
 /** Whether GameScreen should restore MMKV state instead of starting fresh. */
@@ -46,6 +58,7 @@ export function shouldRestoreActiveGame(
     saved.status === 'playing' &&
     saved.mode === mode &&
     saved.hardMode === hardMode &&
-    (mode === 'random' || saved.letterCount === length)
+    (mode === 'random' || saved.letterCount === length) &&
+    isDailySaveCurrent(saved)
   );
 }

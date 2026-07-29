@@ -1,5 +1,5 @@
 # game-modes
-updated: 2026-07-29 (per-mode active game slots; rewarded progress persists immediately)
+updated: 2026-07-29 (daily UTC rollover gate; per-mode slots; rewarded progress persists)
 tags: [gameplay, modes, game-design]
 related: [architecture, daily-seed, project-overview, dictionary-preprocessing, animation-system, storage-strategy, navigation-setup, stats-and-share]
 
@@ -18,7 +18,7 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 - Deterministic from UTC date + length + private seed (see daily-seed)
 - Length picker shown with already-completed lengths disabled (greyed + checkmark)
 - Completed = reached win or loss state → consumed for the day
-- In-progress game persists on exit, resumes on return (same daily, same length)
+- In-progress game persists on exit, resumes on return **only if `startedAt` is still today’s UTC date** (`isDailySaveCurrent` in `activeGame.ts`); otherwise slot is cleared and today’s word starts
 - Resets at UTC midnight
 
 ### Endless
@@ -32,7 +32,7 @@ related: [architecture, daily-seed, project-overview, dictionary-preprocessing, 
 
 ## Continue game prompt
 When selecting a game mode from Home, if a saved in-progress game exists **for that mode slot**:
-- **Daily mode:** auto-continues without prompt when `mode` + `letterCount` + progress match — daily puzzle slot is consumed for the day
+- **Daily mode:** auto-continues without prompt when `mode` + `letterCount` + progress match **and** the save’s UTC day is still today — daily puzzle slot is consumed for the day; stale (previous UTC day) saves are cleared
 - **Random mode:** show Continue / New Game modal when **any** saved random game has progress (`guesses`, rewarded hints, or extra attempts used) — **not** keyed by newly rolled letter count. Continue uses saved `letterCount`; New Game clears save and rolls fresh length
 - **Endless mode:** Continue / New Game when `mode` + `letterCount` match
 - Tap outside modal dismisses (cancel)

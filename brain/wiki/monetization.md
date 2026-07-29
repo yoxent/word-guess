@@ -161,12 +161,22 @@ Pro users can still watch rewarded ads (D-93). The Pro purchase removes intersti
 |--------|--------|
 | Tool | `@react-native-firebase/remote-config` (D-106) |
 | Fetch | On app launch, cache locally (D-107) |
-| Fallback | Compiled-in test ad IDs if fetch fails (D-108) |
-| Keys | `admob_interstitial_id`, `admob_rewarded_id`, `admob_interstitial_frequency_override` (optional, D-109) |
+| Fallback | Compiled-in production ad IDs if fetch fails (D-108); TestIds in `__DEV__` |
+| Keys | `admob_interstitial_id`, `admob_rewarded_id`, `admob_interstitial_frequency_override` (optional, D-109), `min_supported_version` (soft update floor) |
 | Build strategy | Single build — no dev/prod split needed. Remote Config serves different IDs per environment remotely. |
 | Dev mode | `getInterstitialAdId()`/`getRewardedAdId()` return `TestIds.*` directly when `__DEV__` is true — no Remote Config dependency in development |
 
 Chosen over build-time env vars, config file flags, or EAS profiles — Remote Config allows one build to serve all environments and supports runtime switching (D-106).
+
+## Soft update check (`min_supported_version`)
+| Aspect | Detail |
+|--------|--------|
+| RC key | `min_supported_version` (string semver) |
+| In-app default | `0.0.0` in `remoteConfig.ts` when RC missing/empty/offline (fail-open) |
+| Installed version | `expo-application` → `Application.nativeApplicationVersion` (from `app.config.ts` `version` / Android `versionName`) |
+| Gate | Strictly less-than via `isVersionBelow` → dismissible `UpdateRequiredModal` on cold start |
+| Update action | Play Store `market://` then https fallback (`src/constants/store.ts`) |
+| Spec | `docs/superpowers/specs/2026-07-29-version-check-and-daily-rollover-design.md` |
 
 ## Settings config extension
 - Phase 3's `SettingsRowConfig` union gains a `restore` type

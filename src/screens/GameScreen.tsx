@@ -376,9 +376,12 @@ export function GameScreen({ route }: Props) {
         if (!currentSession || currentSession.status !== 'playing') {
           const hardMode = useSettingsStore.getState().hardModeEnabled;
           const len = letterCount ?? currentSession?.letterCount ?? randomLength();
-          const saved = getActiveGame(toActiveGameSlot(mode, len, hardMode));
-          if (saved && saved.status === 'playing') {
+          const slot = toActiveGameSlot(mode, len, hardMode);
+          const saved = getActiveGame(slot);
+          if (shouldRestoreActiveGame(saved, mode, len, hardMode)) {
             useGameStore.getState().restoreSession(saved);
+          } else if (saved) {
+            clearActiveGame(slot);
           }
         }
         // Ads can fail/expire while backgrounded — nudge a reload so hint

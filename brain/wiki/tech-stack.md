@@ -52,15 +52,16 @@ related: [architecture, storage-strategy, project-overview, android-build-setup,
 | Play Games Auth | modules/play-games-auth | local | Phase 5 — PGS v2 → Firebase PlayGamesAuthProvider |
 | Firebase Auth | @react-native-firebase/auth | 25.x | Phase 5 — credential exchange after GoogleSignIn |
 | Firebase Firestore | @react-native-firebase/firestore | 25.x | Phase 5 — 3 leaderboard collections + playerStats |
-| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config (Phase 4, D-106) — npm verified |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit IDs + `min_supported_version` soft update (Phase 4+) — npm verified |
 | Firebase App | @react-native-firebase/app | 25.x | Required peer dep of remote-config + auth + firestore; installs alongside |
+| App version | expo-application | ~57.0.2 | `nativeApplicationVersion` for soft update compare |
 
 ## Monetization
 | Layer | Choice | Version | Notes |
 |-------|--------|---------|-------|
 | Ads | react-native-google-mobile-ads | 16.4.0 | Interstitial + rewarded (Phase 4) — npm verified |
 | IAP | react-native-iap | 15.3.6 | Pro purchase + restore (Phase 4, D-98) — npm verified |
-| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit ID config via Firebase (D-106) |
+| Remote Config | @react-native-firebase/remote-config | 25.1.0 | Ad unit IDs + `min_supported_version` via Firebase |
 
 ## Build
 | Layer | Choice | Notes |

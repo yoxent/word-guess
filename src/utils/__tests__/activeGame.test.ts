@@ -66,6 +66,38 @@ describe('activeGame', () => {
       expect(shouldRestoreActiveGame(saved, 'endless', 6, false)).toBe(true);
       expect(shouldRestoreActiveGame(saved, 'endless', 8, false)).toBe(false);
     });
+
+    it('does not restore a daily save from a previous UTC day', () => {
+      const saved = makeSession({
+        mode: 'daily',
+        letterCount: 5,
+        guesses: ['CRANE'],
+        startedAt: '2020-01-01T12:00:00.000Z',
+      });
+      expect(shouldRestoreActiveGame(saved, 'daily', 5, false)).toBe(false);
+      expect(shouldOfferContinue(saved, 'daily', 5, false)).toBe(false);
+    });
+
+    it('restores a daily save from today UTC', () => {
+      const saved = makeSession({
+        mode: 'daily',
+        letterCount: 5,
+        guesses: ['CRANE'],
+        startedAt: new Date().toISOString(),
+      });
+      expect(shouldRestoreActiveGame(saved, 'daily', 5, false)).toBe(true);
+      expect(shouldOfferContinue(saved, 'daily', 5, false)).toBe(true);
+    });
+
+    it('ignores startedAt for non-daily modes', () => {
+      const saved = makeSession({
+        mode: 'endless',
+        letterCount: 6,
+        guesses: ['CRANES'],
+        startedAt: '2020-01-01T12:00:00.000Z',
+      });
+      expect(shouldRestoreActiveGame(saved, 'endless', 6, false)).toBe(true);
+    });
   });
 
   describe('hasActiveProgress', () => {

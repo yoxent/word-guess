@@ -51,7 +51,7 @@ src/
 
 **Phase 3 addition:** `src/config/` layer for composable UI definitions. Screens read config arrays and render accordingly — no hardcoded layout logic. See [ui-config-registry](ui-config-registry.md).
 
-**Phase 4 addition:** `adStore` (Zustand) singleton wrapping react-native-google-mobile-ads for interstitial/rewarded ad lifecycle. `remoteConfig` service for Firebase Remote Config (ad unit IDs). `monetization.ts` types for AdState, RestoreResult. See [monetization](monetization.md).
+**Phase 4 addition:** `adStore` (Zustand) singleton wrapping react-native-google-mobile-ads for interstitial/rewarded ad lifecycle. `remoteConfig` service for Firebase Remote Config (ad unit IDs + `min_supported_version`). Soft update UI: `UpdateRequiredModal` in `App.tsx`. `monetization.ts` types for AdState, RestoreResult. See [monetization](monetization.md).
 
 **Phase 5 additions:** `authService.ts` (Play Games → Firebase Auth), `firestoreService.ts` (Firestore CRUD for playerStats + leaderboards), `syncQueue.ts` (AsyncStorage-backed offline write-ahead log with idempotent events and exponential backoff), `leaderboardService.ts` (leaderboard score submission with queue fallback). `authStore.ts` with signIn/signOutAccount/signInSilently. `src/config/ui.ts` SettingsRowConfig gains `signInButton` type. See [cloud-sync](cloud-sync.md) and [google-signin](google-signin.md).
 
@@ -113,7 +113,7 @@ src/
 | WordLogic | services/wordLogic.ts | evaluateGuess (pure), validateHardMode (pure), isValidGuess |
 | DailySeed | services/dailySeed.ts | getDailyWord(date, length, wordList), getTodaysDailyWords() |
 | Sound | services/sound.ts | **expo-audio** — see [audio-system](audio-system.md). BGM loop + 4 SFX. 0% = pause/skip (not mute). AppState pause/resume. Callsites: Keyboard, tile reveal, GameScreen win/loss. Volumes via [toggle-side-effects](toggle-side-effects.md) |
-| RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — fetchAdUnitIds (fire-and-forget on launch), typed accessors for ad unit IDs, TestIds fallback in __DEV__ |
+| RemoteConfig | services/remoteConfig.ts | Firebase Remote Config — `fetchAdUnitIds` on launch, ad unit accessors (TestIds in `__DEV__`), soft update floor via `min_supported_version` + `isUpdateRequired` (fail-open) |
 
 ## Two-tier dictionary (Phase 2 decision)
 - **Target word selection:** enriched dictionary (curated, clean words)

@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import * as Application from 'expo-application';
 import { useSystemColorScheme } from '../hooks/useSystemColorScheme';
 import { StatusBar } from 'expo-status-bar';
 import { Navigation } from './Navigation';
 import { LoadingScreen } from '../screens/LoadingScreen';
-import { fetchAdUnitIds } from '../services/remoteConfig';
+import { UpdateRequiredModal } from '../components/ui';
+import {
+  fetchAdUnitIds,
+  isUpdateRequired,
+} from '../services/remoteConfig';
 import { loadFonts } from '../utils/fonts';
 import { configureAuth } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
@@ -20,6 +25,7 @@ import { hasSignedInPlayer } from '../utils/authState';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
+  const [updateRequired, setUpdateRequired] = useState(false);
 
   // D-190: StatusBar style based on active theme
   const systemScheme = useSystemColorScheme();
@@ -82,6 +88,16 @@ export default function App() {
           await fetchAdUnitIds();
         } catch (error) {
           console.warn('[App] Remote Config ad unit fetch failed', error);
+        }
+
+        // Soft update check (fail-open). Uses RC values after fetchAndActivate;
+        // if fetch failed, defaults keep isUpdateRequired false for normal builds.
+        try {
+          setUpdateRequired(
+            isUpdateRequired(Application.nativeApplicationVersion),
+          );
+        } catch (error) {
+          console.warn('[App] Version check failed', error);
         }
 
         try {
@@ -212,6 +228,10 @@ export default function App() {
     <>
       <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       <Navigation />
+      <UpdateRequiredModal
+        visible={updateRequired}
+        onLater={() => setUpdateRequired(false)}
+      />
     </>
   );
 }

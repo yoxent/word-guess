@@ -4,6 +4,7 @@ import {
   fetchAndActivate,
   getValue,
 } from '@react-native-firebase/remote-config';
+import { isVersionBelow } from '../utils/semver';
 
 /**
  * Production AdMob unit IDs (also published in Firebase Remote Config).
@@ -21,6 +22,9 @@ const DEFAULT_INTERSTITIAL_ID = __DEV__
 const DEFAULT_REWARDED_ID = __DEV__
   ? TestIds.REWARDED
   : PRODUCTION_REWARDED_ID;
+
+/** In-app default when RC key missing/empty — never prompts for real versions. */
+export const DEFAULT_MIN_SUPPORTED_VERSION = '0.0.0';
 
 const rc = getRemoteConfig();
 
@@ -67,4 +71,29 @@ export function getRewardedAdId(): string {
     // fall through
   }
   return DEFAULT_REWARDED_ID;
+}
+
+/**
+ * Minimum supported app version from Remote Config (`min_supported_version`).
+ * Empty / missing → `0.0.0` (fail-open: no update prompt for normal versions).
+ */
+export function getMinSupportedVersion(): string {
+  try {
+    const fromRc = getValue(rc, 'min_supported_version').asString()?.trim();
+    if (fromRc) return fromRc;
+  } catch {
+    // fall through
+  }
+  return DEFAULT_MIN_SUPPORTED_VERSION;
+}
+
+/**
+ * Whether the installed build is strictly below the Remote Config floor.
+ * Fail-open: null/empty installed version → false (do not brick the app).
+ */
+export function isUpdateRequired(
+  installedVersion: string | null | undefined,
+): boolean {
+  if (!installedVersion || !String(installedVersion).trim()) return false;
+  return isVersionBelow(installedVersion, getMinSupportedVersion());
 }

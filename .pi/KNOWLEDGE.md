@@ -105,8 +105,8 @@ Metro cannot resolve dynamic `require()` with template literals or TypeScript pa
 ### Ad manager architecture
 Zustand store (`adStore` — singleton, ref-counted lifecycle per ad unit ID). Not a service singleton or React Context. Prevents double-loading.
 
-### Remote Config for ad IDs
-Firebase Remote Config (`@react-native-firebase/remote-config`) — keys: `admob_interstitial_id`, `admob_rewarded_id`, `admob_interstitial_frequency_override`. Fallback to test IDs on fetch failure. Single build serves all environments.
+### Remote Config
+Firebase Remote Config (`@react-native-firebase/remote-config`) — keys: `admob_interstitial_id`, `admob_rewarded_id`, `admob_interstitial_frequency_override`, `min_supported_version` (soft update floor). In-app fallback `DEFAULT_MIN_SUPPORTED_VERSION = '0.0.0'` when RC missing/offline. Installed version from `expo-application` (`nativeApplicationVersion`). Soft update UI: `UpdateRequiredModal`. Ad ID fallback to test IDs on fetch failure in `__DEV__`. Single build serves all environments.
 
 ### Restore purchases edge cases
 - Button in Settings → Account section, hidden when `isPro === true`
