@@ -36,6 +36,7 @@ wordnet-candidates-enriched.json
 wordnet-candidates-summary.txt
 
 # ── Agent artifacts (canonical copies live under project-docs) ─
+.pi/
 .pi-subagents/
 .superpowers/
 
