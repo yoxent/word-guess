@@ -1,5 +1,10 @@
 # Word Guess — Agent Context
 
+## Documentation home
+
+**Canonical project docs:** `E:\Projects\Docs\project-docs\App\word-guess`  
+See also [DOCS.md](./DOCS.md).
+
 ## Git conventions (inherited from user config)
 
 - **Commit only, don't push automatically.** Stage and commit changes locally. Push only when explicitly told to push.
@@ -8,24 +13,26 @@
 
 ## Context files to read before starting work
 
-- `.planning/ROADMAP.md` — project roadmap and phase structure
-- `.planning/STATE.md` — current project state
-- `brain/wiki/index.md` — full wiki index
-- `brain/wiki/git-conventions.md` — detailed git conventions
-- `.pi/CODEBASE.md` — codebase overview
-- `.pi/KNOWLEDGE.md` — agent knowledge
-- `.pi/FRONTEND.md` — mobile game UI design principles (read before any frontend/UI work)
+Read these from the docs home (not under this repo):
+
+- `E:\Projects\Docs\project-docs\App\word-guess\planning\ROADMAP.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\planning\STATE.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\brain\wiki\index.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\brain\wiki\git-conventions.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\pi\CODEBASE.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\pi\KNOWLEDGE.md`
+- `E:\Projects\Docs\project-docs\App\word-guess\pi\FRONTEND.md`
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues track on GitHub Issues via `gh` CLI. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues track on GitHub Issues via `gh` CLI. External PRs are not a triage surface. See `E:\Projects\Docs\project-docs\App\word-guess\docs\agents\issue-tracker.md`.
 
 ### Triage labels
 
-Five canonical roles with default names (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+Five canonical roles with default names (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `E:\Projects\Docs\project-docs\App\word-guess\docs\agents\triage-labels.md`.
 
 ### Domain docs
 
-Single-context repo. Project knowledge lives in `brain/wiki/` with decision records in `.planning/`. See `docs/agents/domain.md`.
+Single-context app. Project knowledge lives in project-docs `brain/` with decision records in `planning/`. See `E:\Projects\Docs\project-docs\App\word-guess\docs\agents\domain.md`.
