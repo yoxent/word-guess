@@ -146,6 +146,38 @@ describe('leaderboardService', () => {
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
   });
 
+  it('reconcile clears current-streak boards when local streak is already 0', async () => {
+    mockedGetLeaderboardMetrics.mockReturnValue({
+      dailyStreak: 0,
+      endlessStreak: 0,
+      endlessTotalWords: 12,
+      bestStreak: 4,
+      sharpshooter: 3,
+    });
+    submitLeaderboardScore.mockResolvedValue(true);
+
+    await reconcileLocalLeaderboardScores();
+
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'daily_streak',
+      'uid-1',
+      'Player One',
+      0,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'endless_streak',
+      'uid-1',
+      'Player One',
+      0,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'endless_total',
+      'uid-1',
+      'Player One',
+      12,
+    );
+  });
+
   it('does not cache a failed reconcile as complete', async () => {
     submitLeaderboardScore.mockResolvedValueOnce(false);
 
@@ -212,6 +244,42 @@ describe('leaderboardService', () => {
     );
     expect(mockedGetEndlessStreak).not.toHaveBeenCalled();
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
+  });
+
+  it('syncLeaderboardForSession endless loss submits streak 0 so Firestore can clear the row', async () => {
+    mockedGetLeaderboardMetrics.mockReturnValue({
+      dailyStreak: 0,
+      endlessStreak: 0,
+      endlessTotalWords: 40,
+      bestStreak: 8,
+      sharpshooter: 2,
+    });
+    submitLeaderboardScore.mockResolvedValue(true);
+
+    await syncLeaderboardForSession({
+      id: 'endless-lost-1',
+      mode: 'endless',
+      status: 'lost',
+      hardMode: false,
+    });
+
+    expect(mockedApplyEndlessEndCounters).toHaveBeenCalledWith({
+      sessionId: 'endless-lost-1',
+      won: false,
+      hardMode: false,
+    });
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'endless_streak',
+      'uid-1',
+      'Player One',
+      0,
+    );
+    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+      'endless_total',
+      'uid-1',
+      'Player One',
+      40,
+    );
   });
 
   it('syncLeaderboardForSession daily win publishes metrics dailyStreak', async () => {

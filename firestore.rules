@@ -41,8 +41,9 @@ service cloud.firestore {
         && request.resource.data.playerId == playerId
         && request.resource.data.playerName is string
         && request.resource.data.score is number
-        && request.resource.data.score >= 0;
-      allow delete: if false;
+        && request.resource.data.score > 0;
+      // Own row only — used when a current streak resets so the player leaves the board.
+      allow delete: if isLeaderboardType(leaderboardType) && isOwner(playerId);
     }
   }
 }

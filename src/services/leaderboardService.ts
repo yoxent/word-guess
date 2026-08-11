@@ -144,6 +144,10 @@ export async function updateLeaderboardAfterGame(params: {
     await submitScore('daily_streak', streak, params.sessionId);
   }
 
+  if (params.mode === 'daily' && !params.won) {
+    await submitScore('daily_streak', 0, params.sessionId);
+  }
+
   if (params.mode === 'endless') {
     await submitScore(
       'endless_streak',
@@ -188,6 +192,21 @@ export async function syncLeaderboardForSession(
         sessionId: session.id,
         dailyStreak,
       });
+      await publishCareerLeaderboardScores(metrics, session.id);
+      return;
+    }
+
+    if (session.mode === 'daily' && session.status === 'lost') {
+      // Losing Daily breaks the current streak — clear the ranked row.
+      await updateLeaderboardAfterGame({
+        mode: 'daily',
+        won: false,
+        sessionId: session.id,
+        dailyStreak: 0,
+      });
+      const stats =
+        (await getStats()) ?? useStatsStore.getState().stats;
+      const metrics = getLeaderboardMetrics(stats);
       await publishCareerLeaderboardScores(metrics, session.id);
       return;
     }
@@ -245,6 +264,9 @@ export async function reconcileLocalLeaderboardScores(): Promise<void> {
         metrics.dailyStreak,
         `reconcile:daily:${metrics.dailyStreak}`,
       );
+    } else {
+      // Local streak already broken — remove a stale cloud row instead of ranking 0.
+      await submitScore('daily_streak', 0, 'reconcile:daily:clear');
     }
 
     if (metrics.endlessStreak > 0) {
@@ -253,6 +275,8 @@ export async function reconcileLocalLeaderboardScores(): Promise<void> {
         metrics.endlessStreak,
         `reconcile:streak:${metrics.endlessStreak}`,
       );
+    } else {
+      await submitScore('endless_streak', 0, 'reconcile:streak:clear');
     }
 
     if (metrics.endlessTotalWords > 0) {

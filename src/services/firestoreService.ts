@@ -7,6 +7,7 @@ import {
   setDoc,
   getDoc,
   getDocs,
+  deleteDoc,
   query,
   orderBy,
   limit,
@@ -15,7 +16,10 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
-import { shouldWriteLeaderboardScore } from './leaderboardWritePolicy';
+import {
+  shouldClearLeaderboardScore,
+  shouldWriteLeaderboardScore,
+} from './leaderboardWritePolicy';
 import { LEADERBOARD_TOP_N } from '../constants/leaderboard';
 import { getEndlessStreak, getEndlessTotalWords } from './storage';
 import type { EndlessCounters } from './mergePlayerStats';
@@ -196,6 +200,18 @@ export async function submitLeaderboardScore(
 ): Promise<boolean> {
   try {
     const scoreRef = doc(leaderboardRef(type), playerId);
+
+    // Broken current streaks leave the board — never rank a 0.
+    if (shouldClearLeaderboardScore(type, score)) {
+      await deleteDoc(scoreRef);
+      return true;
+    }
+
+    // Career boards: skip non-positive scores without touching cloud docs.
+    if (score <= 0) {
+      return true;
+    }
+
     const existing = await getDoc(scoreRef);
     const existingScore = existing.data()?.score;
     const numericExisting =
@@ -258,20 +274,24 @@ export async function getLeaderboard(
     const snapshot = await getDocs(
       query(
         leaderboardRef(type),
+        where('score', '>', 0),
         orderBy('score', 'desc'),
         limit(LEADERBOARD_TOP_N),
       ),
     );
 
-    const entries: LeaderboardEntry[] = snapshot.docs.map((docSnap, index) => {
-      const data = docSnap.data();
-      return {
-        rank: index + 1,
-        playerId: data.playerId ?? docSnap.id,
-        playerName: data.playerName ?? 'Unknown',
-        score: data.score ?? 0,
-      };
-    });
+    const entries: LeaderboardEntry[] = snapshot.docs
+      .map((docSnap, index) => {
+        const data = docSnap.data();
+        return {
+          rank: index + 1,
+          playerId: data.playerId ?? docSnap.id,
+          playerName: data.playerName ?? 'Unknown',
+          score: typeof data.score === 'number' ? data.score : 0,
+        };
+      })
+      .filter((entry) => entry.score > 0)
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
 
     return {
       type,

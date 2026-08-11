@@ -9,6 +9,9 @@ export type MonotonicLeaderboardType =
   | 'best_streak'
   | 'sharpshooter';
 
+/** Current-streak boards: reset to 0 means leave the ranked list. */
+const CLEARABLE_TYPES = new Set<string>(['daily_streak', 'endless_streak']);
+
 const MONOTONIC_TYPES = new Set<string>([
   'daily_streak',
   'endless_total',
@@ -16,12 +19,24 @@ const MONOTONIC_TYPES = new Set<string>([
   'sharpshooter',
 ]);
 
+/** Current streak hit 0 — delete the cloud row instead of ranking a zero. */
+export function shouldClearLeaderboardScore(
+  type: string,
+  incomingScore: number,
+): boolean {
+  return CLEARABLE_TYPES.has(type) && incomingScore <= 0;
+}
+
 /** Career / cumulative boards must never move backwards (stale queue overwrites). */
 export function shouldWriteLeaderboardScore(
   type: string,
   incomingScore: number,
   existingScore: number | undefined,
 ): boolean {
+  // Never persist non-positive scores — zeros are either cleared or skipped.
+  if (incomingScore <= 0) {
+    return false;
+  }
   if (!MONOTONIC_TYPES.has(type)) {
     return true;
   }

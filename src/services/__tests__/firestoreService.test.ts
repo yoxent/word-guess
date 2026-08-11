@@ -10,10 +10,13 @@ jest.mock('@react-native-firebase/firestore', () => ({
   setDoc: jest.fn(),
   getDoc: jest.fn(),
   getDocs: jest.fn(),
-  query: jest.fn(),
-  orderBy: jest.fn(),
-  limit: jest.fn(),
-  where: jest.fn(),
+  deleteDoc: jest.fn(),
+  query: jest.fn((...args: unknown[]) => ({ __query: args })),
+  orderBy: jest.fn((field: string, dir: string) => ({ orderBy: [field, dir] })),
+  limit: jest.fn((n: number) => ({ limit: n })),
+  where: jest.fn((field: string, op: string, value: unknown) => ({
+    where: [field, op, value],
+  })),
   getCountFromServer: jest.fn(),
   serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
 }));
@@ -23,17 +26,34 @@ jest.mock('../storage', () => ({
   getEndlessStreak: jest.fn(),
 }));
 
-import { setDoc, getDoc } from '@react-native-firebase/firestore';
+import {
+  setDoc,
+  getDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+} from '@react-native-firebase/firestore';
 import { getEndlessStreak, getEndlessTotalWords } from '../storage';
 import {
   updatePlayerStats,
   getPlayerStats,
   getPlayerStatsResult,
+  submitLeaderboardScore,
+  getLeaderboard,
 } from '../firestoreService';
 import type { PlayerStats } from '../../types';
 
 const mockedSetDoc = setDoc as jest.Mock;
 const mockedGetDoc = getDoc as jest.Mock;
+const mockedGetDocs = getDocs as jest.Mock;
+const mockedDeleteDoc = deleteDoc as jest.Mock;
+const mockedQuery = query as jest.Mock;
+const mockedWhere = where as jest.Mock;
+const mockedOrderBy = orderBy as jest.Mock;
+const mockedLimit = limit as jest.Mock;
 const mockedGetEndlessTotalWords = getEndlessTotalWords as jest.Mock;
 const mockedGetEndlessStreak = getEndlessStreak as jest.Mock;
 
@@ -230,6 +250,49 @@ describe('firestoreService', () => {
 
       mockedGetDoc.mockRejectedValue(new Error('down'));
       expect(await getPlayerStats('p1')).toBeNull();
+    });
+  });
+
+  describe('submitLeaderboardScore', () => {
+    it('deletes the player row when a current streak resets to 0', async () => {
+      mockedDeleteDoc.mockResolvedValue(undefined);
+
+      const ok = await submitLeaderboardScore(
+        'endless_streak',
+        'p1',
+        'Player One',
+        0,
+      );
+
+      expect(ok).toBe(true);
+      expect(mockedDeleteDoc).toHaveBeenCalled();
+      expect(mockedSetDoc).not.toHaveBeenCalled();
+    });
+
+    it('skips writing a non-positive career score without deleting', async () => {
+      const ok = await submitLeaderboardScore(
+        'endless_total',
+        'p1',
+        'Player One',
+        0,
+      );
+
+      expect(ok).toBe(true);
+      expect(mockedDeleteDoc).not.toHaveBeenCalled();
+      expect(mockedSetDoc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getLeaderboard', () => {
+    it('queries only positive scores so broken streaks at 0 never rank', async () => {
+      mockedGetDocs.mockResolvedValue({ docs: [] });
+
+      await getLeaderboard('endless_streak');
+
+      expect(mockedWhere).toHaveBeenCalledWith('score', '>', 0);
+      expect(mockedOrderBy).toHaveBeenCalledWith('score', 'desc');
+      expect(mockedLimit).toHaveBeenCalled();
+      expect(mockedQuery).toHaveBeenCalled();
     });
   });
 });

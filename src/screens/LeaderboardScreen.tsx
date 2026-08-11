@@ -65,20 +65,25 @@ const TAB_ICONS: Record<LeaderboardType, string> = {
 };
 
 const TAB_SCORE_HINT: Record<LeaderboardType, string> = {
-  daily_streak: 'consecutive Daily wins',
-  endless_streak: 'current Endless run',
-  endless_total: 'Endless words cleared',
-  best_streak: 'best streak ever',
-  sharpshooter: 'fast-win points',
+  daily_streak: 'current Daily win streak',
+  endless_streak: 'current Endless win run',
+  endless_total: 'lifetime Endless words',
+  best_streak: 'best streak in any mode',
+  sharpshooter: '1-guess×3 · 2×2 · 3×1 pts',
 };
 
 /** Short board blurb shown under the chip row. */
 const TAB_DESCRIPTIONS: Record<LeaderboardType, string> = {
-  daily_streak: 'Who has the longest current Daily Challenge win streak.',
-  endless_streak: 'Who is on the longest current Endless win run.',
-  endless_total: 'Who has cleared the most Endless words lifetime.',
-  best_streak: 'Who holds the best streak ever, across any mode.',
-  sharpshooter: 'Who earns the most points from wins in 1–3 guesses.',
+  daily_streak:
+    'Current Daily Challenge win streak — consecutive days you solved Daily. Break it and you leave this board.',
+  endless_streak:
+    'Current Endless win run — consecutive Endless wins without a loss. A loss clears you from this board.',
+  endless_total:
+    'Lifetime Endless words cleared — every Endless win counts forever; this score never resets.',
+  best_streak:
+    'Your all-time best streak from any mode (Daily, Endless, or Random). Only your personal best counts.',
+  sharpshooter:
+    'Fast-win points from any mode: 3 pts for a 1-guess win, 2 for 2-guess, 1 for 3-guess.',
 };
 
 const EMPTY_MESSAGES: Record<LeaderboardType, string> = {
@@ -180,8 +185,8 @@ export function LeaderboardScreen() {
           ...typography.small,
           color: theme.colors.text.secondary,
           opacity: 0.72,
-          marginBottom: 12,
-          lineHeight: 18,
+          marginBottom: 10,
+          lineHeight: 17,
           paddingHorizontal: 2,
         },
 
