@@ -63,6 +63,7 @@ nul
 *.log
 *.tmp
 *.temp
+.tmp-web-bundle/
 google-services.json
 
 # ── Local Expo module build junk ────────────────────────────
