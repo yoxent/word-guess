@@ -15,7 +15,7 @@ export const KEYBOARD_LAYOUT_OPTIONS: {
 /**
  * Letter rows only — ISO-style action column is rendered by Keyboard:
  * BACKSPACE above a tall SUBMIT (internal key code still `ENTER`).
- * Empty string `''` is a half-width spacer for centered shorter rows.
+ * Empty string `''` is ignored; Keyboard centers shorter rows with equal-width letter keys.
  */
 export const KEYBOARD_LAYOUTS: Record<KeyboardLayoutId, string[][]> = {
   qwerty: [

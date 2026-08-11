@@ -17,6 +17,10 @@ export const layout = {
   keyboardKeyMinWidth: 28,
   keyboardKeyGap: 4,
   keyboardKeyBorderRadius: 8, // was 6 — match tiles
+  /** Backspace key width (independent; also sizes the action-column reservation). */
+  keyboardBackspaceKeyWidth: 42,
+  /** Submit key width (may be wider than the action column / backspace). */
+  keyboardSubmitKeyWidth: 60,
 
   // ── Component radii (reference values) ──
   cardBorderRadius: 16,       // was 12 — softer cards

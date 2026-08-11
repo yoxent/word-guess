@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
@@ -26,6 +26,7 @@ const KeyboardKey = memo(function KeyboardKey({
   backgroundColor,
   textColor,
   flex = 1,
+  width,
   height = layout.keyboardKeyHeight,
   showBackspaceIcon,
   disabled,
@@ -38,6 +39,7 @@ const KeyboardKey = memo(function KeyboardKey({
   backgroundColor: string;
   textColor: string;
   flex?: number;
+  width?: number;
   height?: number;
   showBackspaceIcon?: boolean;
   disabled: boolean;
@@ -67,7 +69,8 @@ const KeyboardKey = memo(function KeyboardKey({
     <Animated.View
       style={{
         transform: [{ scale }],
-        flex,
+        flex: width != null ? 0 : flex,
+        width,
         opacity: dimmed ? 0.55 : 1,
       }}
     >
@@ -75,6 +78,7 @@ const KeyboardKey = memo(function KeyboardKey({
         style={[
           keyStyles.key,
           { backgroundColor, height },
+          width != null && keyStyles.keyFillWidth,
           disabled && keyStyles.keyDisabled,
         ]}
         onPress={onPress}
@@ -109,6 +113,9 @@ const keyStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  keyFillWidth: {
+    width: '100%',
+  },
   keyDisabled: {
     opacity: 0.4,
   },
@@ -121,6 +128,7 @@ const keyStyles = StyleSheet.create({
 
 function KeyboardComponent() {
   const theme = useTheme();
+  const [keyboardWidth, setKeyboardWidth] = useState(0);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -136,15 +144,16 @@ function KeyboardComponent() {
         },
         row: {
           flexDirection: 'row',
+          // Center shorter rows so letters form a soft V / U silhouette.
+          justifyContent: 'center',
           gap: layout.keyboardKeyGap,
           marginBottom: layout.keyboardKeyGap,
         },
-        spacer: {
-          flex: 0.5,
-        },
         actionsColumn: {
-          // Roughly one wide key — ISO backspace/submit rail
-          width: 56,
+          // Reserve only backspace width so letter keys can grow.
+          // Submit is wider and overhangs left from the right edge.
+          width: layout.keyboardBackspaceKeyWidth,
+          alignItems: 'flex-end',
           gap: layout.keyboardKeyGap,
         },
       }),
@@ -154,6 +163,24 @@ function KeyboardComponent() {
   const keyboardLayout = useSettingsStore((s) => s.keyboardLayout);
   const rows = useMemo(() => getKeyboardRows(keyboardLayout), [keyboardLayout]);
   const allKeys = useMemo(() => getKeyboardKeys(keyboardLayout), [keyboardLayout]);
+
+  const maxKeysPerRow = useMemo(
+    () => Math.max(1, ...rows.map((row) => row.filter((key) => key !== '').length)),
+    [rows],
+  );
+
+  const letterKeyWidth = useMemo(() => {
+    if (keyboardWidth <= 0) return undefined;
+    const gap = layout.keyboardKeyGap;
+    // Letters use everything except the backspace column (+ column gap).
+    const lettersWidth = keyboardWidth - gap - layout.keyboardBackspaceKeyWidth;
+    return (lettersWidth - gap * (maxKeysPerRow - 1)) / maxKeysPerRow;
+  }, [keyboardWidth, maxKeysPerRow]);
+
+  const onKeyboardLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    setKeyboardWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+  }, []);
 
   const submitHeight = useMemo(
     () => layout.keyboardKeyHeight * 2 + layout.keyboardKeyGap,
@@ -280,12 +307,7 @@ function KeyboardComponent() {
     [],
   );
 
-  const renderLetterKey = (key: string, keyIndex: number, rowIndex: number) => {
-    if (key === '') {
-      return (
-        <View key={`spacer-${rowIndex}-${keyIndex}`} style={styles.spacer} />
-      );
-    }
+  const renderLetterKey = (key: string) => {
     const { text, fontSize, label } = getKeyDisplay(key);
     const disabled = isKeyDisabled(key);
     const feedback = getKeyFeedback(key);
@@ -297,6 +319,7 @@ function KeyboardComponent() {
         fontSize={fontSize}
         backgroundColor={getKeyBackground(key)}
         textColor={getKeyTextColor(key)}
+        width={letterKeyWidth}
         disabled={disabled}
         dimmed={feedback === 'absent'}
         onPress={pressHandlers[key]}
@@ -308,14 +331,14 @@ function KeyboardComponent() {
   const submitDisplay = getKeyDisplay('ENTER');
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={onKeyboardLayout}>
       <View style={styles.lettersColumn}>
         {rows.map((row, i) => (
           <View
             key={`${keyboardLayout}-${i}`}
             style={[styles.row, i === rows.length - 1 && { marginBottom: 0 }]}
           >
-            {row.map((key, keyIndex) => renderLetterKey(key, keyIndex, i))}
+            {row.filter((key) => key !== '').map((key) => renderLetterKey(key))}
           </View>
         ))}
       </View>
@@ -328,6 +351,7 @@ function KeyboardComponent() {
           backgroundColor={getKeyBackground('BACKSPACE')}
           textColor={getKeyTextColor('BACKSPACE')}
           flex={0}
+          width={layout.keyboardBackspaceKeyWidth}
           showBackspaceIcon
           disabled={isKeyDisabled('BACKSPACE')}
           onPress={pressHandlers.BACKSPACE}
@@ -339,6 +363,7 @@ function KeyboardComponent() {
           backgroundColor={getKeyBackground('ENTER')}
           textColor={getKeyTextColor('ENTER')}
           flex={0}
+          width={layout.keyboardSubmitKeyWidth}
           height={submitHeight}
           disabled={isKeyDisabled('ENTER')}
           onPress={pressHandlers.ENTER}
