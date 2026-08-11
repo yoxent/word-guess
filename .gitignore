@@ -32,8 +32,9 @@ eas-build-node-*.tgz
 dictionary.full.enriched.json
 assets/dictionary/*.json
 
-# ── Agent artifacts (pi-subagents session data) ──────────────
+# ── Agent artifacts (canonical copies live under project-docs) ─
 .pi-subagents/
+.superpowers/
 
 # ── Machine-specific agent config (regenerated on clone) ────
 .claude/
@@ -69,7 +70,6 @@ modules/**/android/build/
 modules/**/android/.gradle/
 modules/**/android/local.properties
 
-# ── Agent SDD scratch ───────────────────────────────────────
-.superpowers/
+# ── Local worktrees / editor ────────────────────────────────
 .worktrees/
 /.cursor

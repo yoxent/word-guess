@@ -13,8 +13,7 @@
       "src/**/*.tsx",
       "App.tsx",
       "app.config.ts",
-      "AGENTS.md",
-      "docs/**/*.md"
+      "AGENTS.md"
     ],
     "ignore": [
       "**/__tests__/**",
