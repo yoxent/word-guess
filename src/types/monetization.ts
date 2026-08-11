@@ -3,6 +3,8 @@ export interface AdState {
   interstitialLoading: boolean;
   rewardedLoaded: boolean;
   rewardedLoading: boolean;
+  rewardedInterstitialLoaded: boolean;
+  rewardedInterstitialLoading: boolean;
   gamesSinceLastAd: number;
 }
 

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -64,6 +65,8 @@ export function SettingsRow({
       return <InfoRow config={config} />;
     case 'restore':
       return <RestoreRow config={config} onRestore={onRestore} />;
+    case 'link':
+      return <LinkRow config={config} />;
     case 'purchase':
       return <PurchaseRow config={config} onPurchase={onPurchase} isPurchasing={isPurchasing} />;
     case 'signInButton':
@@ -155,6 +158,31 @@ function RestoreRow({ config, onRestore }: { config: SettingsRowConfig & { type:
       </Text>
       <View style={styles.chevron}>
         <MaterialIcons name="chevron-right" size={22} color={theme.colors.icon.muted} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function LinkRow({ config }: { config: SettingsRowConfig & { type: 'link' } }) {
+  const theme = useTheme();
+  const styles = useStyles(theme);
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() => {
+        void Linking.openURL(config.url);
+      }}
+      activeOpacity={0.7}
+      accessible
+      accessibilityRole="link"
+      accessibilityLabel={config.label}
+      accessibilityHint="Opens in browser"
+    >
+      <Text style={styles.label} numberOfLines={1}>
+        {config.label}
+      </Text>
+      <View style={styles.chevron}>
+        <MaterialIcons name="open-in-new" size={20} color={theme.colors.icon.muted} />
       </View>
     </TouchableOpacity>
   );

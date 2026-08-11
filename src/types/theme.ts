@@ -109,9 +109,9 @@ export interface ThemeColors {
     hintText: string;
     /** Text color on an unused letter key. */
     text: string;
-    /** Background of the ENTER / BACKSPACE action keys. */
+    /** Background of the SUBMIT / BACKSPACE action keys. */
     special: string;
-    /** Text color of the ENTER / BACKSPACE action keys. */
+    /** Text color of the SUBMIT / BACKSPACE action keys. */
     actionText: string;
   };
 

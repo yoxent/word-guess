@@ -6,9 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AppSettings, GameMode, GameSession, PlayerStats } from '../types';
 import { config } from '../constants/config';
 
-/** Max possible win attempt count: 10-letter base (11) + Pro rewarded extras (3) = 14 */
+/** Max possible win attempt count: 10-letter base (11) + Pro bonus row (1) + ad extras (2) = 14 */
 const MAX_GUESS_DISTRIBUTION_BIN =
-  config.baseAttempts(config.maxWordLength) + config.maxExtraGuessesPro;
+  config.baseAttempts(config.maxWordLength) +
+  config.proBonusAttempts +
+  config.maxExtraGuessesPro;
 
 // ── MMKV: synchronous KV for settings + active game state (D-21) ──
 const mmkv: MMKV = createMMKV({ id: 'app-settings' });
@@ -216,8 +218,8 @@ async function computeGuessDistribution(db: SQLite.SQLiteDatabase): Promise<numb
   );
   if (rows.length === 0) return [];
 
-  // Fixed bins 1..MAX covering longest mode + rewarded extras:
-  // maxWordLength(10) + 1 base + maxExtraGuessesPro(3) = 14
+  // Fixed bins 1..MAX covering longest mode + Pro bonus + ad extras:
+  // maxWordLength(10) + 1 base + proBonus(1) + maxExtraGuessesPro(2) = 14
   const distribution = new Array(MAX_GUESS_DISTRIBUTION_BIN + 1).fill(0);
   for (const row of rows) {
     const bin = Math.min(Math.max(row.guesses, 1), MAX_GUESS_DISTRIBUTION_BIN);

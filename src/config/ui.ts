@@ -28,7 +28,8 @@ export type SettingsRowConfig =
   | { type: 'themeSelector'; id: string; label: string }  // Phase 6 (06-01)
   | { type: 'keyboardLayoutSelector'; id: string; label: string }
   // Phase 6 (07-09): 3-position volume slider for BGM and SFX.
-  | { type: 'volumeSlider'; id: string; label: string; description?: string; storeKey: 'bgmVolume' | 'sfxVolume' };
+  | { type: 'volumeSlider'; id: string; label: string; description?: string; storeKey: 'bgmVolume' | 'sfxVolume' }
+  | { type: 'link'; id: string; label: string; url: string };
 
 // ── Config Arrays ──
 
@@ -49,7 +50,7 @@ export const settingsConfig: SettingsSectionConfig[] = [
     rows: [
       { type: 'signInButton', id: 'signIn' },
       { type: 'info', id: 'proStatus', label: 'Pro', value: '—' },
-      { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'One-time purchase, removes all ads forever', productId: config.proProductId },
+      { type: 'purchase', id: 'removeAds', label: 'Remove Ads · $1.99', description: 'Removes interstitial ads and adds a bonus attempt row', productId: config.proProductId },
       { type: 'restore', id: 'restorePurchases', label: 'Restore Purchases' },
     ],
   },
@@ -82,6 +83,24 @@ export const settingsConfig: SettingsSectionConfig[] = [
         helpText:
           'Turns off tile flip animations, confetti, and other motion effects for a calmer experience.',
         storeKey: 'reduceMotion',
+      },
+    ],
+  },
+  {
+    id: 'about',
+    title: 'About',
+    rows: [
+      {
+        type: 'info',
+        id: 'appVersion',
+        label: 'Version',
+        value: config.appVersion,
+      },
+      {
+        type: 'link',
+        id: 'privacyPolicy',
+        label: 'Privacy Policy',
+        url: config.privacyPolicyUrl,
       },
     ],
   },

@@ -13,39 +13,43 @@ export const KEYBOARD_LAYOUT_OPTIONS: {
 ];
 
 /**
- * Rows for the in-game letter keyboard.
- * Empty string `''` is a half-width spacer (QWERTY / QWERTZ / ABC middle row).
- * ENTER / BACKSPACE are action keys rendered wider.
+ * Letter rows only — ISO-style action column is rendered by Keyboard:
+ * BACKSPACE above a tall SUBMIT (internal key code still `ENTER`).
+ * Empty string `''` is a half-width spacer for centered shorter rows.
  */
 export const KEYBOARD_LAYOUTS: Record<KeyboardLayoutId, string[][]> = {
   qwerty: [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-    ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
+    ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ''],
+    ['', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ''],
   ],
   qwertz: [
     ['Q', 'W', 'E', 'R', 'T', 'Z', 'U', 'I', 'O', 'P'],
-    ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['ENTER', 'Y', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE'],
+    ['', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ''],
+    ['', 'Y', 'X', 'C', 'V', 'B', 'N', 'M', ''],
   ],
   azerty: [
     ['A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M'],
-    ['ENTER', 'W', 'X', 'C', 'V', 'B', 'N', 'BACKSPACE'],
+    ['', 'W', 'X', 'C', 'V', 'B', 'N', ''],
   ],
   abc: [
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
-    ['', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
-    ['ENTER', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'BACKSPACE'],
+    ['', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', ''],
+    ['', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ''],
   ],
 };
+
+/** Action keys always present (order: backspace then submit). */
+export const KEYBOARD_ACTION_KEYS = ['BACKSPACE', 'ENTER'] as const;
 
 export function getKeyboardRows(layout: KeyboardLayoutId): string[][] {
   return KEYBOARD_LAYOUTS[layout] ?? KEYBOARD_LAYOUTS.qwerty;
 }
 
 export function getKeyboardKeys(layout: KeyboardLayoutId): string[] {
-  return getKeyboardRows(layout)
-    .flat()
-    .filter((k) => k !== '');
+  return [
+    ...getKeyboardRows(layout).flat().filter((k) => k !== ''),
+    ...KEYBOARD_ACTION_KEYS,
+  ];
 }

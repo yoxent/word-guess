@@ -10,7 +10,13 @@
       "defaultValue": {
         "value": "ca-app-pub-4297882562709937/8970431595"
       },
-      "description": "AdMob rewarded ad unit ID for +1 attempt and letter hint"
+      "description": "AdMob rewarded ad unit ID — D-195: last remaining +1 attempt (and RI fallback)"
+    },
+    "admob_rewarded_interstitial_id": {
+      "defaultValue": {
+        "value": "ca-app-pub-4297882562709937/6430297077"
+      },
+      "description": "AdMob rewarded interstitial unit ID — D-195: letter hint + non-last +1 attempts"
     },
     "admob_interstitial_frequency_override": {
       "defaultValue": {

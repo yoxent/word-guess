@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../types';
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { useDictionaryStore } from './dictionaryStore';
-import { config } from '../constants/config';
+import { config, computeTargetMaxAttempts } from '../constants/config';
 import { clearActiveGame, saveActiveGame, toActiveGameSlot } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
@@ -64,6 +64,11 @@ interface GameState {
   flushPendingInputs: () => void;
   addExtraGuess: () => void;
   useLetterHint: () => void;
+  /**
+   * Recompute maxAttempts from base + Pro bonus + ad extras.
+   * Never shrinks below guesses already made.
+   */
+  syncMaxAttemptsForEntitlement: () => void;
 }
 
 // Priority order for key color accumulation: correct > present > absent > empty
@@ -86,6 +91,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   startGame: (mode, word, letterCount, hardMode) => {
     clearActiveGame(toActiveGameSlot(mode, letterCount, hardMode));
 
+    const isPro = useSettingsStore.getState().isPro;
     const session: GameSession = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
       mode,
@@ -99,7 +105,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       extraGuessesUsed: 0,
       letterHintUsed: false,
       hintTile: null,
-      maxAttempts: letterCount + 1,
+      maxAttempts: computeTargetMaxAttempts(letterCount, 0, isPro),
       startedAt: new Date().toISOString(),
     };
     set({
@@ -260,6 +266,19 @@ export const useGameStore = create<GameState>()((set, get) => ({
       hintTile = pickLetterHint(session.word, session.feedback);
       nextSession = { ...session, hintTile };
     }
+
+    const isPro = useSettingsStore.getState().isPro;
+    const target = computeTargetMaxAttempts(
+      nextSession.letterCount,
+      nextSession.extraGuessesUsed,
+      isPro,
+    );
+    // Never remove capacity already filled by guesses (e.g. refund mid-game).
+    const maxAttempts = Math.max(target, nextSession.guesses.length);
+    if (maxAttempts !== nextSession.maxAttempts) {
+      nextSession = { ...nextSession, maxAttempts };
+    }
+
     set({
       session: nextSession,
       currentGuess: '',
@@ -268,6 +287,33 @@ export const useGameStore = create<GameState>()((set, get) => ({
       hintTile,
       editIndex: null,
     });
+
+    if (
+      nextSession.status === 'playing' &&
+      maxAttempts !== session.maxAttempts
+    ) {
+      saveActiveGame(nextSession);
+    }
+  },
+
+  syncMaxAttemptsForEntitlement: () => {
+    const { session } = get();
+    if (!session) return;
+
+    const isPro = useSettingsStore.getState().isPro;
+    const target = computeTargetMaxAttempts(
+      session.letterCount,
+      session.extraGuessesUsed,
+      isPro,
+    );
+    const maxAttempts = Math.max(target, session.guesses.length);
+    if (maxAttempts === session.maxAttempts) return;
+
+    const next = { ...session, maxAttempts };
+    set({ session: next });
+    if (next.status === 'playing') {
+      saveActiveGame(next);
+    }
   },
 
   clearError: () => set({ error: null }),
@@ -331,11 +377,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     if (session.extraGuessesUsed >= maxExtra) return;
 
+    const extraGuessesUsed = session.extraGuessesUsed + 1;
+    const isPro = useSettingsStore.getState().isPro;
+    const maxAttempts = Math.max(
+      computeTargetMaxAttempts(session.letterCount, extraGuessesUsed, isPro),
+      session.guesses.length,
+    );
+
     set({
       session: {
         ...session,
-        maxAttempts: session.maxAttempts + 1,
-        extraGuessesUsed: session.extraGuessesUsed + 1,
+        maxAttempts,
+        extraGuessesUsed,
       },
       currentGuess: '',
       error: null,

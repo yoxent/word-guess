@@ -5,7 +5,8 @@ export type RootStackParamList = {
   Home: undefined;
   Game: { mode: GameMode; letterCount?: number };
   Stats: undefined;
-  Settings: undefined;
+  /** `fromGame: true` hides Account + About (in-game settings only). */
+  Settings: { fromGame?: boolean } | undefined;
   Leaderboard: undefined;
 };
 

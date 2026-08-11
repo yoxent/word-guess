@@ -15,6 +15,9 @@ export const PRODUCTION_INTERSTITIAL_ID =
   'ca-app-pub-4297882562709937/5589745315';
 export const PRODUCTION_REWARDED_ID =
   'ca-app-pub-4297882562709937/8970431595';
+/** D-195: letter hint + non-last extra attempts */
+export const PRODUCTION_REWARDED_INTERSTITIAL_ID =
+  'ca-app-pub-4297882562709937/6430297077';
 
 const DEFAULT_INTERSTITIAL_ID = __DEV__
   ? TestIds.INTERSTITIAL
@@ -22,6 +25,9 @@ const DEFAULT_INTERSTITIAL_ID = __DEV__
 const DEFAULT_REWARDED_ID = __DEV__
   ? TestIds.REWARDED
   : PRODUCTION_REWARDED_ID;
+const DEFAULT_REWARDED_INTERSTITIAL_ID = __DEV__
+  ? TestIds.REWARDED_INTERSTITIAL
+  : PRODUCTION_REWARDED_INTERSTITIAL_ID;
 
 /** In-app default when RC key missing/empty — never prompts for real versions. */
 export const DEFAULT_MIN_SUPPORTED_VERSION = '0.0.0';
@@ -71,6 +77,22 @@ export function getRewardedAdId(): string {
     // fall through
   }
   return DEFAULT_REWARDED_ID;
+}
+
+/**
+ * Returns the rewarded interstitial ad unit ID (D-195).
+ * - In development (`__DEV__`): always uses Google test ad ID
+ * - In production: Remote Config key `admob_rewarded_interstitial_id`, else live default
+ */
+export function getRewardedInterstitialAdId(): string {
+  if (__DEV__) return TestIds.REWARDED_INTERSTITIAL;
+  try {
+    const fromRc = getValue(rc, 'admob_rewarded_interstitial_id').asString();
+    if (fromRc) return fromRc;
+  } catch {
+    // fall through
+  }
+  return DEFAULT_REWARDED_INTERSTITIAL_ID;
 }
 
 /**

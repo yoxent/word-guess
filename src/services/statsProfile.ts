@@ -3,9 +3,11 @@ import { config } from '../constants/config';
 import { recomputeWinRate } from './mergePlayerStats';
 import { readStatsProfile, writeStatsProfile, computeStatsFromHistory } from './storage';
 
-/** Max possible win attempt count: 10-letter base (11) + Pro rewarded extras (3) = 14 */
+/** Max possible win attempt count: 10-letter base (11) + Pro bonus row (1) + ad extras (2) = 14 */
 const MAX_GUESS_DISTRIBUTION_BIN =
-  config.baseAttempts(config.maxWordLength) + config.maxExtraGuessesPro;
+  config.baseAttempts(config.maxWordLength) +
+  config.proBonusAttempts +
+  config.maxExtraGuessesPro;
 
 export type GameForStats = {
   mode: string;

@@ -47,12 +47,26 @@ jest.mock('../settingsStore', () => ({
   },
 }));
 
-jest.mock('../../constants/config', () => ({
-  config: {
+jest.mock('../../constants/config', () => {
+  const baseAttempts = (letterCount: number) => letterCount + 1;
+  const config = {
     maxExtraGuessesFree: 1,
-    maxExtraGuessesPro: 3,
-  },
-}));
+    maxExtraGuessesPro: 2,
+    proBonusAttempts: 1,
+    baseAttempts,
+  };
+  return {
+    config,
+    computeTargetMaxAttempts: (
+      letterCount: number,
+      extraGuessesUsed: number,
+      isPro: boolean,
+    ) =>
+      baseAttempts(letterCount) +
+      (isPro ? config.proBonusAttempts : 0) +
+      extraGuessesUsed,
+  };
+});
 
 import { useGameStore } from '../gameStore';
 

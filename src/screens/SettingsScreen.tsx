@@ -9,14 +9,19 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Application from 'expo-application';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from '../hooks/useTheme';
 import { typography } from '../constants/typography';
 import { layout } from '../constants/layout';
+import { config } from '../constants/config';
 import { settingsConfig } from '../config/ui';
 import { SettingsRow } from '../components/ui/SettingsRow';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 import { hasSignedInPlayer } from '../utils/authState';
+import type { RootStackParamList } from '../types';
 import {
   purchasePro,
   restorePro,
@@ -25,6 +30,8 @@ import {
 } from '../services/iapService';
 
 export function SettingsScreen() {
+  const route = useRoute<RouteProp<RootStackParamList, 'Settings'>>();
+  const fromGame = route.params?.fromGame === true;
   const theme = useTheme();
   const styles = useMemo(
     () =>
@@ -257,30 +264,45 @@ export function SettingsScreen() {
   }, [isPurchasing, showToast]);
 
   const filteredConfig = useMemo(() => {
-    return settingsConfig.map(section => ({
-      ...section,
-      rows: section.rows.map(row => {
-        // Override pro status value dynamically
-        if (row.type === 'info' && row.id === 'proStatus') {
-          return { ...row, value: isPro ? 'Active' : '—' };
-        }
-        return row;
-      }).filter(row => {
-        // Pro status / buy / restore only while signed in — entitlement is
-        // session-bound and Play ownership is confusing when signed out.
-        if (row.type === 'info' && row.id === 'proStatus') {
-          return isSignedIn;
-        }
-        if (row.type === 'purchase' && row.id === 'removeAds') {
-          return isSignedIn && !isPro;
-        }
-        if (row.type === 'restore' && row.id === 'restorePurchases') {
-          return isSignedIn && !isPro;
+    const installedVersion =
+      Application.nativeApplicationVersion ?? config.appVersion;
+    return settingsConfig
+      .filter((section) => {
+        // In-game Settings: audio / appearance only (no account purchase or about)
+        if (fromGame && (section.id === 'account' || section.id === 'about')) {
+          return false;
         }
         return true;
-      }),
-    }));
-  }, [isPro, isSignedIn]);
+      })
+      .map((section) => ({
+        ...section,
+        rows: section.rows
+          .map((row) => {
+            // Override pro status value dynamically
+            if (row.type === 'info' && row.id === 'proStatus') {
+              return { ...row, value: isPro ? 'Active' : '—' };
+            }
+            if (row.type === 'info' && row.id === 'appVersion') {
+              return { ...row, value: installedVersion };
+            }
+            return row;
+          })
+          .filter((row) => {
+            // Pro status / buy / restore only while signed in — entitlement is
+            // session-bound and Play ownership is confusing when signed out.
+            if (row.type === 'info' && row.id === 'proStatus') {
+              return isSignedIn;
+            }
+            if (row.type === 'purchase' && row.id === 'removeAds') {
+              return isSignedIn && !isPro;
+            }
+            if (row.type === 'restore' && row.id === 'restorePurchases') {
+              return isSignedIn && !isPro;
+            }
+            return true;
+          }),
+      }));
+  }, [isPro, isSignedIn, fromGame]);
 
   return (
     <View style={styles.container}>

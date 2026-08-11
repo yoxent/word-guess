@@ -103,6 +103,7 @@ export default function App() {
         try {
           useAdStore.getState().preloadInterstitial();
           useAdStore.getState().preloadRewarded();
+          useAdStore.getState().preloadRewardedInterstitial();
         } catch (error) {
           console.warn('[App] Ad preload failed', error);
         }

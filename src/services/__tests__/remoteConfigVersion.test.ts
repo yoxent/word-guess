@@ -1,5 +1,9 @@
 jest.mock('react-native-google-mobile-ads', () => ({
-  TestIds: { INTERSTITIAL: 'test-interstitial', REWARDED: 'test-rewarded' },
+  TestIds: {
+    INTERSTITIAL: 'test-interstitial',
+    REWARDED: 'test-rewarded',
+    REWARDED_INTERSTITIAL: 'test-rewarded-interstitial',
+  },
 }));
 
 const mockGetValue = jest.fn();

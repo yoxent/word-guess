@@ -44,9 +44,13 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
-import { HowToPlayModal } from '../components/ui';
+import { HowToPlayModal, RewardedInterstitialIntroModal } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
+import {
+  selectExtraAttemptAdFormat,
+  type HelperAdFormat,
+} from '../utils/adFormat';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -178,6 +182,11 @@ export function GameScreen({ route }: Props) {
           padding: 8,
           flexShrink: 0,
         },
+        headerActions: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexShrink: 0,
+        },
         headerTitle: {
           ...typography.cardTitle,
           color: '#FFFFFF',
@@ -302,6 +311,11 @@ export function GameScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [adIntro, setAdIntro] = useState<{
+    format: HelperAdFormat;
+    rewardLabel: string;
+    onRewarded: () => void;
+  } | null>(null);
   const appState = useRef(AppState.currentState);
 
   // ── Back button spring animation ──
@@ -357,6 +371,7 @@ export function GameScreen({ route }: Props) {
     startGame(mode, word, len, hardMode);
     useAdStore.getState().preloadInterstitial();
     useAdStore.getState().preloadRewarded();
+    useAdStore.getState().preloadRewardedInterstitial();
     setInitializing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -386,7 +401,7 @@ export function GameScreen({ route }: Props) {
         }
         // Ads can fail/expire while backgrounded — nudge a reload so hint
         // buttons do not stay dim forever.
-        useAdStore.getState().ensureRewardedReady();
+        useAdStore.getState().ensureHelperAdsReady();
       }
 
       appState.current = nextState;
@@ -492,38 +507,75 @@ export function GameScreen({ route }: Props) {
   // Hard mode indicator
   const hardModeEnabled = useSettingsStore((s) => s.hardModeEnabled);
 
-  // Hint buttons: watch ad for extra attempt or letter hint
+  // Hint buttons: watch ad for extra attempt or letter hint (D-195 format split)
   const isPro = useSettingsStore((s) => s.isPro);
   const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
   const rewardedLoaded = useAdStore((s) => s.rewardedLoaded);
-  const extraAttemptsRemaining = session ? maxExtra - session.extraGuessesUsed : 0;
+  const rewardedInterstitialLoaded = useAdStore(
+    (s) => s.rewardedInterstitialLoaded,
+  );
+  const extraAttemptsRemaining = session
+    ? maxExtra - session.extraGuessesUsed
+    : 0;
+  const extraAttemptFormat = selectExtraAttemptAdFormat(extraAttemptsRemaining);
+  const letterHintFormat: HelperAdFormat = 'rewarded_interstitial';
+  const extraAttemptReady =
+    extraAttemptFormat === 'rewarded'
+      ? rewardedLoaded
+      : rewardedInterstitialLoaded || rewardedLoaded;
+  const letterHintReady = rewardedInterstitialLoaded || rewardedLoaded;
 
-  const handleWatchAd = useCallback(async () => {
-    const adStore = useAdStore.getState();
-    if (!adStore.rewardedLoaded) {
-      adStore.ensureRewardedReady();
-      return;
-    }
-    await adStore.showRewarded(() => {
-      // Defer state update to avoid Fabric crash from rapid view updates
-      setTimeout(() => {
-        useGameStore.getState().addExtraGuess();
-      }, 100);
-    });
+  const grantExtraAttempt = useCallback(() => {
+    setTimeout(() => {
+      useGameStore.getState().addExtraGuess();
+    }, 100);
   }, []);
 
+  const grantLetterHint = useCallback(() => {
+    setTimeout(() => {
+      useGameStore.getState().useLetterHint();
+    }, 100);
+  }, []);
+
+  const playHelperAd = useCallback(
+    async (
+      format: HelperAdFormat,
+      rewardLabel: string,
+      onRewarded: () => void,
+    ) => {
+      const adStore = useAdStore.getState();
+      if (!adStore.isHelperAdReady(format)) {
+        adStore.ensureHelperAdsReady();
+        return;
+      }
+
+      // Confirm for both RI and RV — policy-required for RI; consistency /
+      // misclick guard for classic rewarded (and RI→RV fallback).
+      setAdIntro({ format, rewardLabel, onRewarded });
+    },
+    [],
+  );
+
+  const handleWatchAd = useCallback(async () => {
+    await playHelperAd(extraAttemptFormat, '+1 Attempt', grantExtraAttempt);
+  }, [playHelperAd, extraAttemptFormat, grantExtraAttempt]);
+
   const handleLetterHint = useCallback(async () => {
-    const adStore = useAdStore.getState();
-    if (!adStore.rewardedLoaded) {
-      adStore.ensureRewardedReady();
-      return;
-    }
-    await adStore.showRewarded(() => {
-      // Defer state update to avoid Fabric crash from rapid view updates
-      setTimeout(() => {
-        useGameStore.getState().useLetterHint();
-      }, 100);
-    });
+    await playHelperAd(letterHintFormat, 'a Letter Hint', grantLetterHint);
+  }, [playHelperAd, letterHintFormat, grantLetterHint]);
+
+  const handleAdIntroWatch = useCallback(async () => {
+    const pending = adIntro;
+    setAdIntro(null);
+    if (!pending) return;
+    await useAdStore.getState().showHelperAd(
+      pending.format,
+      pending.onRewarded,
+    );
+  }, [adIntro]);
+
+  const handleAdIntroSkip = useCallback(() => {
+    setAdIntro(null);
   }, []);
 
   if (initializing || !session) {
@@ -570,16 +622,28 @@ export function GameScreen({ route }: Props) {
               </View>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.helpButton}
-            onPress={() => setShowHowToPlay(true)}
-            activeOpacity={0.7}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel="How to Play"
-          >
-            <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.helpButton}
+              onPress={() => setShowHowToPlay(true)}
+              activeOpacity={0.7}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="How to Play"
+            >
+              <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.helpButton}
+              onPress={() => navigation.navigate('Settings', { fromGame: true })}
+              activeOpacity={0.7}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+            >
+              <MaterialIcons name="settings" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -620,13 +684,16 @@ export function GameScreen({ route }: Props) {
           {/* Rewarded ad: extra attempt */}
           {session.extraGuessesUsed < maxExtra && (
             <TouchableOpacity
-              style={[styles.hintButton, !rewardedLoaded && styles.hintButtonDisabled]}
+              style={[
+                styles.hintButton,
+                !extraAttemptReady && styles.hintButtonDisabled,
+              ]}
               onPress={handleWatchAd}
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
               accessibilityLabel="Watch ad for an extra attempt"
-              accessibilityState={{ disabled: !rewardedLoaded }}
+              accessibilityState={{ disabled: !extraAttemptReady }}
             >
               <MaterialIcons
                 name="play-circle-outline"
@@ -644,16 +711,20 @@ export function GameScreen({ route }: Props) {
             </TouchableOpacity>
           )}
 
-          {/* Rewarded ad: letter hint */}
+          {/* Rewarded interstitial: letter hint (D-195) */}
           {!session.letterHintUsed && (
             <TouchableOpacity
-              style={[styles.hintButton, styles.letterHintButton, !rewardedLoaded && styles.hintButtonDisabled]}
+              style={[
+                styles.hintButton,
+                styles.letterHintButton,
+                !letterHintReady && styles.hintButtonDisabled,
+              ]}
               onPress={handleLetterHint}
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
               accessibilityLabel="Watch ad for a letter hint"
-              accessibilityState={{ disabled: !rewardedLoaded }}
+              accessibilityState={{ disabled: !letterHintReady }}
             >
               <MaterialIcons
                 name="lightbulb-outline"
@@ -684,6 +755,15 @@ export function GameScreen({ route }: Props) {
       <HowToPlayModal
         visible={showHowToPlay}
         onClose={() => setShowHowToPlay(false)}
+      />
+
+      <RewardedInterstitialIntroModal
+        visible={adIntro !== null}
+        rewardLabel={adIntro?.rewardLabel ?? ''}
+        onWatch={() => {
+          void handleAdIntroWatch();
+        }}
+        onSkip={handleAdIntroSkip}
       />
     </View>
   );

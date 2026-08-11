@@ -56,7 +56,14 @@ export const useSettingsStore = create<SettingsState>()(
       setBgmVolume: (v) => set({ bgmVolume: snapVolume(v) }),
       setSfxVolume: (v) => set({ sfxVolume: snapVolume(v) }),
       toggleHaptic: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
-      setPro: (value) => set({ isPro: value }),
+      setPro: (value) => {
+        set({ isPro: value });
+        // Sync active game board size when entitlement flips (purchase / restore / refund sync / sign-out).
+        // Lazy require avoids a settings ↔ game store import cycle at module load.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { useGameStore } = require('./gameStore') as typeof import('./gameStore');
+        useGameStore.getState().syncMaxAttemptsForEntitlement();
+      },
       toggleColorBlindMode: () => set((s) => ({ colorBlindMode: !s.colorBlindMode })),
       toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
       setThemeMode: (mode) => {

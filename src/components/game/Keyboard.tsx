@@ -4,7 +4,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
-import { getKeyboardKeys, getKeyboardRows } from '../../constants/keyboardLayouts';
+import {
+  getKeyboardKeys,
+  getKeyboardRows,
+} from '../../constants/keyboardLayouts';
 import { FONTS } from '../../utils/fonts';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
@@ -22,7 +25,9 @@ const KeyboardKey = memo(function KeyboardKey({
   fontSize,
   backgroundColor,
   textColor,
-  wide,
+  flex = 1,
+  height = layout.keyboardKeyHeight,
+  showBackspaceIcon,
   disabled,
   dimmed,
   onPress,
@@ -32,7 +37,9 @@ const KeyboardKey = memo(function KeyboardKey({
   fontSize: number;
   backgroundColor: string;
   textColor: string;
-  wide?: boolean;
+  flex?: number;
+  height?: number;
+  showBackspaceIcon?: boolean;
   disabled: boolean;
   dimmed?: boolean;
   onPress: () => void;
@@ -60,15 +67,14 @@ const KeyboardKey = memo(function KeyboardKey({
     <Animated.View
       style={{
         transform: [{ scale }],
-        flex: wide ? 1.5 : 1,
+        flex,
         opacity: dimmed ? 0.55 : 1,
       }}
     >
       <TouchableOpacity
         style={[
           keyStyles.key,
-          { backgroundColor },
-          wide && keyStyles.wideKey,
+          { backgroundColor, height },
           disabled && keyStyles.keyDisabled,
         ]}
         onPress={onPress}
@@ -81,10 +87,14 @@ const KeyboardKey = memo(function KeyboardKey({
         accessibilityLabel={label}
         accessibilityState={{ disabled }}
       >
-        {label === 'BACKSPACE' ? (
+        {showBackspaceIcon ? (
           <MaterialIcons name="backspace" size={20} color={textColor} />
         ) : (
-          <Text style={[keyStyles.keyText, { fontSize, color: textColor }]}>
+          <Text
+            style={[keyStyles.keyText, { fontSize, color: textColor }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {displayText}
           </Text>
         )}
@@ -95,13 +105,9 @@ const KeyboardKey = memo(function KeyboardKey({
 
 const keyStyles = StyleSheet.create({
   key: {
-    height: layout.keyboardKeyHeight,
     borderRadius: layout.keyboardKeyBorderRadius,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  wideKey: {
-    // flex: 1.5 applied via Animated.View
   },
   keyDisabled: {
     opacity: 0.4,
@@ -120,15 +126,26 @@ function KeyboardComponent() {
       StyleSheet.create({
         container: {
           width: '100%',
+          flexDirection: 'row',
+          gap: layout.keyboardKeyGap,
           paddingBottom: 16,
+        },
+        lettersColumn: {
+          flex: 1,
+          minWidth: 0,
         },
         row: {
           flexDirection: 'row',
           gap: layout.keyboardKeyGap,
-          marginBottom: 4,
+          marginBottom: layout.keyboardKeyGap,
         },
         spacer: {
           flex: 0.5,
+        },
+        actionsColumn: {
+          // Roughly one wide key — ISO backspace/submit rail
+          width: 56,
+          gap: layout.keyboardKeyGap,
         },
       }),
     [],
@@ -137,6 +154,11 @@ function KeyboardComponent() {
   const keyboardLayout = useSettingsStore((s) => s.keyboardLayout);
   const rows = useMemo(() => getKeyboardRows(keyboardLayout), [keyboardLayout]);
   const allKeys = useMemo(() => getKeyboardKeys(keyboardLayout), [keyboardLayout]);
+
+  const submitHeight = useMemo(
+    () => layout.keyboardKeyHeight * 2 + layout.keyboardKeyGap,
+    [],
+  );
 
   const keyColorMap = useMemo<Record<string, string>>(
     () => ({
@@ -247,40 +269,81 @@ function KeyboardComponent() {
     [isBlocked, currentGuessLength, letterCount, editIndex],
   );
 
-  const getKeyDisplay = useCallback((key: string): { text: string; fontSize: number; label: string } => {
-    if (key === 'ENTER') return { text: 'ENTER', fontSize: 11, label: 'Enter' };
-    if (key === 'BACKSPACE') return { text: '⌫', fontSize: 18, label: 'Backspace' };
-    return { text: key, fontSize: 16, label: key };
-  }, []);
+  const getKeyDisplay = useCallback(
+    (key: string): { text: string; fontSize: number; label: string } => {
+      if (key === 'ENTER') return { text: 'SUBMIT', fontSize: 10, label: 'Submit' };
+      if (key === 'BACKSPACE') {
+        return { text: '⌫', fontSize: 18, label: 'Backspace' };
+      }
+      return { text: key, fontSize: 16, label: key };
+    },
+    [],
+  );
+
+  const renderLetterKey = (key: string, keyIndex: number, rowIndex: number) => {
+    if (key === '') {
+      return (
+        <View key={`spacer-${rowIndex}-${keyIndex}`} style={styles.spacer} />
+      );
+    }
+    const { text, fontSize, label } = getKeyDisplay(key);
+    const disabled = isKeyDisabled(key);
+    const feedback = getKeyFeedback(key);
+    return (
+      <KeyboardKey
+        key={key}
+        label={label}
+        displayText={text}
+        fontSize={fontSize}
+        backgroundColor={getKeyBackground(key)}
+        textColor={getKeyTextColor(key)}
+        disabled={disabled}
+        dimmed={feedback === 'absent'}
+        onPress={pressHandlers[key]}
+      />
+    );
+  };
+
+  const backspaceDisplay = getKeyDisplay('BACKSPACE');
+  const submitDisplay = getKeyDisplay('ENTER');
 
   return (
     <View style={styles.container}>
-      {rows.map((row, i) => (
-        <View key={`${keyboardLayout}-${i}`} style={styles.row}>
-          {row.map((key, keyIndex) => {
-            if (key === '') {
-              return <View key={`spacer-${i}-${keyIndex}`} style={styles.spacer} />;
-            }
-            const { text, fontSize, label } = getKeyDisplay(key);
-            const disabled = isKeyDisabled(key);
-            const feedback = getKeyFeedback(key);
-            return (
-              <KeyboardKey
-                key={key}
-                label={label}
-                displayText={text}
-                fontSize={fontSize}
-                backgroundColor={getKeyBackground(key)}
-                textColor={getKeyTextColor(key)}
-                wide={isActionKey(key)}
-                disabled={disabled}
-                dimmed={feedback === 'absent'}
-                onPress={pressHandlers[key]}
-              />
-            );
-          })}
-        </View>
-      ))}
+      <View style={styles.lettersColumn}>
+        {rows.map((row, i) => (
+          <View
+            key={`${keyboardLayout}-${i}`}
+            style={[styles.row, i === rows.length - 1 && { marginBottom: 0 }]}
+          >
+            {row.map((key, keyIndex) => renderLetterKey(key, keyIndex, i))}
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.actionsColumn}>
+        <KeyboardKey
+          label={backspaceDisplay.label}
+          displayText={backspaceDisplay.text}
+          fontSize={backspaceDisplay.fontSize}
+          backgroundColor={getKeyBackground('BACKSPACE')}
+          textColor={getKeyTextColor('BACKSPACE')}
+          flex={0}
+          showBackspaceIcon
+          disabled={isKeyDisabled('BACKSPACE')}
+          onPress={pressHandlers.BACKSPACE}
+        />
+        <KeyboardKey
+          label={submitDisplay.label}
+          displayText={submitDisplay.text}
+          fontSize={submitDisplay.fontSize}
+          backgroundColor={getKeyBackground('ENTER')}
+          textColor={getKeyTextColor('ENTER')}
+          flex={0}
+          height={submitHeight}
+          disabled={isKeyDisabled('ENTER')}
+          onPress={pressHandlers.ENTER}
+        />
+      </View>
     </View>
   );
 }
