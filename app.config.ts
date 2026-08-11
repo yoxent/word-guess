@@ -68,7 +68,15 @@ const config: ExpoConfig = {
         },
       },
     ],
-    'expo-audio',
+    [
+      'expo-audio',
+      {
+        // Foreground-only BGM/SFX — no Play FGS declaration needed.
+        enableBackgroundPlayback: false,
+        // Playback only; never record.
+        recordAudioAndroid: false,
+      },
+    ],
     'expo-asset',
     'expo-font',
     './plugins/withPlayGamesAppId.js',
