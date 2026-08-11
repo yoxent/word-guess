@@ -31,6 +31,9 @@ eas-build-node-*.tgz
 # ── Dictionary source + generated files (regenerated via postinstall) ─
 dictionary.full.enriched.json
 assets/dictionary/*.json
+wordnet-candidates-full.json
+wordnet-candidates-enriched.json
+wordnet-candidates-summary.txt
 
 # ── Agent artifacts (canonical copies live under project-docs) ─
 .pi-subagents/
