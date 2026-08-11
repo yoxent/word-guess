@@ -17,7 +17,7 @@ export const config = {
   /** Play Console one-time product ID (app package is com.vorithstudio.wordguess). */
   proProductId: 'word_guess_pro',
   /** Canonical hosted privacy policy (Play listing + in-app Settings). */
-  privacyPolicyUrl: 'https://pasttime.xyz/word-guess/policy',
+  privacyPolicyUrl: 'https://yoxent.github.io/word-guess/privacy',
   databaseName: 'wordguess.db',
   storageKeys: {
     settings: 'wordguess.settings',
