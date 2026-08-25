@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-07-14
+**Last updated:** 2026-08-25
 
 Word Guess ("the App") is developed by Vorith Studio ("we," "us," or "our"). This Privacy Policy explains what information the App collects, how it is used, and the choices you have.
 
@@ -33,18 +33,18 @@ If you are signed in, this gameplay data is synced to **Firebase Firestore** so 
 
 ### 1.3 Information Collected Automatically (Advertising)
 
-The App displays ads served by **Google AdMob**. AdMob may collect, on its own behalf, the following information to deliver and measure advertising:
+The App displays ads served by **Unity LevelPlay**. LevelPlay and its advertising partners may collect, on their own behalf, the following information to deliver and measure advertising:
 
 - **Advertising ID** (Google Advertising ID on Android)
 - **Device information** (device model, operating system version, screen size, locale/language settings)
 - **IP address** (used for approximate geographic targeting and fraud prevention)
 - **Ad interaction events** (impressions, clicks)
-- **App-identifier information** (the AdMob app/unit IDs configured in the App)
+- **App-identifier information** (the LevelPlay app key and ad unit IDs configured in the App)
 
-AdMob's data collection is governed by Google's privacy policies:
+LevelPlay's data collection is governed by Unity's privacy policies:
 
-- Google Privacy Policy: <https://policies.google.com/privacy>
-- AdMob privacy information: <https://support.google.com/admob/answer/6128543>
+- Unity Privacy Policy: <https://unity.com/legal/privacy-policy>
+- Unity game player and app user privacy policy: <https://unity.com/legal/game-player-and-app-user-privacy-policy>
 
 You may reset your Advertising ID or opt out of personalized advertising in your device's Google settings.
 
@@ -56,7 +56,7 @@ We use the limited information described above to:
 
 - **Operate the App** — generate daily puzzles, record your statistics, and persist your settings.
 - **Provide cloud features** — sync your stats and submit scores to leaderboards (only if you are signed in).
-- **Display advertising** — show ads via Google AdMob. Ads help support the free version of the App.
+- **Display advertising** — show ads via Unity LevelPlay. Ads help support the free version of the App.
 - **Diagnose and fix issues** — debug crashes and improve performance.
 
 We do **not** sell your personal information to third parties. We do **not** use your gameplay data for advertising profiling or cross-app tracking.
@@ -69,7 +69,7 @@ The App uses the following third-party services, each governed by its own privac
 
 | Service | Purpose | Privacy Policy |
 |---------|---------|----------------|
-| **Google AdMob** | Advertising | <https://support.google.com/admob/answer/6128543> |
+| **Unity LevelPlay** | Advertising | <https://unity.com/legal/game-player-and-app-user-privacy-policy> |
 | **Google Play Games Services** | Optional account authentication (Android) | <https://policies.google.com/privacy> |
 | **Firebase Authentication** | Account management | <https://firebase.google.com/support/privacy> |
 | **Firebase Firestore** | Cloud storage of stats and leaderboard scores | <https://firebase.google.com/support/privacy> |
@@ -83,7 +83,7 @@ The App uses the following third-party services, each governed by its own privac
 
 The App is **not directed to children under the age of 13** (or such higher age as required by applicable law in your jurisdiction). We do not knowingly collect personal information from children under 13.
 
-Because the App integrates Google AdMob (which can serve contextual advertising), we have configured AdMob to treat ad requests as coming from users who are not children, in line with Google Play's Families Policy. We do not knowingly allow children under 13 to create accounts or sign in to the App.
+Because the App integrates Unity LevelPlay (which can serve contextual advertising), we have configured LevelPlay to treat ad requests as coming from users who are not children, in line with Google Play's Families Policy. We do not knowingly allow children under 13 to create accounts or sign in to the App.
 
 If you believe we have inadvertently collected information from a child under 13, please contact us at the address below so we can promptly delete the data.
 

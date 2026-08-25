@@ -47,10 +47,7 @@ import { ResultModal } from '../components/game/ResultModal';
 import { HowToPlayModal, RewardedInterstitialIntroModal } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
-import {
-  selectExtraAttemptAdFormat,
-  type HelperAdFormat,
-} from '../utils/adFormat';
+import type { HelperAdFormat } from '../utils/adFormat';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -369,9 +366,8 @@ export function GameScreen({ route }: Props) {
     }
 
     startGame(mode, word, len, hardMode);
-    useAdStore.getState().preloadInterstitial();
-    useAdStore.getState().preloadRewarded();
-    useAdStore.getState().preloadRewardedInterstitial();
+    useAdStore.getState().ensureHelperAdsReady();
+    void useAdStore.getState().preloadInterstitial();
     setInitializing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -507,23 +503,16 @@ export function GameScreen({ route }: Props) {
   // Hard mode indicator
   const hardModeEnabled = useSettingsStore((s) => s.hardModeEnabled);
 
-  // Hint buttons: watch ad for extra attempt or letter hint (D-195 format split)
+  // Hint buttons: watch a rewarded ad for extra attempt or letter hint
   const isPro = useSettingsStore((s) => s.isPro);
   const maxExtra = isPro ? config.maxExtraGuessesPro : config.maxExtraGuessesFree;
-  const rewardedLoaded = useAdStore((s) => s.rewardedLoaded);
-  const rewardedInterstitialLoaded = useAdStore(
-    (s) => s.rewardedInterstitialLoaded,
-  );
+  const extraAttemptReady = useAdStore((s) => s.extraAttemptLoaded);
+  const letterHintReady = useAdStore((s) => s.letterHintLoaded);
   const extraAttemptsRemaining = session
     ? maxExtra - session.extraGuessesUsed
     : 0;
-  const extraAttemptFormat = selectExtraAttemptAdFormat(extraAttemptsRemaining);
-  const letterHintFormat: HelperAdFormat = 'rewarded_interstitial';
-  const extraAttemptReady =
-    extraAttemptFormat === 'rewarded'
-      ? rewardedLoaded
-      : rewardedInterstitialLoaded || rewardedLoaded;
-  const letterHintReady = rewardedInterstitialLoaded || rewardedLoaded;
+  const extraAttemptFormat: HelperAdFormat = 'extra_attempt';
+  const letterHintFormat: HelperAdFormat = 'letter_hint';
 
   const grantExtraAttempt = useCallback(() => {
     setTimeout(() => {
@@ -549,8 +538,7 @@ export function GameScreen({ route }: Props) {
         return;
       }
 
-      // Confirm for both RI and RV — policy-required for RI; consistency /
-      // misclick guard for classic rewarded (and RI→RV fallback).
+      // Confirm before rewarded helpers to reduce accidental watches.
       setAdIntro({ format, rewardLabel, onRewarded });
     },
     [],
@@ -711,7 +699,7 @@ export function GameScreen({ route }: Props) {
             </TouchableOpacity>
           )}
 
-          {/* Rewarded interstitial: letter hint (D-195) */}
+          {/* Rewarded ad: letter hint */}
           {!session.letterHintUsed && (
             <TouchableOpacity
               style={[

@@ -1,4 +1,3 @@
-import { TestIds } from 'react-native-google-mobile-ads';
 import {
   getRemoteConfig,
   fetchAndActivate,
@@ -7,92 +6,77 @@ import {
 import { isVersionBelow } from '../utils/semver';
 
 /**
- * Production AdMob unit IDs (also published in Firebase Remote Config).
- * Baked in so release builds never fall through to Google test ads when
+ * Production LevelPlay app key + ad unit IDs (also published in Firebase Remote Config).
+ * Baked in so release builds never fall through to empty IDs when
  * Remote Config has not finished fetching yet.
  */
-export const PRODUCTION_INTERSTITIAL_ID =
-  'ca-app-pub-4297882562709937/5589745315';
-export const PRODUCTION_REWARDED_ID =
-  'ca-app-pub-4297882562709937/8970431595';
-/** D-195: letter hint + non-last extra attempts */
-export const PRODUCTION_REWARDED_INTERSTITIAL_ID =
-  'ca-app-pub-4297882562709937/6430297077';
-
-const DEFAULT_INTERSTITIAL_ID = __DEV__
-  ? TestIds.INTERSTITIAL
-  : PRODUCTION_INTERSTITIAL_ID;
-const DEFAULT_REWARDED_ID = __DEV__
-  ? TestIds.REWARDED
-  : PRODUCTION_REWARDED_ID;
-const DEFAULT_REWARDED_INTERSTITIAL_ID = __DEV__
-  ? TestIds.REWARDED_INTERSTITIAL
-  : PRODUCTION_REWARDED_INTERSTITIAL_ID;
+export const PRODUCTION_LEVELPLAY_APP_KEY = '27c77ea8d';
+export const PRODUCTION_INTERSTITIAL_ID = 's30cnanav91qppyc';
+export const PRODUCTION_REWARDED_EXTRA_ROWS_ID = 'hcokdlvoiili0xya';
+export const PRODUCTION_REWARDED_LETTER_HINT_ID = 'yz51hy84w8m16lbc';
 
 /** In-app default when RC key missing/empty — never prompts for real versions. */
 export const DEFAULT_MIN_SUPPORTED_VERSION = '0.0.0';
 
 const rc = getRemoteConfig();
 
+function readRcString(key: string): string {
+  try {
+    return getValue(rc, key).asString()?.trim() ?? '';
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Fetch and activate Remote Config values from Firebase.
- * Call before preloading ads. Getters always have live production
+ * Call before initializing ads. Getters always have live production
  * fallbacks even if this fetch fails.
  */
 export async function fetchAdUnitIds(): Promise<void> {
   try {
     await fetchAndActivate(rc);
   } catch {
-    // Keep compiled-in production IDs (D-108)
+    // Keep compiled-in production IDs
   }
 }
 
 /**
- * Returns the interstitial ad unit ID.
- * - In development (`__DEV__`): always uses Google test ad ID
- * - In production: Remote Config key `admob_interstitial_id`, else live default
+ * LevelPlay app key.
+ * Remote Config key `levelplay_app_key`, else live default.
+ */
+export function getLevelPlayAppKey(): string {
+  return readRcString('levelplay_app_key') || PRODUCTION_LEVELPLAY_APP_KEY;
+}
+
+/**
+ * Interstitial ad unit ID for free-tier game-over ads.
+ * Remote Config key `levelplay_interstitial_id`, else live default.
  */
 export function getInterstitialAdId(): string {
-  if (__DEV__) return TestIds.INTERSTITIAL;
-  try {
-    const fromRc = getValue(rc, 'admob_interstitial_id').asString();
-    if (fromRc) return fromRc;
-  } catch {
-    // fall through
-  }
-  return DEFAULT_INTERSTITIAL_ID;
+  return readRcString('levelplay_interstitial_id') || PRODUCTION_INTERSTITIAL_ID;
 }
 
 /**
- * Returns the rewarded ad unit ID.
- * - In development (`__DEV__`): always uses Google test ad ID
- * - In production: Remote Config key `admob_rewarded_id`, else live default
+ * Rewarded ad unit ID for extra attempt rows.
+ * Remote Config key `levelplay_rewarded_extra_rows_id`, else live default.
  */
-export function getRewardedAdId(): string {
-  if (__DEV__) return TestIds.REWARDED;
-  try {
-    const fromRc = getValue(rc, 'admob_rewarded_id').asString();
-    if (fromRc) return fromRc;
-  } catch {
-    // fall through
-  }
-  return DEFAULT_REWARDED_ID;
+export function getRewardedExtraRowsAdId(): string {
+  return (
+    readRcString('levelplay_rewarded_extra_rows_id') ||
+    PRODUCTION_REWARDED_EXTRA_ROWS_ID
+  );
 }
 
 /**
- * Returns the rewarded interstitial ad unit ID (D-195).
- * - In development (`__DEV__`): always uses Google test ad ID
- * - In production: Remote Config key `admob_rewarded_interstitial_id`, else live default
+ * Rewarded ad unit ID for the letter hint helper.
+ * Remote Config key `levelplay_rewarded_letter_hint_id`, else live default.
  */
-export function getRewardedInterstitialAdId(): string {
-  if (__DEV__) return TestIds.REWARDED_INTERSTITIAL;
-  try {
-    const fromRc = getValue(rc, 'admob_rewarded_interstitial_id').asString();
-    if (fromRc) return fromRc;
-  } catch {
-    // fall through
-  }
-  return DEFAULT_REWARDED_INTERSTITIAL_ID;
+export function getRewardedLetterHintAdId(): string {
+  return (
+    readRcString('levelplay_rewarded_letter_hint_id') ||
+    PRODUCTION_REWARDED_LETTER_HINT_ID
+  );
 }
 
 /**
@@ -100,13 +84,7 @@ export function getRewardedInterstitialAdId(): string {
  * Empty / missing → `0.0.0` (fail-open: no update prompt for normal versions).
  */
 export function getMinSupportedVersion(): string {
-  try {
-    const fromRc = getValue(rc, 'min_supported_version').asString()?.trim();
-    if (fromRc) return fromRc;
-  } catch {
-    // fall through
-  }
-  return DEFAULT_MIN_SUPPORTED_VERSION;
+  return readRcString('min_supported_version') || DEFAULT_MIN_SUPPORTED_VERSION;
 }
 
 /**

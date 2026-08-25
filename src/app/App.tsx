@@ -101,11 +101,9 @@ export default function App() {
         }
 
         try {
-          useAdStore.getState().preloadInterstitial();
-          useAdStore.getState().preloadRewarded();
-          useAdStore.getState().preloadRewardedInterstitial();
+          await useAdStore.getState().initAds();
         } catch (error) {
-          console.warn('[App] Ad preload failed', error);
+          console.warn('[App] LevelPlay init failed', error);
         }
 
         // Initialize sound system (loads BGM + SFX players) — fire-and-forget

@@ -1,13 +1,16 @@
 /**
  * Patches android/build.gradle to pin Kotlin version.
  *
- * react-native-google-mobile-ads depends on play-services-ads:25.4.0
- * which was compiled with Kotlin 2.3.0 metadata. The ads module reads
- * rootProject.ext.kotlinVersion via getExtOrDefault() — expo-build-properties
- * only sets it in gradle.properties which is a different property scope.
+ * Some Google Play / Firebase Android libraries ship Kotlin metadata 2.3.0.
+ * RN 0.86 ships Kotlin 2.1.20 in its Gradle version catalog
+ * (`node_modules/react-native/gradle/libs.versions.toml`). The Kotlin compiler
+ * 2.1.20 cannot read metadata 2.3.0.
+ *
+ * `expo-build-properties` sets `android.kotlinVersion` in `gradle.properties`,
+ * but some modules read `rootProject.ext.kotlinVersion` — a different scope.
  *
  * This patch adds `ext.kotlinVersion = '2.3.0'` to buildscript {} in
- * android/build.gradle so the Kotlin compiler can read the library's metadata.
+ * android/build.gradle so the Kotlin compiler can read those libraries.
  *
  * Runs after `npx expo prebuild` (which regenerates android/ from scratch).
  */

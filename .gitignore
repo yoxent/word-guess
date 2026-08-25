@@ -69,6 +69,7 @@ nul
 *.temp
 .tmp-web-bundle/
 google-services.json
+remoteconfig.live.json
 
 # ── Local Expo module build junk ────────────────────────────
 modules/**/android/build/

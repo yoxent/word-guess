@@ -1,10 +1,10 @@
 export interface AdState {
   interstitialLoaded: boolean;
   interstitialLoading: boolean;
-  rewardedLoaded: boolean;
-  rewardedLoading: boolean;
-  rewardedInterstitialLoaded: boolean;
-  rewardedInterstitialLoading: boolean;
+  extraAttemptLoaded: boolean;
+  extraAttemptLoading: boolean;
+  letterHintLoaded: boolean;
+  letterHintLoading: boolean;
   gamesSinceLastAd: number;
 }
 
