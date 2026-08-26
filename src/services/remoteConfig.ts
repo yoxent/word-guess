@@ -6,9 +6,9 @@ import {
 import { isVersionBelow } from '../utils/semver';
 
 /**
- * Production LevelPlay app key + ad unit IDs (also published in Firebase Remote Config).
- * Baked in so release builds never fall through to empty IDs when
- * Remote Config has not finished fetching yet.
+ * Production LevelPlay app key + ad unit IDs.
+ * Compiled in — not read from Firebase Remote Config. RC is only used for
+ * `min_supported_version`.
  */
 export const PRODUCTION_LEVELPLAY_APP_KEY = '27c77ea8d';
 export const PRODUCTION_INTERSTITIAL_ID = 's30cnanav91qppyc';
@@ -29,54 +29,31 @@ function readRcString(key: string): string {
 }
 
 /**
- * Fetch and activate Remote Config values from Firebase.
- * Call before initializing ads. Getters always have live production
- * fallbacks even if this fetch fails.
+ * Fetch and activate Remote Config (soft-update floor). Ad unit IDs are
+ * compiled in and do not wait on this fetch.
  */
 export async function fetchAdUnitIds(): Promise<void> {
   try {
     await fetchAndActivate(rc);
   } catch {
-    // Keep compiled-in production IDs
+    // Keep DEFAULT_MIN_SUPPORTED_VERSION
   }
 }
 
-/**
- * LevelPlay app key.
- * Remote Config key `levelplay_app_key`, else live default.
- */
 export function getLevelPlayAppKey(): string {
-  return readRcString('levelplay_app_key') || PRODUCTION_LEVELPLAY_APP_KEY;
+  return PRODUCTION_LEVELPLAY_APP_KEY;
 }
 
-/**
- * Interstitial ad unit ID for free-tier game-over ads.
- * Remote Config key `levelplay_interstitial_id`, else live default.
- */
 export function getInterstitialAdId(): string {
-  return readRcString('levelplay_interstitial_id') || PRODUCTION_INTERSTITIAL_ID;
+  return PRODUCTION_INTERSTITIAL_ID;
 }
 
-/**
- * Rewarded ad unit ID for extra attempt rows.
- * Remote Config key `levelplay_rewarded_extra_rows_id`, else live default.
- */
 export function getRewardedExtraRowsAdId(): string {
-  return (
-    readRcString('levelplay_rewarded_extra_rows_id') ||
-    PRODUCTION_REWARDED_EXTRA_ROWS_ID
-  );
+  return PRODUCTION_REWARDED_EXTRA_ROWS_ID;
 }
 
-/**
- * Rewarded ad unit ID for the letter hint helper.
- * Remote Config key `levelplay_rewarded_letter_hint_id`, else live default.
- */
 export function getRewardedLetterHintAdId(): string {
-  return (
-    readRcString('levelplay_rewarded_letter_hint_id') ||
-    PRODUCTION_REWARDED_LETTER_HINT_ID
-  );
+  return PRODUCTION_REWARDED_LETTER_HINT_ID;
 }
 
 /**

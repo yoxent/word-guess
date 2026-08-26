@@ -139,11 +139,23 @@ async function ensureSdkReady(): Promise<boolean> {
       }
 
       const appKey = getLevelPlayAppKey().trim() || PRODUCTION_LEVELPLAY_APP_KEY;
+      if (__DEV__) {
+        console.log('[ads] LevelPlay init starting', {
+          appKey,
+          interstitial: resolveInterstitialUnitId(),
+          extraAttempt: resolveExtraAttemptUnitId(),
+          letterHint: resolveLetterHintUnitId(),
+        });
+      }
       const initRequest = LevelPlayInitRequest.builder(appKey).build();
 
       await new Promise<void>((resolve, reject) => {
+        const initTimeout = setTimeout(() => {
+          reject(new Error('LevelPlay init timed out after 20s'));
+        }, 20_000);
         void LevelPlay.init(initRequest, {
           onInitSuccess: (configuration) => {
+            clearTimeout(initTimeout);
             if (__DEV__) {
               console.log('[ads] LevelPlay init success', configuration);
               void LevelPlay.validateIntegration();
@@ -151,6 +163,7 @@ async function ensureSdkReady(): Promise<boolean> {
             resolve();
           },
           onInitFailed: (error) => {
+            clearTimeout(initTimeout);
             reject(
               new Error(
                 error.errorMessage ||
@@ -158,7 +171,10 @@ async function ensureSdkReady(): Promise<boolean> {
               ),
             );
           },
-        }).catch(reject);
+        }).catch((error) => {
+          clearTimeout(initTimeout);
+          reject(error);
+        });
       });
 
       sdkReady = true;
@@ -399,12 +415,21 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     interstitialLoadWatchdog = setTimeout(() => {
       interstitialLoadWatchdog = null;
       if (get().interstitialLoading && !get().interstitialLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] interstitial load timed out',
+            resolveInterstitialUnitId(),
+          );
+        }
         set({ interstitialLoading: false, interstitialLoaded: false });
         scheduleInterstitialRetry();
       }
     }, LOAD_TIMEOUT_MS);
 
     try {
+      if (__DEV__) {
+        console.log('[ads] interstitial load start', resolveInterstitialUnitId());
+      }
       await interstitialAd.loadAd();
     } catch {
       if (interstitialLoadWatchdog) {
@@ -437,12 +462,21 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     extraAttemptLoadWatchdog = setTimeout(() => {
       extraAttemptLoadWatchdog = null;
       if (get().extraAttemptLoading && !get().extraAttemptLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] extra-attempt load timed out',
+            resolveExtraAttemptUnitId(),
+          );
+        }
         set({ extraAttemptLoading: false, extraAttemptLoaded: false });
         scheduleExtraAttemptRetry();
       }
     }, LOAD_TIMEOUT_MS);
 
     try {
+      if (__DEV__) {
+        console.log('[ads] extra-attempt load start', resolveExtraAttemptUnitId());
+      }
       await extraAttemptAd.loadAd();
     } catch {
       if (extraAttemptLoadWatchdog) {
@@ -475,12 +509,21 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     letterHintLoadWatchdog = setTimeout(() => {
       letterHintLoadWatchdog = null;
       if (get().letterHintLoading && !get().letterHintLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] letter-hint load timed out',
+            resolveLetterHintUnitId(),
+          );
+        }
         set({ letterHintLoading: false, letterHintLoaded: false });
         scheduleLetterHintRetry();
       }
     }, LOAD_TIMEOUT_MS);
 
     try {
+      if (__DEV__) {
+        console.log('[ads] letter-hint load start', resolveLetterHintUnitId());
+      }
       await letterHintAd.loadAd();
     } catch {
       if (letterHintLoadWatchdog) {

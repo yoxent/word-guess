@@ -82,12 +82,11 @@ export default function App() {
         // Open SQLite before any game can complete — stats writes need it
         await initDatabase();
 
-        // Resolve live ad unit IDs before preload so we never lock onto test ads
-        // from an empty Remote Config race (production falls back to baked-in IDs).
+        // Soft-update floor (`min_supported_version`). Ad unit IDs are compiled in.
         try {
           await fetchAdUnitIds();
         } catch (error) {
-          console.warn('[App] Remote Config ad unit fetch failed', error);
+          console.warn('[App] Remote Config fetch failed', error);
         }
 
         // Soft update check (fail-open). Uses RC values after fetchAndActivate;

@@ -61,7 +61,7 @@ describe('remoteConfig version helpers', () => {
   });
 });
 
-describe('remoteConfig LevelPlay ad IDs', () => {
+describe('LevelPlay ad IDs are compiled in', () => {
   beforeEach(() => {
     mockGetValue.mockReset();
   });
@@ -72,24 +72,16 @@ describe('remoteConfig LevelPlay ad IDs', () => {
     }));
   }
 
-  it('falls back to baked-in LevelPlay IDs when RC is empty', () => {
-    mockKeys({});
-    expect(getLevelPlayAppKey()).toBe(PRODUCTION_LEVELPLAY_APP_KEY);
-    expect(getInterstitialAdId()).toBe(PRODUCTION_INTERSTITIAL_ID);
-    expect(getRewardedExtraRowsAdId()).toBe(PRODUCTION_REWARDED_EXTRA_ROWS_ID);
-    expect(getRewardedLetterHintAdId()).toBe(PRODUCTION_REWARDED_LETTER_HINT_ID);
-  });
-
-  it('uses Remote Config LevelPlay IDs when present', () => {
+  it('uses compiled-in LevelPlay IDs even when RC has other values', () => {
     mockKeys({
       levelplay_app_key: 'app-from-rc',
       levelplay_interstitial_id: 'int-from-rc',
       levelplay_rewarded_extra_rows_id: 'rows-from-rc',
       levelplay_rewarded_letter_hint_id: 'hint-from-rc',
     });
-    expect(getLevelPlayAppKey()).toBe('app-from-rc');
-    expect(getInterstitialAdId()).toBe('int-from-rc');
-    expect(getRewardedExtraRowsAdId()).toBe('rows-from-rc');
-    expect(getRewardedLetterHintAdId()).toBe('hint-from-rc');
+    expect(getLevelPlayAppKey()).toBe(PRODUCTION_LEVELPLAY_APP_KEY);
+    expect(getInterstitialAdId()).toBe(PRODUCTION_INTERSTITIAL_ID);
+    expect(getRewardedExtraRowsAdId()).toBe(PRODUCTION_REWARDED_EXTRA_ROWS_ID);
+    expect(getRewardedLetterHintAdId()).toBe(PRODUCTION_REWARDED_LETTER_HINT_ID);
   });
 });

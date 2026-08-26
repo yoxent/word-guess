@@ -73,7 +73,7 @@ The App uses the following third-party services, each governed by its own privac
 | **Google Play Games Services** | Optional account authentication (Android) | <https://policies.google.com/privacy> |
 | **Firebase Authentication** | Account management | <https://firebase.google.com/support/privacy> |
 | **Firebase Firestore** | Cloud storage of stats and leaderboard scores | <https://firebase.google.com/support/privacy> |
-| **Firebase Remote Config** | App configuration (e.g. ad unit IDs) | <https://firebase.google.com/support/privacy> |
+| **Firebase Remote Config** | App configuration (e.g. minimum supported version) | <https://firebase.google.com/support/privacy> |
 | **Google Play Billing** | In-app purchases (Pro upgrade) | <https://policies.google.com/privacy> |
 | **Google Play Services** | Core Android platform integration | <https://policies.google.com/privacy> |
 

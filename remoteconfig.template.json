@@ -4,28 +4,28 @@
       "defaultValue": {
         "value": "27c77ea8d"
       },
-      "description": "Unity LevelPlay app key",
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
       "valueType": "STRING"
     },
     "levelplay_interstitial_id": {
       "defaultValue": {
         "value": "s30cnanav91qppyc"
       },
-      "description": "LevelPlay interstitial ad unit ID for free-tier game-over ads",
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
       "valueType": "STRING"
     },
     "levelplay_rewarded_extra_rows_id": {
       "defaultValue": {
         "value": "hcokdlvoiili0xya"
       },
-      "description": "LevelPlay rewarded ad unit ID for extra attempt rows",
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
       "valueType": "STRING"
     },
     "levelplay_rewarded_letter_hint_id": {
       "defaultValue": {
         "value": "yz51hy84w8m16lbc"
       },
-      "description": "LevelPlay rewarded ad unit ID for the letter hint helper",
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
       "valueType": "STRING"
     },
     "levelplay_interstitial_frequency_override": {
