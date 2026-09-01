@@ -2,6 +2,7 @@ export { Button } from './Button';
 export { StatCard } from './StatCard';
 export { SettingsRow } from './SettingsRow';
 export { HowToPlayModal } from './HowToPlayModal';
+export { HintAdButton } from './HintAdButton';
 export { UpdateRequiredModal } from './UpdateRequiredModal';
 export { RewardedInterstitialIntroModal } from './RewardedInterstitialIntroModal';
 export { ProgressRing } from './ProgressRing';

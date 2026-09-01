@@ -44,7 +44,7 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
-import { HowToPlayModal, RewardedInterstitialIntroModal, TutorialCoach } from '../components/ui';
+import { HowToPlayModal, HintAdButton, RewardedInterstitialIntroModal, TutorialCoach } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
 import type { HelperAdFormat } from '../utils/adFormat';
@@ -66,11 +66,11 @@ function randomLength(): number {
 }
 
 function formatExtraAttemptLabel(remaining: number): string {
-  const base = 'Watch Ad · +1 Attempt';
+  const base = '+1 Row';
   return remaining > 1 ? `${base} (${remaining} left)` : base;
 }
 
-const LETTER_HINT_AD_LABEL = 'Watch Ad · Letter Hint';
+const LETTER_HINT_AD_LABEL = 'Letter Hint';
 
 /** Wait for current frame + paint so Fabric can finish Animated tile → StaticTile swap. */
 function runAfterUiSettle(callback: () => void): void {
@@ -260,38 +260,6 @@ export function GameScreen({ route }: Props) {
           gap: 10,
           marginTop: 8,
           marginBottom: 10,
-        },
-        hintButton: {
-          flex: 1,
-          minWidth: 0,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          backgroundColor: theme.colors.brand.primary,
-          borderRadius: 20,
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          // Soft shadow
-          shadowColor: theme.colors.brand.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 4,
-        },
-        letterHintButton: {
-          backgroundColor: theme.colors.brand.secondary,
-          shadowColor: theme.colors.brand.secondary,
-        },
-        hintButtonDisabled: {
-          opacity: 0.5,
-        },
-        hintButtonText: {
-          ...typography.small,
-          fontSize: 13,
-          color: '#FFFFFF',
-          flexShrink: 1,
-          textAlign: 'center',
         },
       }),
     [theme],
@@ -582,7 +550,7 @@ export function GameScreen({ route }: Props) {
   );
 
   const handleWatchAd = useCallback(async () => {
-    await playHelperAd(extraAttemptFormat, '+1 Attempt', grantExtraAttempt);
+    await playHelperAd(extraAttemptFormat, '+1 Row', grantExtraAttempt);
   }, [playHelperAd, extraAttemptFormat, grantExtraAttempt]);
 
   const handleLetterHint = useCallback(async () => {
@@ -728,65 +696,25 @@ export function GameScreen({ route }: Props) {
       {/* ── Hint Buttons ── */}
       {session.status === 'playing' && !session.isTutorial && (
         <View style={styles.hintButtonsContainer}>
-          {/* Rewarded ad: extra attempt */}
           {session.extraGuessesUsed < maxExtra && (
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                !extraAttemptReady && styles.hintButtonDisabled,
-              ]}
+            <HintAdButton
+              icon="play"
+              label={formatExtraAttemptLabel(extraAttemptsRemaining)}
+              backgroundColor={theme.colors.brand.primary}
               onPress={handleWatchAd}
-              activeOpacity={0.8}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="Watch ad for an extra attempt"
-              accessibilityState={{ disabled: !extraAttemptReady }}
-            >
-              <MaterialIcons
-                name="play-circle-outline"
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text
-                style={styles.hintButtonText}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {formatExtraAttemptLabel(extraAttemptsRemaining)}
-              </Text>
-            </TouchableOpacity>
+              disabled={!extraAttemptReady}
+              accessibilityLabel="Watch ad for an extra row"
+            />
           )}
-
-          {/* Rewarded ad: letter hint */}
           {!session.letterHintUsed && (
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                styles.letterHintButton,
-                !letterHintReady && styles.hintButtonDisabled,
-              ]}
+            <HintAdButton
+              icon="hint"
+              label={LETTER_HINT_AD_LABEL}
+              backgroundColor={theme.colors.brand.secondary}
               onPress={handleLetterHint}
-              activeOpacity={0.8}
-              accessible
-              accessibilityRole="button"
+              disabled={!letterHintReady}
               accessibilityLabel="Watch ad for a letter hint"
-              accessibilityState={{ disabled: !letterHintReady }}
-            >
-              <MaterialIcons
-                name="lightbulb-outline"
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text
-                style={styles.hintButtonText}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {LETTER_HINT_AD_LABEL}
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       )}

@@ -6,7 +6,7 @@ import { layout } from '../../constants/layout';
 
 export interface RewardedInterstitialIntroModalProps {
   visible: boolean;
-  /** Short reward line, e.g. "+1 Attempt" or "a Letter Hint" */
+  /** Short reward line, e.g. "+1 Row" or "a Letter Hint" */
   rewardLabel: string;
   onWatch: () => void;
   onSkip: () => void;
