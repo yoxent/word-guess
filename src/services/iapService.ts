@@ -71,7 +71,7 @@ export async function initIap(): Promise<boolean> {
         }
       });
 
-      errorSub = purchaseErrorListener((error: PurchaseError) => {
+      errorSub = purchaseErrorListener(async (error: PurchaseError) => {
         if (error.code === ErrorCode.UserCancelled || isUserCancelledError(error)) {
           uiHandlers.onPurchaseCancelled?.();
           return;
