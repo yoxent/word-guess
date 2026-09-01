@@ -6,3 +6,4 @@ export { UpdateRequiredModal } from './UpdateRequiredModal';
 export { RewardedInterstitialIntroModal } from './RewardedInterstitialIntroModal';
 export { ProgressRing } from './ProgressRing';
 export { HomeBackground } from './HomeBackground';
+export { TutorialCoach } from './TutorialCoach';

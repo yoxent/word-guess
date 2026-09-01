@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import type { Theme } from '../../types/theme';
 import type { TileFeedback } from '../../types';
 import { layout } from '../../constants/layout';
+import { FONTS } from '../../utils/fonts';
 
 export function getAccessibilityLabel(
   letter: string,
@@ -39,6 +40,7 @@ export function createTileStyles(theme: Theme) {
       borderColor: theme.colors.tile.border,
     },
     letter: {
+      fontFamily: FONTS.button,
       fontWeight: '700',
       color: theme.colors.text.inverse,
       textTransform: 'uppercase',

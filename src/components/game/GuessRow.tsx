@@ -27,6 +27,8 @@ interface GuessRowProps {
   /** Selected tile index for in-place replace (active row only). */
   editIndex?: number | null;
   onTilePress?: (index: number) => void;
+  /** Tutorial callout — ring these completed tiles. */
+  calloutIndices?: number[];
 }
 
 function GuessRowComponent({
@@ -41,6 +43,7 @@ function GuessRowComponent({
   hintTile = null,
   editIndex = null,
   onTilePress,
+  calloutIndices = [],
 }: GuessRowProps) {
   const shakeX = useSharedValue(0);
 
@@ -126,6 +129,7 @@ function GuessRowComponent({
             tileSize={tileSize}
             isHintGhost={showHintGhost}
             isSelected={isActive && editIndex === i}
+            isCallout={calloutIndices.includes(i)}
             onPress={canSelect ? () => onTilePress(i) : undefined}
           />
         );

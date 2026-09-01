@@ -129,6 +129,24 @@ export function HomeScreen() {
           marginTop: 16,
           marginBottom: 8,
         },
+        // TEMP: remove once onboarding is signed off
+        tempTutorialButton: {
+          marginTop: 12,
+          alignSelf: 'stretch',
+          maxWidth: 340,
+          borderRadius: layout.buttonBorderRadius,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          alignItems: 'center',
+          borderWidth: 1.5,
+          borderColor: theme.colors.brand.secondary,
+          backgroundColor: theme.colors.surface.card,
+        },
+        tempTutorialButtonText: {
+          ...typography.caption,
+          fontWeight: '700',
+          color: theme.colors.brand.secondary,
+        },
         // ── Continue Modal ──
         modalOverlay: {
           flex: 1,
@@ -207,6 +225,8 @@ export function HomeScreen() {
     length: number;
   } | null>(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
+  const didAutoStartTutorial = useRef(false);
 
   // ── Stagger entrance animation refs ──
   const titleAnim = useRef(new Animated.Value(0)).current;
@@ -226,6 +246,12 @@ export function HomeScreen() {
     const completed = getDailyCompletedLengths(dateStr);
     setCompletedDailyLengths(completed);
   }, []);
+
+  useEffect(() => {
+    if (hasCompletedOnboarding || didAutoStartTutorial.current) return;
+    didAutoStartTutorial.current = true;
+    navigation.navigate('Game', { mode: 'random', letterCount: 5, tutorial: true });
+  }, [hasCompletedOnboarding, navigation]);
 
   // ── Daily progress ──
   const dailyProgress = useMemo(() => {
@@ -355,6 +381,10 @@ export function HomeScreen() {
   const handleLengthSelect = (length: number) => {
     setShowPicker(false);
     navigateWithContinueCheck(pickerMode, length);
+  };
+
+  const startTutorial = () => {
+    navigation.navigate('Game', { mode: 'random', letterCount: 5, tutorial: true });
   };
 
   // ── Build daily subtitle with progress hint ──
@@ -497,6 +527,16 @@ export function HomeScreen() {
         {/* ── Hard Mode Toggle ── */}
         <Animated.View style={[styles.hardModeSection, fadeSlide(hardModeAnim)]}>
           <HardModePill enabled={hardMode} onToggle={toggleHardMode} />
+          <TouchableOpacity
+            style={styles.tempTutorialButton}
+            onPress={startTutorial}
+            activeOpacity={0.7}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Play tutorial"
+          >
+            <Text style={styles.tempTutorialButtonText}>TEMP: Play tutorial</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* ── Daily Preview ── */}
@@ -520,6 +560,10 @@ export function HomeScreen() {
       <HowToPlayModal
         visible={showHowToPlay}
         onClose={() => setShowHowToPlay(false)}
+        onPlayTutorial={() => {
+          setShowHowToPlay(false);
+          startTutorial();
+        }}
       />
 
       <Modal

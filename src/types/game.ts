@@ -28,4 +28,6 @@ export interface GameSession {
   maxAttempts: number;
   startedAt: string;
   completedAt?: string;
+  /** Isolated onboarding session — no stats, ads, or continue-save. */
+  isTutorial?: boolean;
 }

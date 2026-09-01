@@ -32,6 +32,26 @@ export { applyGameToStats, recordGameToProfile, emptyStats as emptyPlayerStats }
 export type { GameForStats } from './statsProfile';
 
 export { evaluateGuess, validateHardMode, isValidGuess } from './wordLogic';
+export {
+  TUTORIAL_ANSWER,
+  TUTORIAL_INITIAL_PHASE,
+  TUTORIAL_LETTER_COUNT,
+  TUTORIAL_WORDS,
+  TUTORIAL_WRONG_ANSWER_ERROR,
+  expectedGuess,
+  isExplainPhase,
+  isInputPhase,
+  isModalPhase,
+  isTutorialKeyAllowed,
+  nextPhaseAfterContinue,
+  nextPhaseAfterReveal,
+  tutorialCallouts,
+  tutorialCopy,
+  tutorialHighlightedKey,
+  tutorialSampleTiles,
+  tutorialSubmitError,
+} from './tutorialScript';
+export type { TutorialCallout, TutorialPhase } from './tutorialScript';
 
 export { getDailyDateString, getDailyWordIndex } from './dailySeed';
 

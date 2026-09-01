@@ -7,9 +7,10 @@ import { layout } from '../../constants/layout';
 interface HowToPlayModalProps {
   visible: boolean;
   onClose: () => void;
+  onPlayTutorial?: () => void;
 }
 
-export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
+export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayModalProps) {
   const theme = useTheme();
   const styles = useMemo(
     () =>
@@ -134,6 +135,20 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
           ...typography.button,
           color: '#FFFFFF',
         },
+        tutorialButton: {
+          borderRadius: 20,
+          paddingVertical: 12,
+          paddingHorizontal: 48,
+          width: '100%',
+          alignItems: 'center',
+          marginBottom: 10,
+          borderWidth: 2,
+          borderColor: theme.colors.brand.primary,
+        },
+        tutorialButtonText: {
+          ...typography.button,
+          color: theme.colors.brand.primary,
+        },
       }),
     [theme],
   );
@@ -220,6 +235,19 @@ export function HowToPlayModal({ visible, onClose }: HowToPlayModalProps) {
               Turn it on from the Home screen. Every new guess must keep green letters in the same spots and include all revealed yellow letters somewhere in the word.
             </Text>
           </View>
+
+          {onPlayTutorial ? (
+            <TouchableOpacity
+              style={styles.tutorialButton}
+              onPress={onPlayTutorial}
+              activeOpacity={0.8}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel="Try a guided game"
+            >
+              <Text style={styles.tutorialButtonText}>Try a guided game</Text>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Got it button */}
           <TouchableOpacity

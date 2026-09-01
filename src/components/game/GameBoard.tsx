@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { useGameStore } from '../../stores';
+import { useTutorialStore } from '../../stores/tutorialStore';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { typography } from '../../constants/typography';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
+import { tutorialCallouts } from '../../services/tutorialScript';
 
-export function GameBoard() {
+export function GameBoard({
+  onContentLayout,
+}: {
+  onContentLayout?: (layout: { y: number; height: number }) => void;
+} = {}) {
   const theme = useTheme();
   const styles = useMemo(
     () =>
@@ -51,6 +58,8 @@ export function GameBoard() {
   const hintTile = useGameStore((s) => s.hintTile);
   const editIndex = useGameStore((s) => s.editIndex);
   const setEditIndex = useGameStore((s) => s.setEditIndex);
+  const tutorialActive = useTutorialStore((s) => s.active);
+  const tutorialPhase = useTutorialStore((s) => s.phase);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-dismiss error toast after 1.5s
@@ -100,6 +109,7 @@ export function GameBoard() {
   const completedGuesses = session.guesses.length;
   const remainingAttempts = maxAttempts - completedGuesses;
   const attemptsLabel = `Attempts: ${completedGuesses}/${maxAttempts}`;
+  const callouts = tutorialActive ? tutorialCallouts(tutorialPhase) : [];
 
   // Build rows array
   const rows: { guess: string; feedback: GuessFeedback[] | undefined; isActive: boolean }[] = [];
@@ -132,37 +142,44 @@ export function GameBoard() {
     });
   }
 
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    onContentLayout?.({ y, height });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Attempt counter */}
-      <View style={styles.attemptsContainer}>
-        <Text style={styles.attemptsText}>{attemptsLabel}</Text>
-      </View>
-
-      {/* Grid */}
-      <View style={styles.grid}>
-        {rows.map((row, i) => (
-          <GuessRow
-            key={i}
-            guess={row.guess}
-            feedback={row.feedback}
-            isActive={row.isActive}
-            isRevealingRow={
-              isRevealing && !!row.feedback && i === completedGuesses - 1
-            }
-            rowIndex={i}
-            wordLength={wordLength}
-            tileSize={tileSize}
-            error={i === completedGuesses && session.status === 'playing' ? error : null}
-            hintTile={row.isActive ? hintTile : null}
-            editIndex={row.isActive ? editIndex : null}
-            onTilePress={
-              row.isActive && !isRevealing
-                ? (index) => setEditIndex(index)
-                : undefined
-            }
-          />
-        ))}
+      <View onLayout={handleContentLayout}>
+        <View style={styles.attemptsContainer}>
+          <Text style={styles.attemptsText}>{attemptsLabel}</Text>
+        </View>
+        <View style={styles.grid}>
+          {rows.map((row, i) => (
+            <GuessRow
+              key={i}
+              guess={row.guess}
+              feedback={row.feedback}
+              isActive={row.isActive}
+              isRevealingRow={
+                isRevealing && !!row.feedback && i === completedGuesses - 1
+              }
+              rowIndex={i}
+              wordLength={wordLength}
+              tileSize={tileSize}
+              error={i === completedGuesses && session.status === 'playing' ? error : null}
+              hintTile={row.isActive ? hintTile : null}
+              editIndex={row.isActive ? editIndex : null}
+              calloutIndices={callouts
+                .filter((callout) => callout.rowIndex === i)
+                .flatMap((callout) => callout.indices)}
+              onTilePress={
+                row.isActive && !isRevealing && !tutorialActive
+                  ? (index) => setEditIndex(index)
+                  : undefined
+              }
+            />
+          ))}
+        </View>
       </View>
     </View>
   );

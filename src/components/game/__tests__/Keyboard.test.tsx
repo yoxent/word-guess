@@ -69,6 +69,8 @@ describe('Keyboard', () => {
     mockRemoveLetter.mockClear();
     mockSubmitGuess.mockClear();
     mockAddPendingInput.mockClear();
+    const { useTutorialStore } = require('../../../stores/tutorialStore');
+    useTutorialStore.setState({ active: false, phase: 'word1' });
     mockGameState = {
       session: {
         keyColors: {},
@@ -133,5 +135,25 @@ describe('Keyboard', () => {
     render(<Keyboard />);
     fireEvent.press(screen.getByText('Q'));
     expect(mockAddLetter).not.toHaveBeenCalled();
+  });
+
+  it('blocks all keys during tutorial intro modals', () => {
+    const { useTutorialStore } = require('../../../stores/tutorialStore');
+    useTutorialStore.setState({ active: true, phase: 'intro-welcome' });
+    mockGameState = { ...mockGameState, currentGuess: '' };
+    render(<Keyboard />);
+    fireEvent.press(screen.getByText('C'));
+    expect(mockAddLetter).not.toHaveBeenCalled();
+  });
+
+  it('blocks letters that are not the next tutorial letter', () => {
+    const { useTutorialStore } = require('../../../stores/tutorialStore');
+    useTutorialStore.setState({ active: true, phase: 'word1' });
+    mockGameState = { ...mockGameState, currentGuess: '' };
+    render(<Keyboard />);
+    fireEvent.press(screen.getByText('Q'));
+    expect(mockAddLetter).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByText('C'));
+    expect(mockAddLetter).toHaveBeenCalledWith('C');
   });
 });

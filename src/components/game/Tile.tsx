@@ -14,6 +14,7 @@ import Animated, {
 import type { TileFeedback } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
+import { FONTS } from '../../utils/fonts';
 import { useSettingsStore } from '../../stores';
 import {
   TILE_FLIP_DURATION,
@@ -73,6 +74,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         borderColor: c.tile.border,
       },
       letter: {
+        fontFamily: FONTS.button,
         fontWeight: '700',
         color: c.text.inverse,
         textTransform: 'uppercase',
@@ -278,7 +280,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.tile.empty,
-    overflow: 'hidden',
+    overflow: 'visible',
   };
   const tileFontSize = Math.round(tileSize * 0.48);
 

@@ -21,4 +21,6 @@ export interface AppSettings {
   themeMode: 'light' | 'dark' | 'system';
   /** On-screen letter keyboard layout */
   keyboardLayout: 'qwerty' | 'qwertz' | 'azerty' | 'abc';
+  /** Interactive first-run tutorial finished or skipped. */
+  hasCompletedOnboarding: boolean;
 }

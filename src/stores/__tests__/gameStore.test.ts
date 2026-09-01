@@ -111,6 +111,16 @@ describe('gameStore', () => {
       expect(useGameStore.getState().session?.maxAttempts).toBe(6);
     });
 
+    it('marks a tutorial session without clearing a real continue slot', () => {
+      const { clearActiveGame } = require('../../services/storage');
+      (clearActiveGame as jest.Mock).mockClear();
+      useGameStore.getState().startGame('random', 'ENJOY', 5, false, true);
+      expect(useGameStore.getState().session?.isTutorial).toBe(true);
+      expect(useGameStore.getState().session?.word).toBe('ENJOY');
+      expect(useGameStore.getState().session?.maxAttempts).toBe(6);
+      expect(clearActiveGame).not.toHaveBeenCalled();
+    });
+
     it('resets rewarded hints when starting a new game', () => {
       const { clearActiveGame } = require('../../services/storage');
       useGameStore.setState({
@@ -301,6 +311,49 @@ describe('gameStore', () => {
       useGameStore.getState().submitGuess();
       expect(useGameStore.getState().hintTile).toEqual({ index: 0, letter: 'A' });
       expect(useGameStore.getState().error).toBe('Not in word list');
+    });
+
+    it('rejects a valid but unscripted tutorial guess without consuming a row', () => {
+      useGameStore.getState().startGame('random', 'ENJOY', 5, false, true);
+      useGameStore.setState({
+        currentGuess: 'PLANT',
+        session: {
+          ...useGameStore.getState().session!,
+          guesses: ['CRANE', 'LEMON'],
+        },
+      });
+      useGameStore.getState().submitGuess();
+      expect(useGameStore.getState().session?.guesses).toEqual(['CRANE', 'LEMON']);
+      expect(useGameStore.getState().currentGuess).toBe('PLANT');
+      expect(useGameStore.getState().error).toBe('Not quite — use the clues!');
+    });
+
+    it('accepts ENVOY as the third tutorial guess without winning', () => {
+      useGameStore.getState().startGame('random', 'ENJOY', 5, false, true);
+      useGameStore.setState({
+        currentGuess: 'ENVOY',
+        session: {
+          ...useGameStore.getState().session!,
+          guesses: ['CRANE', 'LEMON'],
+        },
+      });
+      useGameStore.getState().submitGuess();
+      expect(useGameStore.getState().session?.guesses).toContain('ENVOY');
+      expect(useGameStore.getState().session?.pendingStatus).toBeUndefined();
+    });
+
+    it('accepts ENJOY as the tutorial solution', () => {
+      useGameStore.getState().startGame('random', 'ENJOY', 5, false, true);
+      useGameStore.setState({
+        currentGuess: 'ENJOY',
+        session: {
+          ...useGameStore.getState().session!,
+          guesses: ['CRANE', 'LEMON', 'ENVOY'],
+        },
+      });
+      useGameStore.getState().submitGuess();
+      expect(useGameStore.getState().session?.guesses).toContain('ENJOY');
+      expect(useGameStore.getState().session?.pendingStatus).toBe('won');
     });
   });
 

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useGameStore } from '../../stores';
@@ -12,6 +12,11 @@ import { FONTS } from '../../utils/fonts';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useTutorialStore } from '../../stores/tutorialStore';
+import {
+  isTutorialKeyAllowed,
+  tutorialHighlightedKey,
+} from '../../services/tutorialScript';
 import type { TileFeedback } from '../../types';
 
 function isActionKey(key: string): boolean {
@@ -31,6 +36,7 @@ const KeyboardKey = memo(function KeyboardKey({
   showBackspaceIcon,
   disabled,
   dimmed,
+  highlighted,
   onPress,
 }: {
   label: string;
@@ -44,9 +50,34 @@ const KeyboardKey = memo(function KeyboardKey({
   showBackspaceIcon?: boolean;
   disabled: boolean;
   dimmed?: boolean;
+  highlighted?: boolean;
   onPress: () => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!highlighted) {
+      pulse.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.08,
+          duration: 480,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 480,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [highlighted, pulse]);
 
   const onPressIn = () => {
     // timing is cheaper than spring under rapid multi-key input
@@ -68,7 +99,7 @@ const KeyboardKey = memo(function KeyboardKey({
   return (
     <Animated.View
       style={{
-        transform: [{ scale }],
+        transform: [{ scale }, { scale: pulse }],
         flex: width != null ? 0 : flex,
         width,
         opacity: dimmed ? 0.55 : 1,
@@ -80,6 +111,7 @@ const KeyboardKey = memo(function KeyboardKey({
           { backgroundColor, height },
           width != null && keyStyles.keyFillWidth,
           disabled && keyStyles.keyDisabled,
+          highlighted && keyStyles.keyHighlighted,
         ]}
         onPress={onPress}
         onPressIn={onPressIn}
@@ -112,12 +144,17 @@ const keyStyles = StyleSheet.create({
     borderRadius: layout.keyboardKeyBorderRadius,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   keyFillWidth: {
     width: '100%',
   },
   keyDisabled: {
     opacity: 0.4,
+  },
+  keyHighlighted: {
+    borderColor: '#29B6F6',
   },
   keyText: {
     fontFamily: FONTS.caption,
@@ -205,13 +242,19 @@ function KeyboardComponent() {
   const addLetter = useGameStore((s) => s.addLetter);
   const removeLetter = useGameStore((s) => s.removeLetter);
   const submitGuess = useGameStore((s) => s.submitGuess);
-  const currentGuessLength = useGameStore((s) => s.currentGuess.length);
+  const currentGuess = useGameStore((s) => s.currentGuess);
+  const currentGuessLength = currentGuess.length;
   const editIndex = useGameStore((s) => s.editIndex);
   const isRevealing = useGameStore((s) => s.isRevealing);
   const addPendingInput = useGameStore((s) => s.addPendingInput);
+  const tutorialActive = useTutorialStore((s) => s.active);
+  const tutorialPhase = useTutorialStore((s) => s.phase);
 
   const isPlaying = status === 'playing';
   const isBlocked = !isPlaying || isRevealing;
+  const highlightedKey = tutorialActive
+    ? tutorialHighlightedKey(tutorialPhase, currentGuess)
+    : null;
 
   const handlePress = useCallback(
     (key: string) => {
@@ -223,7 +266,12 @@ function KeyboardComponent() {
 
       if (!isPlaying) return;
 
+      if (tutorialActive && !isTutorialKeyAllowed(tutorialPhase, currentGuess, key)) {
+        return;
+      }
+
       if (isRevealing) {
+        if (tutorialActive) return;
         addPendingInput(key);
         return;
       }
@@ -236,7 +284,17 @@ function KeyboardComponent() {
         addLetter(key);
       }
     },
-    [isPlaying, isRevealing, addPendingInput, submitGuess, removeLetter, addLetter],
+    [
+      isPlaying,
+      isRevealing,
+      tutorialActive,
+      tutorialPhase,
+      currentGuess,
+      addPendingInput,
+      submitGuess,
+      removeLetter,
+      addLetter,
+    ],
   );
 
   // Stable per-key handlers so memoized KeyboardKey can skip re-renders
@@ -287,13 +345,24 @@ function KeyboardComponent() {
   const isKeyDisabled = useCallback(
     (key: string): boolean => {
       if (isBlocked) return true;
+      if (tutorialActive) {
+        return !isTutorialKeyAllowed(tutorialPhase, currentGuess, key);
+      }
       if (key === 'ENTER') return currentGuessLength < letterCount;
       if (key === 'BACKSPACE') return currentGuessLength === 0;
       // Allow letter taps when replacing a selected tile even if the row is full
       if (editIndex != null) return false;
       return false;
     },
-    [isBlocked, currentGuessLength, letterCount, editIndex],
+    [
+      isBlocked,
+      tutorialActive,
+      tutorialPhase,
+      currentGuess,
+      currentGuessLength,
+      letterCount,
+      editIndex,
+    ],
   );
 
   const getKeyDisplay = useCallback(
@@ -311,17 +380,19 @@ function KeyboardComponent() {
     const { text, fontSize, label } = getKeyDisplay(key);
     const disabled = isKeyDisabled(key);
     const feedback = getKeyFeedback(key);
+    const highlighted = highlightedKey === key;
     return (
       <KeyboardKey
         key={key}
-        label={label}
+        label={highlighted ? `Type ${label}` : label}
         displayText={text}
         fontSize={fontSize}
         backgroundColor={getKeyBackground(key)}
         textColor={getKeyTextColor(key)}
         width={letterKeyWidth}
         disabled={disabled}
-        dimmed={feedback === 'absent'}
+        dimmed={feedback === 'absent' || (tutorialActive && disabled && !isBlocked)}
+        highlighted={highlighted}
         onPress={pressHandlers[key]}
       />
     );
@@ -354,10 +425,14 @@ function KeyboardComponent() {
           width={layout.keyboardBackspaceKeyWidth}
           showBackspaceIcon
           disabled={isKeyDisabled('BACKSPACE')}
+          dimmed={tutorialActive && isKeyDisabled('BACKSPACE') && !isBlocked}
+          highlighted={highlightedKey === 'BACKSPACE'}
           onPress={pressHandlers.BACKSPACE}
         />
         <KeyboardKey
-          label={submitDisplay.label}
+          label={
+            highlightedKey === 'ENTER' ? 'Submit now' : submitDisplay.label
+          }
           displayText={submitDisplay.text}
           fontSize={submitDisplay.fontSize}
           backgroundColor={getKeyBackground('ENTER')}
@@ -366,6 +441,8 @@ function KeyboardComponent() {
           width={layout.keyboardSubmitKeyWidth}
           height={submitHeight}
           disabled={isKeyDisabled('ENTER')}
+          dimmed={tutorialActive && isKeyDisabled('ENTER') && !isBlocked}
+          highlighted={highlightedKey === 'ENTER'}
           onPress={pressHandlers.ENTER}
         />
       </View>
