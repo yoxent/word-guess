@@ -149,11 +149,14 @@ export async function updateLeaderboardAfterGame(params: {
   }
 
   if (params.mode === 'endless') {
-    await submitScore(
-      'endless_streak',
-      params.endlessStreak ?? 0,
-      params.sessionId ? `${params.sessionId}:streak` : undefined,
-    );
+    const streak = params.endlessStreak ?? 0;
+    if (streak > 0) {
+      await submitScore(
+        'endless_streak',
+        streak,
+        params.sessionId ? `${params.sessionId}:streak` : undefined,
+      );
+    }
     const total = params.endlessTotalWords ?? 0;
     if (total > 0) {
       await submitScore(
@@ -212,8 +215,7 @@ export async function syncLeaderboardForSession(
     }
 
     if (session.mode === 'endless') {
-      // Mutate Endless counters once; then read metrics for publish.
-      applyEndlessEndCounters({
+      const endless = applyEndlessEndCounters({
         sessionId: session.id,
         won: session.status === 'won',
         hardMode: session.hardMode,
@@ -225,8 +227,8 @@ export async function syncLeaderboardForSession(
         mode: 'endless',
         won: session.status === 'won',
         sessionId: session.id,
-        endlessStreak: metrics.endlessStreak,
-        endlessTotalWords: metrics.endlessTotalWords,
+        endlessStreak: endless.endlessStreak,
+        endlessTotalWords: endless.endlessTotalWords,
       });
       await publishCareerLeaderboardScores(metrics, session.id);
       return;
@@ -275,8 +277,6 @@ export async function reconcileLocalLeaderboardScores(): Promise<void> {
         metrics.endlessStreak,
         `reconcile:streak:${metrics.endlessStreak}`,
       );
-    } else {
-      await submitScore('endless_streak', 0, 'reconcile:streak:clear');
     }
 
     if (metrics.endlessTotalWords > 0) {

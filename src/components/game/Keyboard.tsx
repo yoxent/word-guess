@@ -8,6 +8,7 @@ import {
   getKeyboardKeys,
   getKeyboardRows,
 } from '../../constants/keyboardLayouts';
+import { computeLetterKeyWidth } from '../../utils/gameLayout';
 import { FONTS } from '../../utils/fonts';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
@@ -109,7 +110,7 @@ const KeyboardKey = memo(function KeyboardKey({
         style={[
           keyStyles.key,
           { backgroundColor, height },
-          width != null && keyStyles.keyFillWidth,
+          keyStyles.keyFillWidth,
           disabled && keyStyles.keyDisabled,
           highlighted && keyStyles.keyHighlighted,
         ]}
@@ -159,7 +160,6 @@ const keyStyles = StyleSheet.create({
   keyText: {
     fontFamily: FONTS.caption,
     fontWeight: '700',
-    textTransform: 'uppercase',
   },
 });
 
@@ -171,13 +171,15 @@ function KeyboardComponent() {
       StyleSheet.create({
         container: {
           width: '100%',
-          flexDirection: 'row',
-          gap: layout.keyboardKeyGap,
           paddingBottom: 16,
         },
+        actionBar: {
+          flexDirection: 'row',
+          gap: layout.keyboardKeyGap,
+          marginBottom: layout.keyboardActionBarGap,
+        },
         lettersColumn: {
-          flex: 1,
-          minWidth: 0,
+          width: '100%',
         },
         row: {
           flexDirection: 'row',
@@ -185,13 +187,6 @@ function KeyboardComponent() {
           justifyContent: 'center',
           gap: layout.keyboardKeyGap,
           marginBottom: layout.keyboardKeyGap,
-        },
-        actionsColumn: {
-          // Reserve only backspace width so letter keys can grow.
-          // Submit is wider and overhangs left from the right edge.
-          width: layout.keyboardBackspaceKeyWidth,
-          alignItems: 'flex-end',
-          gap: layout.keyboardKeyGap,
         },
       }),
     [],
@@ -207,22 +202,18 @@ function KeyboardComponent() {
   );
 
   const letterKeyWidth = useMemo(() => {
-    if (keyboardWidth <= 0) return undefined;
-    const gap = layout.keyboardKeyGap;
-    // Letters use everything except the backspace column (+ column gap).
-    const lettersWidth = keyboardWidth - gap - layout.keyboardBackspaceKeyWidth;
-    return (lettersWidth - gap * (maxKeysPerRow - 1)) / maxKeysPerRow;
+    const width = computeLetterKeyWidth(
+      keyboardWidth,
+      maxKeysPerRow,
+      layout.keyboardKeyGap,
+    );
+    return width > 0 ? width : undefined;
   }, [keyboardWidth, maxKeysPerRow]);
 
   const onKeyboardLayout = useCallback((event: LayoutChangeEvent) => {
     const nextWidth = event.nativeEvent.layout.width;
     setKeyboardWidth((prev) => (prev === nextWidth ? prev : nextWidth));
   }, []);
-
-  const submitHeight = useMemo(
-    () => layout.keyboardKeyHeight * 2 + layout.keyboardKeyGap,
-    [],
-  );
 
   const keyColorMap = useMemo<Record<string, string>>(
     () => ({
@@ -367,7 +358,7 @@ function KeyboardComponent() {
 
   const getKeyDisplay = useCallback(
     (key: string): { text: string; fontSize: number; label: string } => {
-      if (key === 'ENTER') return { text: 'SUBMIT', fontSize: 10, label: 'Submit' };
+      if (key === 'ENTER') return { text: 'Submit', fontSize: 16, label: 'Submit' };
       if (key === 'BACKSPACE') {
         return { text: '⌫', fontSize: 18, label: 'Backspace' };
       }
@@ -403,6 +394,36 @@ function KeyboardComponent() {
 
   return (
     <View style={styles.container} onLayout={onKeyboardLayout}>
+      <View style={styles.actionBar}>
+        <KeyboardKey
+          label={
+            highlightedKey === 'ENTER' ? 'Submit now' : submitDisplay.label
+          }
+          displayText={submitDisplay.text}
+          fontSize={submitDisplay.fontSize}
+          backgroundColor={getKeyBackground('ENTER')}
+          textColor={getKeyTextColor('ENTER')}
+          flex={3}
+          disabled={isKeyDisabled('ENTER')}
+          dimmed={tutorialActive && isKeyDisabled('ENTER') && !isBlocked}
+          highlighted={highlightedKey === 'ENTER'}
+          onPress={pressHandlers.ENTER}
+        />
+        <KeyboardKey
+          label={backspaceDisplay.label}
+          displayText={backspaceDisplay.text}
+          fontSize={backspaceDisplay.fontSize}
+          backgroundColor={getKeyBackground('BACKSPACE')}
+          textColor={getKeyTextColor('BACKSPACE')}
+          flex={1}
+          showBackspaceIcon
+          disabled={isKeyDisabled('BACKSPACE')}
+          dimmed={tutorialActive && isKeyDisabled('BACKSPACE') && !isBlocked}
+          highlighted={highlightedKey === 'BACKSPACE'}
+          onPress={pressHandlers.BACKSPACE}
+        />
+      </View>
+
       <View style={styles.lettersColumn}>
         {rows.map((row, i) => (
           <View
@@ -412,39 +433,6 @@ function KeyboardComponent() {
             {row.filter((key) => key !== '').map((key) => renderLetterKey(key))}
           </View>
         ))}
-      </View>
-
-      <View style={styles.actionsColumn}>
-        <KeyboardKey
-          label={backspaceDisplay.label}
-          displayText={backspaceDisplay.text}
-          fontSize={backspaceDisplay.fontSize}
-          backgroundColor={getKeyBackground('BACKSPACE')}
-          textColor={getKeyTextColor('BACKSPACE')}
-          flex={0}
-          width={layout.keyboardBackspaceKeyWidth}
-          showBackspaceIcon
-          disabled={isKeyDisabled('BACKSPACE')}
-          dimmed={tutorialActive && isKeyDisabled('BACKSPACE') && !isBlocked}
-          highlighted={highlightedKey === 'BACKSPACE'}
-          onPress={pressHandlers.BACKSPACE}
-        />
-        <KeyboardKey
-          label={
-            highlightedKey === 'ENTER' ? 'Submit now' : submitDisplay.label
-          }
-          displayText={submitDisplay.text}
-          fontSize={submitDisplay.fontSize}
-          backgroundColor={getKeyBackground('ENTER')}
-          textColor={getKeyTextColor('ENTER')}
-          flex={0}
-          width={layout.keyboardSubmitKeyWidth}
-          height={submitHeight}
-          disabled={isKeyDisabled('ENTER')}
-          dimmed={tutorialActive && isKeyDisabled('ENTER') && !isBlocked}
-          highlighted={highlightedKey === 'ENTER'}
-          onPress={pressHandlers.ENTER}
-        />
       </View>
     </View>
   );

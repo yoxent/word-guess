@@ -55,7 +55,7 @@ describe('applyEndlessEndCounters', () => {
     });
   });
 
-  it('resets board streak to 0 on loss but keeps display streak', () => {
+  it('resets local streak on loss but submits the finished run as a record', () => {
     const result = applyEndlessEndCounters({
       sessionId: 'loss-1',
       won: false,
@@ -63,7 +63,7 @@ describe('applyEndlessEndCounters', () => {
     });
     expect(setEndlessStreak).toHaveBeenCalledWith(0, true);
     expect(result.displayStreak).toBe(2);
-    expect(result.endlessStreak).toBe(0);
+    expect(result.endlessStreak).toBe(2);
     expect(result.endlessTotalWords).toBe(11);
   });
 

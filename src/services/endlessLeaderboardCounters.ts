@@ -12,7 +12,7 @@ import {
 type EndlessEndResult = {
   /** Streak to show in ResultModal (final run length on loss). */
   displayStreak: number;
-  /** Streak to submit to leaderboard (0 after a loss resets the board value). */
+  /** Streak to submit to the Run board (last finished run stays as a record). */
   endlessStreak: number;
   endlessTotalWords: number;
 };
@@ -44,7 +44,7 @@ export function applyEndlessEndCounters(args: {
     incrementEndlessTotalWords();
     result = {
       displayStreak: finalStreak,
-      endlessStreak: 0,
+      endlessStreak: finalStreak,
       endlessTotalWords: getEndlessTotalWords(),
     };
   }

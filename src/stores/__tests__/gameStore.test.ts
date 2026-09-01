@@ -57,6 +57,7 @@ jest.mock('../../constants/config', () => {
   };
   return {
     config,
+    isForceMaxBoardForSpacing: () => false,
     computeTargetMaxAttempts: (
       letterCount: number,
       extraGuessesUsed: number,

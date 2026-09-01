@@ -6,14 +6,17 @@ import { useTutorialStore } from '../../stores/tutorialStore';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { typography } from '../../constants/typography';
+import { computeTileSize } from '../../utils/gameLayout';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
 import { tutorialCallouts } from '../../services/tutorialScript';
 
 export function GameBoard({
   onContentLayout,
+  boardAreaHeight = 0,
 }: {
   onContentLayout?: (layout: { y: number; height: number }) => void;
+  boardAreaHeight?: number;
 } = {}) {
   const theme = useTheme();
   const styles = useMemo(
@@ -22,6 +25,7 @@ export function GameBoard({
         container: {
           flex: 1,
           justifyContent: 'center',
+          paddingVertical: layout.boardHeaderGap,
         },
         emptyContainer: {
           flex: 1,
@@ -35,7 +39,7 @@ export function GameBoard({
         },
         attemptsContainer: {
           alignItems: 'center',
-          marginBottom: 8,
+          marginBottom: layout.boardChromeGap,
         },
         attemptsText: {
           ...typography.small,
@@ -90,12 +94,19 @@ export function GameBoard({
 
   const tileSize = useMemo(() => {
     const screenWidth = Dimensions.get('window').width;
-    const availableWidth = screenWidth - 40 - (wordLength - 1) * layout.tileGap;
-    const computed = Math.floor(availableWidth / wordLength);
-    const MAX_TILE = 56;
-    const MIN_TILE = 32;
-    return Math.max(MIN_TILE, Math.min(MAX_TILE, computed));
-  }, [wordLength]);
+    return computeTileSize({
+      screenWidth,
+      wordLength,
+      maxAttempts: session?.maxAttempts ?? 6,
+      boardAreaHeight,
+      tileGap: layout.tileGap,
+      horizontalPadding: 40,
+      minTile: 32,
+      maxTile: 56,
+      attemptsLabelBlock:
+        layout.boardHeaderGap * 2 + 14 + layout.boardChromeGap,
+    });
+  }, [wordLength, session?.maxAttempts, boardAreaHeight]);
 
   if (!session) {
     return (

@@ -77,8 +77,19 @@ export async function initIap(): Promise<boolean> {
           return;
         }
         if (error.code === ErrorCode.AlreadyOwned) {
-          useSettingsStore.getState().setPro(true);
-          uiHandlers.onPurchaseSuccess?.();
+          try {
+            const hasPro = await syncProFromStore();
+            if (hasPro) {
+              uiHandlers.onPurchaseSuccess?.();
+            } else {
+              uiHandlers.onPurchaseError?.(
+                'No purchase found to restore.',
+              );
+            }
+          } catch (syncError) {
+            console.warn('[iap] AlreadyOwned sync failed', syncError);
+            uiHandlers.onPurchaseError?.('Purchase verification failed.');
+          }
           return;
         }
         console.warn('[iap] Purchase error', error.code, error.message);

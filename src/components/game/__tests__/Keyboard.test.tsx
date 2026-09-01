@@ -95,9 +95,9 @@ describe('Keyboard', () => {
     expect(screen.getByText('M')).toBeTruthy();
   });
 
-  it('renders Submit action (ISO tall key label)', () => {
+  it('renders Submit action', () => {
     render(<Keyboard />);
-    expect(screen.getByText('SUBMIT')).toBeTruthy();
+    expect(screen.getByText('Submit')).toBeTruthy();
     expect(screen.getByLabelText('Submit')).toBeTruthy();
   });
 

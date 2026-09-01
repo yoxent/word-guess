@@ -254,9 +254,22 @@ describe('firestoreService', () => {
   });
 
   describe('submitLeaderboardScore', () => {
-    it('deletes the player row when a current streak resets to 0', async () => {
+    it('deletes the player row when a Daily streak resets to 0', async () => {
       mockedDeleteDoc.mockResolvedValue(undefined);
 
+      const ok = await submitLeaderboardScore(
+        'daily_streak',
+        'p1',
+        'Player One',
+        0,
+      );
+
+      expect(ok).toBe(true);
+      expect(mockedDeleteDoc).toHaveBeenCalled();
+      expect(mockedSetDoc).not.toHaveBeenCalled();
+    });
+
+    it('does not delete an Endless run when submitted as 0', async () => {
       const ok = await submitLeaderboardScore(
         'endless_streak',
         'p1',
@@ -265,7 +278,7 @@ describe('firestoreService', () => {
       );
 
       expect(ok).toBe(true);
-      expect(mockedDeleteDoc).toHaveBeenCalled();
+      expect(mockedDeleteDoc).not.toHaveBeenCalled();
       expect(mockedSetDoc).not.toHaveBeenCalled();
     });
 

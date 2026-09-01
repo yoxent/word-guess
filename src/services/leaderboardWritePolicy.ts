@@ -5,15 +5,17 @@
 
 export type MonotonicLeaderboardType =
   | 'daily_streak'
+  | 'endless_streak'
   | 'endless_total'
   | 'best_streak'
   | 'sharpshooter';
 
 /** Current-streak boards: reset to 0 means leave the ranked list. */
-const CLEARABLE_TYPES = new Set<string>(['daily_streak', 'endless_streak']);
+const CLEARABLE_TYPES = new Set<string>(['daily_streak']);
 
 const MONOTONIC_TYPES = new Set<string>([
   'daily_streak',
+  'endless_streak',
   'endless_total',
   'best_streak',
   'sharpshooter',

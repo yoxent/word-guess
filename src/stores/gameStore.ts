@@ -3,7 +3,7 @@ import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../type
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
 import { tutorialSubmitError } from '../services/tutorialScript';
 import { useDictionaryStore } from './dictionaryStore';
-import { config, computeTargetMaxAttempts } from '../constants/config';
+import { config, computeTargetMaxAttempts, isForceMaxBoardForSpacing } from '../constants/config';
 import { clearActiveGame, saveActiveGame, toActiveGameSlot } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
@@ -111,12 +111,19 @@ export const useGameStore = create<GameState>()((set, get) => ({
       keyColors: {},
       status: 'playing',
       hardMode,
-      extraGuessesUsed: 0,
+      extraGuessesUsed:
+        !isTutorial && isForceMaxBoardForSpacing()
+          ? config.maxExtraGuessesPro
+          : 0,
       letterHintUsed: false,
       hintTile: null,
       maxAttempts: isTutorial
         ? config.baseAttempts(letterCount)
-        : computeTargetMaxAttempts(letterCount, 0, isPro),
+        : computeTargetMaxAttempts(
+            letterCount,
+            isForceMaxBoardForSpacing() ? config.maxExtraGuessesPro : 0,
+            isPro,
+          ),
       startedAt: new Date().toISOString(),
       isTutorial: isTutorial || undefined,
     };

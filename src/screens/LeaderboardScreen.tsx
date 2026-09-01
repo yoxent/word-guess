@@ -66,7 +66,7 @@ const TAB_ICONS: Record<LeaderboardType, string> = {
 
 const TAB_SCORE_HINT: Record<LeaderboardType, string> = {
   daily_streak: 'current Daily win streak',
-  endless_streak: 'current Endless win run',
+  endless_streak: 'Endless win run',
   endless_total: 'lifetime Endless words',
   best_streak: 'best streak in any mode',
   sharpshooter: '1-guess×3 · 2×2 · 3×1 pts',
@@ -77,7 +77,7 @@ const TAB_DESCRIPTIONS: Record<LeaderboardType, string> = {
   daily_streak:
     'Current Daily Challenge win streak — consecutive days you solved Daily. Break it and you leave this board.',
   endless_streak:
-    'Current Endless win run — consecutive Endless wins without a loss. A loss clears you from this board.',
+    'Consecutive Endless wins without a loss. Your last run stays on this board.',
   endless_total:
     'Lifetime Endless words cleared — every Endless win counts forever; this score never resets.',
   best_streak:

@@ -258,8 +258,7 @@ export function GameScreen({ route }: Props) {
           flexDirection: 'row',
           alignSelf: 'stretch',
           gap: 10,
-          marginTop: 8,
-          marginBottom: 10,
+          marginBottom: layout.adKeyboardGap,
         },
       }),
     [theme],
@@ -287,6 +286,7 @@ export function GameScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [boardAreaHeight, setBoardAreaHeight] = useState(0);
   const [adIntro, setAdIntro] = useState<{
     format: HelperAdFormat;
     rewardLabel: string;
@@ -648,8 +648,15 @@ export function GameScreen({ route }: Props) {
       </View>
 
       {/* ── Board area + error toast overlay ── */}
-      <View style={styles.boardArea}>
+      <View
+        style={styles.boardArea}
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout.height;
+          setBoardAreaHeight((prev) => (prev === next ? prev : next));
+        }}
+      >
         <GameBoard
+          boardAreaHeight={boardAreaHeight}
           onContentLayout={({ y, height }) => setBoardContentBottom(y + height)}
         />
         {session.isTutorial ? (
