@@ -1,13 +1,23 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { useGameStore } from '../../stores';
+import { useTutorialStore } from '../../stores/tutorialStore';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { typography } from '../../constants/typography';
+import { computeTileSize } from '../../utils/gameLayout';
 import { GuessRow } from './GuessRow';
 import type { GuessFeedback } from '../../types';
+import { tutorialCallouts } from '../../services/tutorialScript';
 
-export function GameBoard() {
+export function GameBoard({
+  onContentLayout,
+  boardAreaHeight = 0,
+}: {
+  onContentLayout?: (layout: { y: number; height: number }) => void;
+  boardAreaHeight?: number;
+} = {}) {
   const theme = useTheme();
   const styles = useMemo(
     () =>
@@ -15,6 +25,7 @@ export function GameBoard() {
         container: {
           flex: 1,
           justifyContent: 'center',
+          paddingVertical: layout.boardHeaderGap,
         },
         emptyContainer: {
           flex: 1,
@@ -28,7 +39,7 @@ export function GameBoard() {
         },
         attemptsContainer: {
           alignItems: 'center',
-          marginBottom: 8,
+          marginBottom: layout.boardChromeGap,
         },
         attemptsText: {
           ...typography.small,
@@ -51,6 +62,8 @@ export function GameBoard() {
   const hintTile = useGameStore((s) => s.hintTile);
   const editIndex = useGameStore((s) => s.editIndex);
   const setEditIndex = useGameStore((s) => s.setEditIndex);
+  const tutorialActive = useTutorialStore((s) => s.active);
+  const tutorialPhase = useTutorialStore((s) => s.phase);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-dismiss error toast after 1.5s
@@ -81,12 +94,19 @@ export function GameBoard() {
 
   const tileSize = useMemo(() => {
     const screenWidth = Dimensions.get('window').width;
-    const availableWidth = screenWidth - 40 - (wordLength - 1) * layout.tileGap;
-    const computed = Math.floor(availableWidth / wordLength);
-    const MAX_TILE = 56;
-    const MIN_TILE = 32;
-    return Math.max(MIN_TILE, Math.min(MAX_TILE, computed));
-  }, [wordLength]);
+    return computeTileSize({
+      screenWidth,
+      wordLength,
+      maxAttempts: session?.maxAttempts ?? 6,
+      boardAreaHeight,
+      tileGap: layout.tileGap,
+      horizontalPadding: 40,
+      minTile: 32,
+      maxTile: 56,
+      attemptsLabelBlock:
+        layout.boardHeaderGap * 2 + 14 + layout.boardChromeGap,
+    });
+  }, [wordLength, session?.maxAttempts, boardAreaHeight]);
 
   if (!session) {
     return (
@@ -100,6 +120,7 @@ export function GameBoard() {
   const completedGuesses = session.guesses.length;
   const remainingAttempts = maxAttempts - completedGuesses;
   const attemptsLabel = `Attempts: ${completedGuesses}/${maxAttempts}`;
+  const callouts = tutorialActive ? tutorialCallouts(tutorialPhase) : [];
 
   // Build rows array
   const rows: { guess: string; feedback: GuessFeedback[] | undefined; isActive: boolean }[] = [];
@@ -132,37 +153,44 @@ export function GameBoard() {
     });
   }
 
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    onContentLayout?.({ y, height });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Attempt counter */}
-      <View style={styles.attemptsContainer}>
-        <Text style={styles.attemptsText}>{attemptsLabel}</Text>
-      </View>
-
-      {/* Grid */}
-      <View style={styles.grid}>
-        {rows.map((row, i) => (
-          <GuessRow
-            key={i}
-            guess={row.guess}
-            feedback={row.feedback}
-            isActive={row.isActive}
-            isRevealingRow={
-              isRevealing && !!row.feedback && i === completedGuesses - 1
-            }
-            rowIndex={i}
-            wordLength={wordLength}
-            tileSize={tileSize}
-            error={i === completedGuesses && session.status === 'playing' ? error : null}
-            hintTile={row.isActive ? hintTile : null}
-            editIndex={row.isActive ? editIndex : null}
-            onTilePress={
-              row.isActive && !isRevealing
-                ? (index) => setEditIndex(index)
-                : undefined
-            }
-          />
-        ))}
+      <View onLayout={handleContentLayout}>
+        <View style={styles.attemptsContainer}>
+          <Text style={styles.attemptsText}>{attemptsLabel}</Text>
+        </View>
+        <View style={styles.grid}>
+          {rows.map((row, i) => (
+            <GuessRow
+              key={i}
+              guess={row.guess}
+              feedback={row.feedback}
+              isActive={row.isActive}
+              isRevealingRow={
+                isRevealing && !!row.feedback && i === completedGuesses - 1
+              }
+              rowIndex={i}
+              wordLength={wordLength}
+              tileSize={tileSize}
+              error={i === completedGuesses && session.status === 'playing' ? error : null}
+              hintTile={row.isActive ? hintTile : null}
+              editIndex={row.isActive ? editIndex : null}
+              calloutIndices={callouts
+                .filter((callout) => callout.rowIndex === i)
+                .flatMap((callout) => callout.indices)}
+              onTilePress={
+                row.isActive && !isRevealing && !tutorialActive
+                  ? (index) => setEditIndex(index)
+                  : undefined
+              }
+            />
+          ))}
+        </View>
       </View>
     </View>
   );

@@ -17,10 +17,8 @@ export const layout = {
   keyboardKeyMinWidth: 28,
   keyboardKeyGap: 4,
   keyboardKeyBorderRadius: 8, // was 6 — match tiles
-  /** Backspace key width (independent; also sizes the action-column reservation). */
-  keyboardBackspaceKeyWidth: 42,
-  /** Submit key width (may be wider than the action column / backspace). */
-  keyboardSubmitKeyWidth: 60,
+  /** Space between the Submit/Delete bar and the first letter row. */
+  keyboardActionBarGap: 12,
 
   // ── Component radii (reference values) ──
   cardBorderRadius: 16,       // was 12 — softer cards
@@ -31,4 +29,10 @@ export const layout = {
   screenPadding: 20,
   headerHeight: 56,
   maxTileCount: 10,
+  /** Min inset around the Attempts + rows cluster (header and ads/keyboard). */
+  boardHeaderGap: 12,
+  /** Attempts label ↔ first row. */
+  boardChromeGap: 8,
+  /** Ad buttons ↔ keyboard. */
+  adKeyboardGap: 12,
 } as const;

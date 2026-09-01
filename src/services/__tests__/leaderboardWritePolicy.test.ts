@@ -30,12 +30,17 @@ describe('shouldWriteLeaderboardScore', () => {
     expect(shouldWriteLeaderboardScore('sharpshooter', 1, 4)).toBe(false);
     expect(shouldWriteLeaderboardScore('sharpshooter', 4, 4)).toBe(true);
   });
+
+  it('never lets an Endless run decrease once posted', () => {
+    expect(shouldWriteLeaderboardScore('endless_streak', 1, 5)).toBe(false);
+    expect(shouldWriteLeaderboardScore('endless_streak', 6, 5)).toBe(true);
+  });
 });
 
 describe('shouldClearLeaderboardScore', () => {
-  it('clears current-streak boards when the streak resets to 0', () => {
-    expect(shouldClearLeaderboardScore('endless_streak', 0)).toBe(true);
+  it('clears Daily when the streak resets to 0, but keeps Endless runs', () => {
     expect(shouldClearLeaderboardScore('daily_streak', 0)).toBe(true);
+    expect(shouldClearLeaderboardScore('endless_streak', 0)).toBe(false);
   });
 
   it('does not clear career / cumulative boards on 0', () => {

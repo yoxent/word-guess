@@ -20,6 +20,7 @@ interface StaticTileProps {
   isHintGhost?: boolean;
   /** Active-row selection for in-place letter replace. */
   isSelected?: boolean;
+  isCallout?: boolean;
   onPress?: () => void;
 }
 
@@ -31,6 +32,7 @@ export function StaticTile({
   tileSize,
   isHintGhost,
   isSelected = false,
+  isCallout = false,
   onPress,
 }: StaticTileProps) {
   const theme = useTheme();
@@ -102,7 +104,7 @@ export function StaticTile({
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       backgroundColor: showGhost ? theme.colors.key.hintDim : feedbackColors[feedback],
-      overflow: 'hidden' as const,
+      overflow: (colorBlindMode ? 'hidden' : 'visible') as 'hidden' | 'visible',
     },
     showBorder && styles.tileBorder,
     showGhost && {
@@ -111,6 +113,10 @@ export function StaticTile({
     },
     isSelected && {
       borderWidth: 2.5,
+      borderColor: theme.colors.brand.primary,
+    },
+    isCallout && {
+      borderWidth: 3,
       borderColor: theme.colors.brand.primary,
     },
   ];

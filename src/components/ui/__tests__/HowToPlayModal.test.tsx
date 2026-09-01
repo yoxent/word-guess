@@ -66,9 +66,22 @@ describe('HowToPlayModal', () => {
     expect(screen.getByText(/yellow letters/i)).toBeTruthy();
   });
 
-  it('calls close when Got it pressed', () => {
+    it('calls close when Got it pressed', () => {
     render(<HowToPlayModal visible={true} onClose={mockOnClose} />);
     fireEvent.press(screen.getByLabelText('Got it'));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the guided game when requested', () => {
+    const onPlayTutorial = jest.fn();
+    render(
+      <HowToPlayModal
+        visible={true}
+        onClose={mockOnClose}
+        onPlayTutorial={onPlayTutorial}
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Try a guided game'));
+    expect(onPlayTutorial).toHaveBeenCalledTimes(1);
   });
 });

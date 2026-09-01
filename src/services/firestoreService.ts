@@ -201,7 +201,7 @@ export async function submitLeaderboardScore(
   try {
     const scoreRef = doc(leaderboardRef(type), playerId);
 
-    // Broken current streaks leave the board — never rank a 0.
+    // Daily streak 0 leaves the board — never rank a zero. Endless Run is kept.
     if (shouldClearLeaderboardScore(type, score)) {
       await deleteDoc(scoreRef);
       return true;

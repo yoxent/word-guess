@@ -9,6 +9,11 @@ export const config = {
   maxExtraGuessesPro: 2,
   /** Instant extra board row while Pro is active (not ad-earned). */
   proBonusAttempts: 1,
+  /**
+   * Dev-only densest board (Pro + both ad extras). Ignored in release
+   * even if this is true — never honor this in production.
+   */
+  forceMaxBoardForSpacing: false,
   dictionaryPath: 'assets/dictionary',
   dailyPuzzle: {
     resetHourUTC: 0,
@@ -27,6 +32,10 @@ export const config = {
   },
 } as const;
 
+export function isForceMaxBoardForSpacing(): boolean {
+  return __DEV__ && config.forceMaxBoardForSpacing;
+}
+
 /**
  * Board size: base attempts + Pro bonus row (if entitled) + ad-earned extras used.
  */
@@ -35,6 +44,13 @@ export function computeTargetMaxAttempts(
   extraGuessesUsed: number,
   isPro: boolean,
 ): number {
+  if (isForceMaxBoardForSpacing()) {
+    return (
+      config.baseAttempts(letterCount) +
+      config.proBonusAttempts +
+      config.maxExtraGuessesPro
+    );
+  }
   return (
     config.baseAttempts(letterCount) +
     (isPro ? config.proBonusAttempts : 0) +

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import type { GameSession, GameMode, GuessFeedback, TileFeedback } from '../types';
 import { evaluateGuess, validateHardMode } from '../services/wordLogic';
+import { tutorialSubmitError } from '../services/tutorialScript';
 import { useDictionaryStore } from './dictionaryStore';
-import { config, computeTargetMaxAttempts } from '../constants/config';
+import { config, computeTargetMaxAttempts, isForceMaxBoardForSpacing } from '../constants/config';
 import { clearActiveGame, saveActiveGame, toActiveGameSlot } from '../services/storage';
 import { useSettingsStore } from './settingsStore';
 
@@ -48,7 +49,13 @@ interface GameState {
    */
   editIndex: number | null;
 
-  startGame: (mode: GameMode, word: string, letterCount: number, hardMode: boolean) => void;
+  startGame: (
+    mode: GameMode,
+    word: string,
+    letterCount: number,
+    hardMode: boolean,
+    isTutorial?: boolean,
+  ) => void;
   addLetter: (letter: string) => void;
   removeLetter: () => void;
   submitGuess: () => void;
@@ -88,8 +95,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
   hintTile: null,
   editIndex: null,
 
-  startGame: (mode, word, letterCount, hardMode) => {
-    clearActiveGame(toActiveGameSlot(mode, letterCount, hardMode));
+  startGame: (mode, word, letterCount, hardMode, isTutorial = false) => {
+    if (!isTutorial) {
+      clearActiveGame(toActiveGameSlot(mode, letterCount, hardMode));
+    }
 
     const isPro = useSettingsStore.getState().isPro;
     const session: GameSession = {
@@ -102,11 +111,21 @@ export const useGameStore = create<GameState>()((set, get) => ({
       keyColors: {},
       status: 'playing',
       hardMode,
-      extraGuessesUsed: 0,
+      extraGuessesUsed:
+        !isTutorial && isForceMaxBoardForSpacing()
+          ? config.maxExtraGuessesPro
+          : 0,
       letterHintUsed: false,
       hintTile: null,
-      maxAttempts: computeTargetMaxAttempts(letterCount, 0, isPro),
+      maxAttempts: isTutorial
+        ? config.baseAttempts(letterCount)
+        : computeTargetMaxAttempts(
+            letterCount,
+            isForceMaxBoardForSpacing() ? config.maxExtraGuessesPro : 0,
+            isPro,
+          ),
       startedAt: new Date().toISOString(),
+      isTutorial: isTutorial || undefined,
     };
     set({
       session,
@@ -173,6 +192,14 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (!dictStore.isValidGuess(len, guess)) {
       set({ error: 'Not in word list' });
       return;
+    }
+
+    if (session.isTutorial) {
+      const tutorialError = tutorialSubmitError(session.guesses.length, guess);
+      if (tutorialError) {
+        set({ error: tutorialError });
+        return;
+      }
     }
 
     // Hard Mode validation (D-59, D-60, D-61)

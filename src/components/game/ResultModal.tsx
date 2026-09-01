@@ -194,7 +194,7 @@ export function ResultModal() {
   // played from GameScreen after reveal finishes — not here — so audio never
   // fires while tiles are still flipping.
   useEffect(() => {
-    if (!session || isRevealing) return;
+    if (!session || isRevealing || session.isTutorial) return;
 
     if (session.status === 'won' || session.status === 'lost') {
       void (async () => {
@@ -375,7 +375,7 @@ export function ResultModal() {
   // Modal (and Confetti) while tiles are still flipping overwhelms Fabric's
   // SurfaceMountingManager when the board is large (e.g. after ad-rewarded
   // extra rows) and triggers an AssertionError. See fabric-crash-patterns.md.
-  if (!session || session.status === 'playing' || isRevealing) {
+  if (!session || session.isTutorial || session.status === 'playing' || isRevealing) {
     return null;
   }
 

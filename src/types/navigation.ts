@@ -3,7 +3,7 @@ import type { GameMode } from './game';
 
 export type RootStackParamList = {
   Home: undefined;
-  Game: { mode: GameMode; letterCount?: number };
+  Game: { mode: GameMode; letterCount?: number; tutorial?: boolean };
   Stats: undefined;
   /** `fromGame: true` hides Account + About (in-game settings only). */
   Settings: { fromGame?: boolean } | undefined;

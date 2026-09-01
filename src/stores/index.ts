@@ -4,3 +4,4 @@ export { useAuthStore } from './authStore';
 export { useGameStore } from './gameStore';
 export { useDictionaryStore } from './dictionaryStore';
 export { useAdStore } from './adStore';
+export { useTutorialStore } from './tutorialStore';

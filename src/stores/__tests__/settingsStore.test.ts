@@ -30,6 +30,7 @@ describe('settingsStore', () => {
       reduceMotion: false,
       themeMode: 'system',
       keyboardLayout: 'qwerty',
+      hasCompletedOnboarding: false,
     });
   });
 
@@ -126,6 +127,14 @@ describe('settingsStore', () => {
     it('sets keyboard layout', () => {
       useSettingsStore.getState().setKeyboardLayout('azerty');
       expect(useSettingsStore.getState().keyboardLayout).toBe('azerty');
+    });
+  });
+
+  describe('markOnboardingComplete', () => {
+    it('flags the interactive tutorial as finished', () => {
+      expect(useSettingsStore.getState().hasCompletedOnboarding).toBe(false);
+      useSettingsStore.getState().markOnboardingComplete();
+      expect(useSettingsStore.getState().hasCompletedOnboarding).toBe(true);
     });
   });
 });

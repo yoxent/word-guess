@@ -13,8 +13,8 @@ export const KEYBOARD_LAYOUT_OPTIONS: {
 ];
 
 /**
- * Letter rows only — ISO-style action column is rendered by Keyboard:
- * BACKSPACE above a tall SUBMIT (internal key code still `ENTER`).
+ * Letter rows only — Keyboard renders Submit (75%) and Delete (25%) in a bar
+ * above the letters (internal key codes still `ENTER` / `BACKSPACE`).
  * Empty string `''` is ignored; Keyboard centers shorter rows with equal-width letter keys.
  */
 export const KEYBOARD_LAYOUTS: Record<KeyboardLayoutId, string[][]> = {

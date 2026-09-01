@@ -24,17 +24,17 @@ describe('RewardedInterstitialIntroModal', () => {
     render(
       <RewardedInterstitialIntroModal
         visible
-        rewardLabel="+1 Attempt"
+        rewardLabel="+1 Row"
         onWatch={onWatch}
         onSkip={onSkip}
       />,
     );
 
     expect(
-      screen.getByLabelText('Watch a short ad for +1 Attempt'),
+      screen.getByLabelText('Watch a short ad for +1 Row'),
     ).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText('Watch ad for +1 Attempt'));
+    fireEvent.press(screen.getByLabelText('Watch ad for +1 Row'));
     expect(onWatch).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByLabelText('No thanks, skip the ad'));

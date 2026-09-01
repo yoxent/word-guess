@@ -146,7 +146,7 @@ describe('leaderboardService', () => {
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
   });
 
-  it('reconcile clears current-streak boards when local streak is already 0', async () => {
+  it('reconcile does not clear an Endless run when local streak is already 0', async () => {
     mockedGetLeaderboardMetrics.mockReturnValue({
       dailyStreak: 0,
       endlessStreak: 0,
@@ -164,7 +164,7 @@ describe('leaderboardService', () => {
       'Player One',
       0,
     );
-    expect(submitLeaderboardScore).toHaveBeenCalledWith(
+    expect(submitLeaderboardScore).not.toHaveBeenCalledWith(
       'endless_streak',
       'uid-1',
       'Player One',
@@ -196,6 +196,11 @@ describe('leaderboardService', () => {
   });
 
   it('syncLeaderboardForSession endless path mutates counters then publishes metrics', async () => {
+    mockedApplyEndlessEndCounters.mockReturnValue({
+      displayStreak: 5,
+      endlessStreak: 5,
+      endlessTotalWords: 99,
+    });
     mockedGetLeaderboardMetrics.mockReturnValue({
       dailyStreak: 1,
       endlessStreak: 5,
@@ -246,7 +251,12 @@ describe('leaderboardService', () => {
     expect(mockedGetEndlessTotalWords).not.toHaveBeenCalled();
   });
 
-  it('syncLeaderboardForSession endless loss submits streak 0 so Firestore can clear the row', async () => {
+  it('syncLeaderboardForSession endless loss keeps the finished run on the board', async () => {
+    mockedApplyEndlessEndCounters.mockReturnValue({
+      displayStreak: 4,
+      endlessStreak: 4,
+      endlessTotalWords: 40,
+    });
     mockedGetLeaderboardMetrics.mockReturnValue({
       dailyStreak: 0,
       endlessStreak: 0,
@@ -272,7 +282,7 @@ describe('leaderboardService', () => {
       'endless_streak',
       'uid-1',
       'Player One',
-      0,
+      4,
     );
     expect(submitLeaderboardScore).toHaveBeenCalledWith(
       'endless_total',

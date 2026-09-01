@@ -38,6 +38,7 @@ interface SettingsState extends AppSettings {
   toggleReduceMotion: () => void;
   setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
   setKeyboardLayout: (layout: AppSettings['keyboardLayout']) => void;
+  markOnboardingComplete: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -52,6 +53,7 @@ export const useSettingsStore = create<SettingsState>()(
       reduceMotion: false,
       themeMode: 'system',
       keyboardLayout: 'qwerty',
+      hasCompletedOnboarding: false,
       toggleHardMode: () => set((s) => ({ hardModeEnabled: !s.hardModeEnabled })),
       setBgmVolume: (v) => set({ bgmVolume: snapVolume(v) }),
       setSfxVolume: (v) => set({ sfxVolume: snapVolume(v) }),
@@ -71,12 +73,13 @@ export const useSettingsStore = create<SettingsState>()(
         set({ themeMode: mode });
       },
       setKeyboardLayout: (layout) => set({ keyboardLayout: layout }),
+      markOnboardingComplete: () => set({ hasCompletedOnboarding: true }),
     }),
     {
       name: 'settings-storage',
       storage: createJSONStorage(() => mmkvZustandStorage),
-      // v4: keyboardLayout preference
-      version: 4,
+      // v5: hasCompletedOnboarding (existing installs skip the new tutorial)
+      version: 5,
       partialize: (state): PersistedSettings => ({
         bgmVolume: state.bgmVolume,
         sfxVolume: state.sfxVolume,
@@ -86,6 +89,7 @@ export const useSettingsStore = create<SettingsState>()(
         reduceMotion: state.reduceMotion,
         themeMode: state.themeMode,
         keyboardLayout: state.keyboardLayout,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as Record<string, unknown> & {
@@ -121,6 +125,13 @@ export const useSettingsStore = create<SettingsState>()(
           state = {
             ...state,
             keyboardLayout: state.keyboardLayout ?? 'qwerty',
+          };
+        }
+
+        if (version < 5) {
+          state = {
+            ...state,
+            hasCompletedOnboarding: true,
           };
         }
 

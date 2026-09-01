@@ -44,7 +44,7 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
-import { HowToPlayModal, RewardedInterstitialIntroModal } from '../components/ui';
+import { HowToPlayModal, HintAdButton, RewardedInterstitialIntroModal, TutorialCoach } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
 import type { HelperAdFormat } from '../utils/adFormat';
@@ -52,6 +52,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { hasSignedInPlayer } from '../utils/authState';
+import { useTutorialStore } from '../stores/tutorialStore';
+import { TUTORIAL_ANSWER, TUTORIAL_LETTER_COUNT } from '../services/tutorialScript';
 
 type Props = ScreenProps<'Game'>;
 
@@ -64,11 +66,11 @@ function randomLength(): number {
 }
 
 function formatExtraAttemptLabel(remaining: number): string {
-  const base = 'Watch Ad · +1 Attempt';
+  const base = '+1 Row';
   return remaining > 1 ? `${base} (${remaining} left)` : base;
 }
 
-const LETTER_HINT_AD_LABEL = 'Watch Ad · Letter Hint';
+const LETTER_HINT_AD_LABEL = 'Letter Hint';
 
 /** Wait for current frame + paint so Fabric can finish Animated tile → StaticTile swap. */
 function runAfterUiSettle(callback: () => void): void {
@@ -78,6 +80,8 @@ function runAfterUiSettle(callback: () => void): void {
 }
 
 function recordEndGameSideEffects(currentSession: GameSession): void {
+  if (currentSession.isTutorial) return;
+
   clearActiveGame(activeGameSlotFromSession(currentSession));
 
   if (currentSession.mode === 'daily') {
@@ -214,6 +218,13 @@ export function GameScreen({ route }: Props) {
           justifyContent: 'center',
           position: 'relative',
         },
+        tutorialOverlay: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
         // ── Error Toast — coral bg, rounded, slide-in, overlaid over board ──
         errorToast: {
           position: 'absolute',
@@ -247,40 +258,7 @@ export function GameScreen({ route }: Props) {
           flexDirection: 'row',
           alignSelf: 'stretch',
           gap: 10,
-          marginTop: 8,
-          marginBottom: 10,
-        },
-        hintButton: {
-          flex: 1,
-          minWidth: 0,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          backgroundColor: theme.colors.brand.primary,
-          borderRadius: 20,
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          // Soft shadow
-          shadowColor: theme.colors.brand.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 4,
-        },
-        letterHintButton: {
-          backgroundColor: theme.colors.brand.secondary,
-          shadowColor: theme.colors.brand.secondary,
-        },
-        hintButtonDisabled: {
-          opacity: 0.5,
-        },
-        hintButtonText: {
-          ...typography.small,
-          fontSize: 13,
-          color: '#FFFFFF',
-          flexShrink: 1,
-          textAlign: 'center',
+          marginBottom: layout.adKeyboardGap,
         },
       }),
     [theme],
@@ -295,7 +273,7 @@ export function GameScreen({ route }: Props) {
   };
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { mode, letterCount } = route.params;
+  const { mode, letterCount, tutorial: isTutorialRoute } = route.params;
   const headerColor = MODE_HEADER_COLORS[mode];
   const session = useGameStore((s) => s.session);
   const startGame = useGameStore((s) => s.startGame);
@@ -308,11 +286,13 @@ export function GameScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const [initializing, setInitializing] = useState(true);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [boardAreaHeight, setBoardAreaHeight] = useState(0);
   const [adIntro, setAdIntro] = useState<{
     format: HelperAdFormat;
     rewardLabel: string;
     onRewarded: () => void;
   } | null>(null);
+  const [boardContentBottom, setBoardContentBottom] = useState(0);
   const appState = useRef(AppState.currentState);
 
   // ── Back button spring animation ──
@@ -337,6 +317,15 @@ export function GameScreen({ route }: Props) {
 
   // ── Game initialization ──
   useEffect(() => {
+    if (isTutorialRoute) {
+      useTutorialStore.getState().start();
+      startGame('random', TUTORIAL_ANSWER, TUTORIAL_LETTER_COUNT, false, true);
+      setInitializing(false);
+      return;
+    }
+
+    useTutorialStore.getState().stop();
+
     const hardMode = useSettingsStore.getState().hardModeEnabled;
     const len = letterCount ?? randomLength();
     const slot = toActiveGameSlot(mode, len, hardMode);
@@ -377,7 +366,7 @@ export function GameScreen({ route }: Props) {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (appState.current.match(/active/) && nextState.match(/inactive|background/)) {
         const currentSession = useGameStore.getState().session;
-        if (currentSession && currentSession.status === 'playing') {
+        if (currentSession && currentSession.status === 'playing' && !currentSession.isTutorial) {
           saveActiveGame(currentSession);
         }
       }
@@ -451,6 +440,10 @@ export function GameScreen({ route }: Props) {
         runAfterUiSettle(() => {
           finalizeRevealOutcome();
 
+          if (useGameStore.getState().session?.isTutorial) {
+            useTutorialStore.getState().advanceAfterReveal();
+          }
+
           if (useSettingsStore.getState().hapticEnabled) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
           }
@@ -465,16 +458,28 @@ export function GameScreen({ route }: Props) {
   // ── Back navigation ──
   const handleBack = useCallback(() => {
     const currentSession = useGameStore.getState().session;
+    if (currentSession?.isTutorial) {
+      useTutorialStore.getState().stop();
+      useGameStore.getState().resetGame();
+      navigation.goBack();
+      return;
+    }
     if (currentSession && currentSession.status === 'playing') {
       saveActiveGame(currentSession);
     }
     navigation.goBack();
   }, [navigation]);
 
+  const handleFinishTutorial = useCallback(() => {
+    useTutorialStore.getState().finish();
+    useGameStore.getState().resetGame();
+    navigation.goBack();
+  }, [navigation]);
+
   useEffect(() => {
     return () => {
       const currentSession = useGameStore.getState().session;
-      if (currentSession && currentSession.status === 'playing') {
+      if (currentSession && currentSession.status === 'playing' && !currentSession.isTutorial) {
         saveActiveGame(currentSession);
       }
     };
@@ -545,7 +550,7 @@ export function GameScreen({ route }: Props) {
   );
 
   const handleWatchAd = useCallback(async () => {
-    await playHelperAd(extraAttemptFormat, '+1 Attempt', grantExtraAttempt);
+    await playHelperAd(extraAttemptFormat, '+1 Row', grantExtraAttempt);
   }, [playHelperAd, extraAttemptFormat, grantExtraAttempt]);
 
   const handleLetterHint = useCallback(async () => {
@@ -575,6 +580,7 @@ export function GameScreen({ route }: Props) {
   }
 
   const modeLabel = capitalize(session.mode);
+  const headerBg = headerColor;
 
   return (
     <View
@@ -584,7 +590,7 @@ export function GameScreen({ route }: Props) {
       ]}
     >
       {/* ── Header — mode-colored bg, plain back icon ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 6, marginHorizontal: -layout.screenPadding, backgroundColor: headerColor }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 6, marginHorizontal: -layout.screenPadding, backgroundColor: headerBg }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <Animated.View style={{ transform: [{ scale: backScale }] }}>
@@ -602,42 +608,70 @@ export function GameScreen({ route }: Props) {
               </TouchableOpacity>
             </Animated.View>
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {modeLabel} · {session.letterCount} Letters
+              {session.isTutorial
+                ? `${session.letterCount} Letters`
+                : `${modeLabel} · ${session.letterCount} Letters`}
             </Text>
-            {hardModeEnabled && session.status === 'playing' && (
+            {hardModeEnabled && session.status === 'playing' && !session.isTutorial && (
               <View style={styles.hardModeBadge}>
                 <Text style={styles.hardModeBadgeText}>🔥 Hard</Text>
               </View>
             )}
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.helpButton}
-              onPress={() => setShowHowToPlay(true)}
-              activeOpacity={0.7}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="How to Play"
-            >
-              <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.helpButton}
-              onPress={() => navigation.navigate('Settings', { fromGame: true })}
-              activeOpacity={0.7}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <MaterialIcons name="settings" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+            {!session.isTutorial ? (
+              <>
+                <TouchableOpacity
+                  style={styles.helpButton}
+                  onPress={() => setShowHowToPlay(true)}
+                  activeOpacity={0.7}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityLabel="How to Play"
+                >
+                  <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.helpButton}
+                  onPress={() => navigation.navigate('Settings', { fromGame: true })}
+                  activeOpacity={0.7}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityLabel="Settings"
+                >
+                  <MaterialIcons name="settings" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </>
+            ) : null}
           </View>
         </View>
       </View>
 
       {/* ── Board area + error toast overlay ── */}
-      <View style={styles.boardArea}>
-        <GameBoard />
+      <View
+        style={styles.boardArea}
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout.height;
+          setBoardAreaHeight((prev) => (prev === next ? prev : next));
+        }}
+      >
+        <GameBoard
+          boardAreaHeight={boardAreaHeight}
+          onContentLayout={({ y, height }) => setBoardContentBottom(y + height)}
+        />
+        {session.isTutorial ? (
+          <View
+            style={[
+              styles.tutorialOverlay,
+              boardContentBottom > 0
+                ? { top: boardContentBottom, bottom: 0 }
+                : StyleSheet.absoluteFill,
+            ]}
+            pointerEvents="box-none"
+          >
+            <TutorialCoach onFinish={handleFinishTutorial} />
+          </View>
+        ) : null}
         {error !== null && (
           <Animated.View
             style={[
@@ -667,67 +701,27 @@ export function GameScreen({ route }: Props) {
       </View>
 
       {/* ── Hint Buttons ── */}
-      {session.status === 'playing' && (
+      {session.status === 'playing' && !session.isTutorial && (
         <View style={styles.hintButtonsContainer}>
-          {/* Rewarded ad: extra attempt */}
           {session.extraGuessesUsed < maxExtra && (
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                !extraAttemptReady && styles.hintButtonDisabled,
-              ]}
+            <HintAdButton
+              icon="play"
+              label={formatExtraAttemptLabel(extraAttemptsRemaining)}
+              backgroundColor={theme.colors.brand.primary}
               onPress={handleWatchAd}
-              activeOpacity={0.8}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="Watch ad for an extra attempt"
-              accessibilityState={{ disabled: !extraAttemptReady }}
-            >
-              <MaterialIcons
-                name="play-circle-outline"
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text
-                style={styles.hintButtonText}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {formatExtraAttemptLabel(extraAttemptsRemaining)}
-              </Text>
-            </TouchableOpacity>
+              disabled={!extraAttemptReady}
+              accessibilityLabel="Watch ad for an extra row"
+            />
           )}
-
-          {/* Rewarded ad: letter hint */}
           {!session.letterHintUsed && (
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                styles.letterHintButton,
-                !letterHintReady && styles.hintButtonDisabled,
-              ]}
+            <HintAdButton
+              icon="hint"
+              label={LETTER_HINT_AD_LABEL}
+              backgroundColor={theme.colors.brand.secondary}
               onPress={handleLetterHint}
-              activeOpacity={0.8}
-              accessible
-              accessibilityRole="button"
+              disabled={!letterHintReady}
               accessibilityLabel="Watch ad for a letter hint"
-              accessibilityState={{ disabled: !letterHintReady }}
-            >
-              <MaterialIcons
-                name="lightbulb-outline"
-                size={20}
-                color="#FFFFFF"
-              />
-              <Text
-                style={styles.hintButtonText}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {LETTER_HINT_AD_LABEL}
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       )}
