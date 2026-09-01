@@ -1,138 +1,99 @@
 import { create } from 'zustand';
 import {
-  InterstitialAd,
-  RewardedAd,
-  RewardedInterstitialAd,
-  AdEventType,
-  RewardedAdEventType,
-} from 'react-native-google-mobile-ads';
+  LevelPlay,
+  LevelPlayInitRequest,
+  LevelPlayInterstitialAd,
+  LevelPlayPrivacySettings,
+  LevelPlayRewardedAd,
+} from 'unity-levelplay-mediation';
+import type {
+  LevelPlayInterstitialAdListener,
+  LevelPlayRewardedAdListener,
+} from 'unity-levelplay-mediation';
 import {
   getInterstitialAdId,
-  getRewardedAdId,
-  getRewardedInterstitialAdId,
+  getLevelPlayAppKey,
+  getRewardedExtraRowsAdId,
+  getRewardedLetterHintAdId,
   PRODUCTION_INTERSTITIAL_ID,
-  PRODUCTION_REWARDED_ID,
-  PRODUCTION_REWARDED_INTERSTITIAL_ID,
+  PRODUCTION_LEVELPLAY_APP_KEY,
+  PRODUCTION_REWARDED_EXTRA_ROWS_ID,
+  PRODUCTION_REWARDED_LETTER_HINT_ID,
 } from '../services/remoteConfig';
 import type { HelperAdFormat } from '../utils/adFormat';
 
 function resolveInterstitialUnitId(): string {
-  const id = getInterstitialAdId().trim();
-  // Never fall back to Google test ads in release — that is what made
-  // Play Store builds still show "Test Ad" creatives.
-  return id || PRODUCTION_INTERSTITIAL_ID;
+  return getInterstitialAdId().trim() || PRODUCTION_INTERSTITIAL_ID;
 }
 
-function resolveRewardedUnitId(): string {
-  const id = getRewardedAdId().trim();
-  return id || PRODUCTION_REWARDED_ID;
+function resolveExtraAttemptUnitId(): string {
+  return getRewardedExtraRowsAdId().trim() || PRODUCTION_REWARDED_EXTRA_ROWS_ID;
 }
 
-function resolveRewardedInterstitialUnitId(): string {
-  const id = getRewardedInterstitialAdId().trim();
-  return id || PRODUCTION_REWARDED_INTERSTITIAL_ID;
+function resolveLetterHintUnitId(): string {
+  return getRewardedLetterHintAdId().trim() || PRODUCTION_REWARDED_LETTER_HINT_ID;
 }
 
 // ---------------------------------------------------------------------------
 // Module-level ad instances — stored outside Zustand (not serializable)
 // ---------------------------------------------------------------------------
-let interstitialAd: InterstitialAd | null = null;
-let rewardedAd: RewardedAd | null = null;
-let rewardedInterstitialAd: RewardedInterstitialAd | null = null;
-
-// Unsubscribe closures so we can clean up listeners on re-preload
-let interstitialUnsubscribe: (() => void) | null = null;
-let rewardedUnsubscribe: (() => void) | null = null;
-let rewardedInterstitialUnsubscribe: (() => void) | null = null;
+let interstitialAd: LevelPlayInterstitialAd | null = null;
+let extraAttemptAd: LevelPlayRewardedAd | null = null;
+let letterHintAd: LevelPlayRewardedAd | null = null;
 
 let interstitialRetryTimer: ReturnType<typeof setTimeout> | null = null;
-let rewardedRetryTimer: ReturnType<typeof setTimeout> | null = null;
-let rewardedInterstitialRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let extraAttemptRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let letterHintRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let interstitialLoadWatchdog: ReturnType<typeof setTimeout> | null = null;
-let rewardedLoadWatchdog: ReturnType<typeof setTimeout> | null = null;
-let rewardedInterstitialLoadWatchdog: ReturnType<typeof setTimeout> | null =
-  null;
+let extraAttemptLoadWatchdog: ReturnType<typeof setTimeout> | null = null;
+let letterHintLoadWatchdog: ReturnType<typeof setTimeout> | null = null;
 
 const RETRY_BASE_MS = 2_000;
 const RETRY_MAX_MS = 30_000;
 const LOAD_TIMEOUT_MS = 30_000;
 
 let interstitialRetryAttempt = 0;
-let rewardedRetryAttempt = 0;
-let rewardedInterstitialRetryAttempt = 0;
+let extraAttemptRetryAttempt = 0;
+let letterHintRetryAttempt = 0;
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
+let pendingExtraAttemptReward: (() => void) | null = null;
+let pendingLetterHintReward: (() => void) | null = null;
 
-function cleanupInterstitial(): void {
-  if (interstitialUnsubscribe) {
-    interstitialUnsubscribe();
-    interstitialUnsubscribe = null;
-  }
-  if (interstitialLoadWatchdog) {
-    clearTimeout(interstitialLoadWatchdog);
-    interstitialLoadWatchdog = null;
-  }
-  if (interstitialAd) {
-    interstitialAd.removeAllListeners();
-    interstitialAd = null;
-  }
+let sdkReady = false;
+let initInFlight: Promise<boolean> | null = null;
+
+function retryDelayMs(attempt: number): number {
+  return Math.min(RETRY_BASE_MS * 2 ** attempt, RETRY_MAX_MS);
 }
 
-function cleanupRewarded(): void {
-  if (rewardedUnsubscribe) {
-    rewardedUnsubscribe();
-    rewardedUnsubscribe = null;
-  }
-  if (rewardedLoadWatchdog) {
-    clearTimeout(rewardedLoadWatchdog);
-    rewardedLoadWatchdog = null;
-  }
-  if (rewardedAd) {
-    rewardedAd.removeAllListeners();
-    rewardedAd = null;
-  }
+function clearTimer(timer: ReturnType<typeof setTimeout> | null): void {
+  if (timer) clearTimeout(timer);
 }
 
-function cleanupRewardedInterstitial(): void {
-  if (rewardedInterstitialUnsubscribe) {
-    rewardedInterstitialUnsubscribe();
-    rewardedInterstitialUnsubscribe = null;
-  }
-  if (rewardedInterstitialLoadWatchdog) {
-    clearTimeout(rewardedInterstitialLoadWatchdog);
-    rewardedInterstitialLoadWatchdog = null;
-  }
-  if (rewardedInterstitialAd) {
-    rewardedInterstitialAd.removeAllListeners();
-    rewardedInterstitialAd = null;
+async function destroyAd(
+  ad: LevelPlayInterstitialAd | LevelPlayRewardedAd | null,
+): Promise<void> {
+  if (!ad) return;
+  try {
+    await ad.remove();
+  } catch {
+    // ignore native teardown errors
   }
 }
 
 function clearInterstitialRetry(): void {
-  if (interstitialRetryTimer) {
-    clearTimeout(interstitialRetryTimer);
-    interstitialRetryTimer = null;
-  }
+  clearTimer(interstitialRetryTimer);
+  interstitialRetryTimer = null;
 }
 
-function clearRewardedRetry(): void {
-  if (rewardedRetryTimer) {
-    clearTimeout(rewardedRetryTimer);
-    rewardedRetryTimer = null;
-  }
+function clearExtraAttemptRetry(): void {
+  clearTimer(extraAttemptRetryTimer);
+  extraAttemptRetryTimer = null;
 }
 
-function clearRewardedInterstitialRetry(): void {
-  if (rewardedInterstitialRetryTimer) {
-    clearTimeout(rewardedInterstitialRetryTimer);
-    rewardedInterstitialRetryTimer = null;
-  }
-}
-
-function retryDelayMs(attempt: number): number {
-  return Math.min(RETRY_BASE_MS * 2 ** attempt, RETRY_MAX_MS);
+function clearLetterHintRetry(): void {
+  clearTimer(letterHintRetryTimer);
+  letterHintRetryTimer = null;
 }
 
 function scheduleInterstitialRetry(): void {
@@ -145,279 +106,440 @@ function scheduleInterstitialRetry(): void {
   }, delay);
 }
 
-function scheduleRewardedRetry(): void {
-  clearRewardedRetry();
-  const delay = retryDelayMs(rewardedRetryAttempt);
-  rewardedRetryAttempt += 1;
-  rewardedRetryTimer = setTimeout(() => {
-    rewardedRetryTimer = null;
-    void useAdStore.getState().preloadRewarded();
+function scheduleExtraAttemptRetry(): void {
+  clearExtraAttemptRetry();
+  const delay = retryDelayMs(extraAttemptRetryAttempt);
+  extraAttemptRetryAttempt += 1;
+  extraAttemptRetryTimer = setTimeout(() => {
+    extraAttemptRetryTimer = null;
+    void useAdStore.getState().preloadExtraAttempt();
   }, delay);
 }
 
-function scheduleRewardedInterstitialRetry(): void {
-  clearRewardedInterstitialRetry();
-  const delay = retryDelayMs(rewardedInterstitialRetryAttempt);
-  rewardedInterstitialRetryAttempt += 1;
-  rewardedInterstitialRetryTimer = setTimeout(() => {
-    rewardedInterstitialRetryTimer = null;
-    void useAdStore.getState().preloadRewardedInterstitial();
+function scheduleLetterHintRetry(): void {
+  clearLetterHintRetry();
+  const delay = retryDelayMs(letterHintRetryAttempt);
+  letterHintRetryAttempt += 1;
+  letterHintRetryTimer = setTimeout(() => {
+    letterHintRetryTimer = null;
+    void useAdStore.getState().preloadLetterHint();
   }, delay);
 }
 
-async function showLoadedRewarded(
-  ad: RewardedAd | RewardedInterstitialAd,
-  onRewarded: () => void,
-  onClosed: () => void,
-  onShowFailed: () => void,
-): Promise<boolean> {
-  const earnedUnsubscribe = ad.addAdEventListener(
-    RewardedAdEventType.EARNED_REWARD,
-    () => {
-      onRewarded();
-    },
-  );
+async function ensureSdkReady(): Promise<boolean> {
+  if (sdkReady) return true;
+  if (initInFlight) return initInFlight;
 
-  const closedUnsubscribe = ad.addAdEventListener(AdEventType.CLOSED, () => {
-    earnedUnsubscribe();
-    closedUnsubscribe();
-    onClosed();
-  });
+  initInFlight = (async () => {
+    try {
+      // COPPA must be set before init. App is 13+.
+      await LevelPlayPrivacySettings.setCOPPA(false);
+      if (__DEV__) {
+        await LevelPlay.setAdaptersDebug(true);
+      }
 
-  try {
-    await ad.show();
-    return true;
-  } catch {
-    earnedUnsubscribe();
-    closedUnsubscribe();
-    onShowFailed();
-    return false;
-  }
+      const appKey = getLevelPlayAppKey().trim() || PRODUCTION_LEVELPLAY_APP_KEY;
+      if (__DEV__) {
+        console.log('[ads] LevelPlay init starting', {
+          appKey,
+          interstitial: resolveInterstitialUnitId(),
+          extraAttempt: resolveExtraAttemptUnitId(),
+          letterHint: resolveLetterHintUnitId(),
+        });
+      }
+      const initRequest = LevelPlayInitRequest.builder(appKey).build();
+
+      await new Promise<void>((resolve, reject) => {
+        const initTimeout = setTimeout(() => {
+          reject(new Error('LevelPlay init timed out after 20s'));
+        }, 20_000);
+        void LevelPlay.init(initRequest, {
+          onInitSuccess: (configuration) => {
+            clearTimeout(initTimeout);
+            if (__DEV__) {
+              console.log('[ads] LevelPlay init success', configuration);
+              void LevelPlay.validateIntegration();
+            }
+            resolve();
+          },
+          onInitFailed: (error) => {
+            clearTimeout(initTimeout);
+            reject(
+              new Error(
+                error.errorMessage ||
+                  `LevelPlay init failed (${error.errorCode ?? 'unknown'})`,
+              ),
+            );
+          },
+        }).catch((error) => {
+          clearTimeout(initTimeout);
+          reject(error);
+        });
+      });
+
+      sdkReady = true;
+      return true;
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[ads] LevelPlay init failed', error);
+      }
+      initInFlight = null;
+      return false;
+    }
+  })();
+
+  return initInFlight;
 }
 
-// ---------------------------------------------------------------------------
-// Store state interface
-// ---------------------------------------------------------------------------
-
-export interface AdStoreState {
-  interstitialLoaded: boolean;
-  interstitialLoading: boolean;
-  rewardedLoaded: boolean;
-  rewardedLoading: boolean;
-  rewardedInterstitialLoaded: boolean;
-  rewardedInterstitialLoading: boolean;
-  gamesSinceLastAd: number;
-
-  preloadInterstitial: () => Promise<void>;
-  preloadRewarded: () => Promise<void>;
-  preloadRewardedInterstitial: () => Promise<void>;
-  showInterstitial: () => Promise<boolean>;
-  showRewarded: (onRewarded: () => void) => Promise<boolean>;
-  showRewardedInterstitial: (onRewarded: () => void) => Promise<boolean>;
-  /**
-   * Show the preferred helper format; RI falls back to RV when RI is not loaded (D-195).
-   * Returns whether an ad was shown (not whether reward was earned).
-   */
-  showHelperAd: (
-    format: HelperAdFormat,
-    onRewarded: () => void,
-  ) => Promise<boolean>;
-  /** True when a show path for this format is available (RI may use RV fallback). */
-  isHelperAdReady: (format: HelperAdFormat) => boolean;
-  incrementGamesSinceLastAd: () => void;
-  resetGamesSinceLastAd: () => void;
-  /** Force a rewarded reload even if a prior load appears stuck. */
-  ensureRewardedReady: () => void;
-  ensureRewardedInterstitialReady: () => void;
-  /** Nudge both helper formats after background / on game entry. */
-  ensureHelperAdsReady: () => void;
-  reset: () => void;
-}
-
-// ---------------------------------------------------------------------------
-// Zustand store
-// ---------------------------------------------------------------------------
-
-export const useAdStore = create<AdStoreState>()((set, get) => ({
-  interstitialLoaded: false,
-  interstitialLoading: false,
-  rewardedLoaded: false,
-  rewardedLoading: false,
-  rewardedInterstitialLoaded: false,
-  rewardedInterstitialLoading: false,
-  gamesSinceLastAd: 0,
-
-  preloadInterstitial: async () => {
-    if (get().interstitialLoaded || get().interstitialLoading) return;
-
-    set({ interstitialLoading: true, interstitialLoaded: false });
-
-    cleanupInterstitial();
-
-    const adUnitId = resolveInterstitialUnitId();
-    interstitialAd = InterstitialAd.createForAdRequest(adUnitId);
-
-    interstitialUnsubscribe = interstitialAd.addAdEventListener(
-      AdEventType.LOADED,
-      () => {
-        interstitialRetryAttempt = 0;
-        clearInterstitialRetry();
-        if (interstitialLoadWatchdog) {
-          clearTimeout(interstitialLoadWatchdog);
-          interstitialLoadWatchdog = null;
-        }
-        set({ interstitialLoaded: true, interstitialLoading: false });
-      },
-    );
-
-    interstitialAd.addAdEventListener(AdEventType.ERROR, () => {
+function interstitialListener(): LevelPlayInterstitialAdListener {
+  return {
+    onAdLoaded: () => {
+      interstitialRetryAttempt = 0;
+      clearInterstitialRetry();
       if (interstitialLoadWatchdog) {
         clearTimeout(interstitialLoadWatchdog);
         interstitialLoadWatchdog = null;
       }
-      set({ interstitialLoaded: false, interstitialLoading: false });
+      useAdStore.setState({
+        interstitialLoaded: true,
+        interstitialLoading: false,
+      });
+    },
+    onAdLoadFailed: (error) => {
+      if (__DEV__) {
+        console.warn(
+          '[ads] interstitial load failed',
+          error.errorCode,
+          error.errorMessage,
+        );
+      }
+      if (interstitialLoadWatchdog) {
+        clearTimeout(interstitialLoadWatchdog);
+        interstitialLoadWatchdog = null;
+      }
+      useAdStore.setState({
+        interstitialLoaded: false,
+        interstitialLoading: false,
+      });
       scheduleInterstitialRetry();
-    });
+    },
+    onAdDisplayed: () => {},
+    onAdDisplayFailed: () => {
+      useAdStore.setState({
+        interstitialLoaded: false,
+        interstitialLoading: false,
+      });
+      void useAdStore.getState().preloadInterstitial();
+    },
+    onAdClosed: () => {
+      useAdStore.setState({ interstitialLoaded: false });
+      void useAdStore.getState().preloadInterstitial();
+    },
+  };
+}
 
-    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-      set({ interstitialLoaded: false });
-      get().preloadInterstitial();
-    });
+function extraAttemptListener(): LevelPlayRewardedAdListener {
+  return {
+    onAdLoaded: () => {
+      extraAttemptRetryAttempt = 0;
+      clearExtraAttemptRetry();
+      if (extraAttemptLoadWatchdog) {
+        clearTimeout(extraAttemptLoadWatchdog);
+        extraAttemptLoadWatchdog = null;
+      }
+      useAdStore.setState({
+        extraAttemptLoaded: true,
+        extraAttemptLoading: false,
+      });
+      if (__DEV__) {
+        console.log('[ads] extra-attempt loaded');
+      }
+    },
+    onAdLoadFailed: (error) => {
+      if (__DEV__) {
+        console.warn(
+          '[ads] extra-attempt load failed',
+          error.errorCode,
+          error.errorMessage,
+        );
+      }
+      if (extraAttemptLoadWatchdog) {
+        clearTimeout(extraAttemptLoadWatchdog);
+        extraAttemptLoadWatchdog = null;
+      }
+      useAdStore.setState({
+        extraAttemptLoaded: false,
+        extraAttemptLoading: false,
+      });
+      scheduleExtraAttemptRetry();
+    },
+    onAdDisplayed: () => {},
+    onAdRewarded: () => {
+      pendingExtraAttemptReward?.();
+      pendingExtraAttemptReward = null;
+    },
+    onAdDisplayFailed: () => {
+      pendingExtraAttemptReward = null;
+      useAdStore.setState({
+        extraAttemptLoaded: false,
+        extraAttemptLoading: false,
+      });
+      void useAdStore.getState().preloadExtraAttempt();
+    },
+    onAdClosed: () => {
+      useAdStore.setState({ extraAttemptLoaded: false });
+      void useAdStore.getState().preloadExtraAttempt();
+    },
+  };
+}
 
+function letterHintListener(): LevelPlayRewardedAdListener {
+  return {
+    onAdLoaded: () => {
+      letterHintRetryAttempt = 0;
+      clearLetterHintRetry();
+      if (letterHintLoadWatchdog) {
+        clearTimeout(letterHintLoadWatchdog);
+        letterHintLoadWatchdog = null;
+      }
+      useAdStore.setState({
+        letterHintLoaded: true,
+        letterHintLoading: false,
+      });
+      if (__DEV__) {
+        console.log('[ads] letter-hint loaded');
+      }
+    },
+    onAdLoadFailed: (error) => {
+      if (__DEV__) {
+        console.warn(
+          '[ads] letter-hint load failed',
+          error.errorCode,
+          error.errorMessage,
+        );
+      }
+      if (letterHintLoadWatchdog) {
+        clearTimeout(letterHintLoadWatchdog);
+        letterHintLoadWatchdog = null;
+      }
+      useAdStore.setState({
+        letterHintLoaded: false,
+        letterHintLoading: false,
+      });
+      scheduleLetterHintRetry();
+    },
+    onAdDisplayed: () => {},
+    onAdRewarded: () => {
+      pendingLetterHintReward?.();
+      pendingLetterHintReward = null;
+    },
+    onAdDisplayFailed: () => {
+      pendingLetterHintReward = null;
+      useAdStore.setState({
+        letterHintLoaded: false,
+        letterHintLoading: false,
+      });
+      void useAdStore.getState().preloadLetterHint();
+    },
+    onAdClosed: () => {
+      useAdStore.setState({ letterHintLoaded: false });
+      void useAdStore.getState().preloadLetterHint();
+    },
+  };
+}
+
+export interface AdStoreState {
+  interstitialLoaded: boolean;
+  interstitialLoading: boolean;
+  extraAttemptLoaded: boolean;
+  extraAttemptLoading: boolean;
+  letterHintLoaded: boolean;
+  letterHintLoading: boolean;
+  gamesSinceLastAd: number;
+
+  initAds: () => Promise<void>;
+  preloadInterstitial: () => Promise<void>;
+  preloadExtraAttempt: () => Promise<void>;
+  preloadLetterHint: () => Promise<void>;
+  showInterstitial: () => Promise<boolean>;
+  showExtraAttempt: (onRewarded: () => void) => Promise<boolean>;
+  showLetterHint: (onRewarded: () => void) => Promise<boolean>;
+  showHelperAd: (
+    format: HelperAdFormat,
+    onRewarded: () => void,
+  ) => Promise<boolean>;
+  isHelperAdReady: (format: HelperAdFormat) => boolean;
+  incrementGamesSinceLastAd: () => void;
+  resetGamesSinceLastAd: () => void;
+  ensureExtraAttemptReady: () => void;
+  ensureLetterHintReady: () => void;
+  ensureHelperAdsReady: () => void;
+  reset: () => void;
+}
+
+export const useAdStore = create<AdStoreState>()((set, get) => ({
+  interstitialLoaded: false,
+  interstitialLoading: false,
+  extraAttemptLoaded: false,
+  extraAttemptLoading: false,
+  letterHintLoaded: false,
+  letterHintLoading: false,
+  gamesSinceLastAd: 0,
+
+  initAds: async () => {
+    const ready = await ensureSdkReady();
+    if (!ready) return;
+    void get().preloadInterstitial();
+    void get().preloadExtraAttempt();
+    void get().preloadLetterHint();
+  },
+
+  preloadInterstitial: async () => {
+    if (get().interstitialLoaded || get().interstitialLoading) return;
+    const ready = await ensureSdkReady();
+    if (!ready) {
+      scheduleInterstitialRetry();
+      return;
+    }
+    if (get().interstitialLoaded || get().interstitialLoading) return;
+
+    set({ interstitialLoading: true, interstitialLoaded: false });
+
+    await destroyAd(interstitialAd);
+    interstitialAd = new LevelPlayInterstitialAd(resolveInterstitialUnitId());
+    interstitialAd.setListener(interstitialListener());
+
+    if (interstitialLoadWatchdog) {
+      clearTimeout(interstitialLoadWatchdog);
+    }
     interstitialLoadWatchdog = setTimeout(() => {
       interstitialLoadWatchdog = null;
       if (get().interstitialLoading && !get().interstitialLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] interstitial load timed out',
+            resolveInterstitialUnitId(),
+          );
+        }
         set({ interstitialLoading: false, interstitialLoaded: false });
         scheduleInterstitialRetry();
       }
     }, LOAD_TIMEOUT_MS);
 
-    interstitialAd.load();
+    try {
+      if (__DEV__) {
+        console.log('[ads] interstitial load start', resolveInterstitialUnitId());
+      }
+      await interstitialAd.loadAd();
+    } catch {
+      if (interstitialLoadWatchdog) {
+        clearTimeout(interstitialLoadWatchdog);
+        interstitialLoadWatchdog = null;
+      }
+      set({ interstitialLoading: false, interstitialLoaded: false });
+      scheduleInterstitialRetry();
+    }
   },
 
-  preloadRewarded: async () => {
-    if (get().rewardedLoaded || get().rewardedLoading) return;
-
-    set({ rewardedLoading: true, rewardedLoaded: false });
-
-    cleanupRewarded();
-
-    const adUnitId = resolveRewardedUnitId();
-    rewardedAd = RewardedAd.createForAdRequest(adUnitId);
-
-    rewardedUnsubscribe = rewardedAd.addAdEventListener(
-      RewardedAdEventType.LOADED,
-      () => {
-        rewardedRetryAttempt = 0;
-        clearRewardedRetry();
-        if (rewardedLoadWatchdog) {
-          clearTimeout(rewardedLoadWatchdog);
-          rewardedLoadWatchdog = null;
-        }
-        set({ rewardedLoaded: true, rewardedLoading: false });
-      },
-    );
-
-    rewardedAd.addAdEventListener(AdEventType.ERROR, () => {
-      if (rewardedLoadWatchdog) {
-        clearTimeout(rewardedLoadWatchdog);
-        rewardedLoadWatchdog = null;
-      }
-      set({ rewardedLoaded: false, rewardedLoading: false });
-      scheduleRewardedRetry();
-    });
-
-    rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
-      set({ rewardedLoaded: false });
-      get().preloadRewarded();
-    });
-
-    rewardedLoadWatchdog = setTimeout(() => {
-      rewardedLoadWatchdog = null;
-      if (get().rewardedLoading && !get().rewardedLoaded) {
-        set({ rewardedLoading: false, rewardedLoaded: false });
-        scheduleRewardedRetry();
-      }
-    }, LOAD_TIMEOUT_MS);
-
-    rewardedAd.load();
-  },
-
-  preloadRewardedInterstitial: async () => {
-    if (
-      get().rewardedInterstitialLoaded ||
-      get().rewardedInterstitialLoading
-    ) {
+  preloadExtraAttempt: async () => {
+    if (get().extraAttemptLoaded || get().extraAttemptLoading) return;
+    const ready = await ensureSdkReady();
+    if (!ready) {
+      scheduleExtraAttemptRetry();
       return;
     }
+    if (get().extraAttemptLoaded || get().extraAttemptLoading) return;
 
-    set({
-      rewardedInterstitialLoading: true,
-      rewardedInterstitialLoaded: false,
-    });
+    set({ extraAttemptLoading: true, extraAttemptLoaded: false });
 
-    cleanupRewardedInterstitial();
+    await destroyAd(extraAttemptAd);
+    extraAttemptAd = new LevelPlayRewardedAd(resolveExtraAttemptUnitId());
+    extraAttemptAd.setListener(extraAttemptListener());
 
-    const adUnitId = resolveRewardedInterstitialUnitId();
-    rewardedInterstitialAd =
-      RewardedInterstitialAd.createForAdRequest(adUnitId);
-
-    rewardedInterstitialUnsubscribe =
-      rewardedInterstitialAd.addAdEventListener(
-        RewardedAdEventType.LOADED,
-        () => {
-          rewardedInterstitialRetryAttempt = 0;
-          clearRewardedInterstitialRetry();
-          if (rewardedInterstitialLoadWatchdog) {
-            clearTimeout(rewardedInterstitialLoadWatchdog);
-            rewardedInterstitialLoadWatchdog = null;
-          }
-          set({
-            rewardedInterstitialLoaded: true,
-            rewardedInterstitialLoading: false,
-          });
-        },
-      );
-
-    rewardedInterstitialAd.addAdEventListener(AdEventType.ERROR, () => {
-      if (rewardedInterstitialLoadWatchdog) {
-        clearTimeout(rewardedInterstitialLoadWatchdog);
-        rewardedInterstitialLoadWatchdog = null;
-      }
-      set({
-        rewardedInterstitialLoaded: false,
-        rewardedInterstitialLoading: false,
-      });
-      scheduleRewardedInterstitialRetry();
-    });
-
-    rewardedInterstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-      set({ rewardedInterstitialLoaded: false });
-      get().preloadRewardedInterstitial();
-    });
-
-    rewardedInterstitialLoadWatchdog = setTimeout(() => {
-      rewardedInterstitialLoadWatchdog = null;
-      if (
-        get().rewardedInterstitialLoading &&
-        !get().rewardedInterstitialLoaded
-      ) {
-        set({
-          rewardedInterstitialLoading: false,
-          rewardedInterstitialLoaded: false,
-        });
-        scheduleRewardedInterstitialRetry();
+    if (extraAttemptLoadWatchdog) {
+      clearTimeout(extraAttemptLoadWatchdog);
+    }
+    extraAttemptLoadWatchdog = setTimeout(() => {
+      extraAttemptLoadWatchdog = null;
+      if (get().extraAttemptLoading && !get().extraAttemptLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] extra-attempt load timed out',
+            resolveExtraAttemptUnitId(),
+          );
+        }
+        set({ extraAttemptLoading: false, extraAttemptLoaded: false });
+        scheduleExtraAttemptRetry();
       }
     }, LOAD_TIMEOUT_MS);
 
-    rewardedInterstitialAd.load();
+    try {
+      if (__DEV__) {
+        console.log('[ads] extra-attempt load start', resolveExtraAttemptUnitId());
+      }
+      await extraAttemptAd.loadAd();
+    } catch {
+      if (extraAttemptLoadWatchdog) {
+        clearTimeout(extraAttemptLoadWatchdog);
+        extraAttemptLoadWatchdog = null;
+      }
+      set({ extraAttemptLoading: false, extraAttemptLoaded: false });
+      scheduleExtraAttemptRetry();
+    }
+  },
+
+  preloadLetterHint: async () => {
+    if (get().letterHintLoaded || get().letterHintLoading) return;
+    const ready = await ensureSdkReady();
+    if (!ready) {
+      scheduleLetterHintRetry();
+      return;
+    }
+    if (get().letterHintLoaded || get().letterHintLoading) return;
+
+    set({ letterHintLoading: true, letterHintLoaded: false });
+
+    await destroyAd(letterHintAd);
+    letterHintAd = new LevelPlayRewardedAd(resolveLetterHintUnitId());
+    letterHintAd.setListener(letterHintListener());
+
+    if (letterHintLoadWatchdog) {
+      clearTimeout(letterHintLoadWatchdog);
+    }
+    letterHintLoadWatchdog = setTimeout(() => {
+      letterHintLoadWatchdog = null;
+      if (get().letterHintLoading && !get().letterHintLoaded) {
+        if (__DEV__) {
+          console.warn(
+            '[ads] letter-hint load timed out',
+            resolveLetterHintUnitId(),
+          );
+        }
+        set({ letterHintLoading: false, letterHintLoaded: false });
+        scheduleLetterHintRetry();
+      }
+    }, LOAD_TIMEOUT_MS);
+
+    try {
+      if (__DEV__) {
+        console.log('[ads] letter-hint load start', resolveLetterHintUnitId());
+      }
+      await letterHintAd.loadAd();
+    } catch {
+      if (letterHintLoadWatchdog) {
+        clearTimeout(letterHintLoadWatchdog);
+        letterHintLoadWatchdog = null;
+      }
+      set({ letterHintLoading: false, letterHintLoaded: false });
+      scheduleLetterHintRetry();
+    }
   },
 
   showInterstitial: async () => {
     if (!get().interstitialLoaded || !interstitialAd) return false;
-
     try {
-      await interstitialAd.show();
+      if (!(await interstitialAd.isAdReady())) return false;
+      await interstitialAd.showAd();
       return true;
     } catch {
       set({ interstitialLoaded: false, interstitialLoading: false });
@@ -426,68 +548,46 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     }
   },
 
-  showRewarded: async (onRewarded: () => void) => {
-    if (!get().rewardedLoaded || !rewardedAd) return false;
-
-    const ad = rewardedAd;
-    return showLoadedRewarded(
-      ad,
-      onRewarded,
-      () => {
-        set({ rewardedLoaded: false });
-        get().preloadRewarded();
-      },
-      () => {
-        set({ rewardedLoaded: false, rewardedLoading: false });
-        void get().preloadRewarded();
-      },
-    );
-  },
-
-  showRewardedInterstitial: async (onRewarded: () => void) => {
-    if (!get().rewardedInterstitialLoaded || !rewardedInterstitialAd) {
+  showExtraAttempt: async (onRewarded) => {
+    if (!get().extraAttemptLoaded || !extraAttemptAd) return false;
+    try {
+      if (!(await extraAttemptAd.isAdReady())) return false;
+      pendingExtraAttemptReward = onRewarded;
+      await extraAttemptAd.showAd();
+      return true;
+    } catch {
+      pendingExtraAttemptReward = null;
+      set({ extraAttemptLoaded: false, extraAttemptLoading: false });
+      void get().preloadExtraAttempt();
       return false;
     }
-
-    const ad = rewardedInterstitialAd;
-    return showLoadedRewarded(
-      ad,
-      onRewarded,
-      () => {
-        set({ rewardedInterstitialLoaded: false });
-        get().preloadRewardedInterstitial();
-      },
-      () => {
-        set({
-          rewardedInterstitialLoaded: false,
-          rewardedInterstitialLoading: false,
-        });
-        void get().preloadRewardedInterstitial();
-      },
-    );
   },
 
-  isHelperAdReady: (format: HelperAdFormat) => {
-    const { rewardedLoaded, rewardedInterstitialLoaded } = get();
-    if (format === 'rewarded') return rewardedLoaded;
-    return rewardedInterstitialLoaded || rewardedLoaded;
+  showLetterHint: async (onRewarded) => {
+    if (!get().letterHintLoaded || !letterHintAd) return false;
+    try {
+      if (!(await letterHintAd.isAdReady())) return false;
+      pendingLetterHintReward = onRewarded;
+      await letterHintAd.showAd();
+      return true;
+    } catch {
+      pendingLetterHintReward = null;
+      set({ letterHintLoaded: false, letterHintLoading: false });
+      void get().preloadLetterHint();
+      return false;
+    }
+  },
+
+  isHelperAdReady: (format) => {
+    if (format === 'extra_attempt') return get().extraAttemptLoaded;
+    return get().letterHintLoaded;
   },
 
   showHelperAd: async (format, onRewarded) => {
-    if (format === 'rewarded') {
-      return get().showRewarded(onRewarded);
+    if (format === 'extra_attempt') {
+      return get().showExtraAttempt(onRewarded);
     }
-
-    if (get().rewardedInterstitialLoaded) {
-      return get().showRewardedInterstitial(onRewarded);
-    }
-
-    // D-195: RI fill miss → fall back to RV so helpers do not soft-lock
-    if (get().rewardedLoaded) {
-      return get().showRewarded(onRewarded);
-    }
-
-    return false;
+    return get().showLetterHint(onRewarded);
   },
 
   incrementGamesSinceLastAd: () => {
@@ -498,50 +598,55 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     set({ gamesSinceLastAd: 0 });
   },
 
-  ensureRewardedReady: () => {
-    const { rewardedLoaded, rewardedLoading } = get();
-    if (rewardedLoaded) return;
-    if (rewardedLoading) {
-      set({ rewardedLoading: false });
-      cleanupRewarded();
-    }
-    clearRewardedRetry();
-    void get().preloadRewarded();
+  ensureExtraAttemptReady: () => {
+    // Do not tear down an in-flight load — GameScreen mount and AppState
+    // resume run this while initAds preloads are still waiting on onAdLoaded.
+    void get().preloadExtraAttempt();
   },
 
-  ensureRewardedInterstitialReady: () => {
-    const { rewardedInterstitialLoaded, rewardedInterstitialLoading } = get();
-    if (rewardedInterstitialLoaded) return;
-    if (rewardedInterstitialLoading) {
-      set({ rewardedInterstitialLoading: false });
-      cleanupRewardedInterstitial();
-    }
-    clearRewardedInterstitialRetry();
-    void get().preloadRewardedInterstitial();
+  ensureLetterHintReady: () => {
+    void get().preloadLetterHint();
   },
 
   ensureHelperAdsReady: () => {
-    get().ensureRewardedReady();
-    get().ensureRewardedInterstitialReady();
+    get().ensureExtraAttemptReady();
+    get().ensureLetterHintReady();
   },
 
   reset: () => {
     clearInterstitialRetry();
-    clearRewardedRetry();
-    clearRewardedInterstitialRetry();
-    cleanupInterstitial();
-    cleanupRewarded();
-    cleanupRewardedInterstitial();
+    clearExtraAttemptRetry();
+    clearLetterHintRetry();
+    if (interstitialLoadWatchdog) {
+      clearTimeout(interstitialLoadWatchdog);
+      interstitialLoadWatchdog = null;
+    }
+    if (extraAttemptLoadWatchdog) {
+      clearTimeout(extraAttemptLoadWatchdog);
+      extraAttemptLoadWatchdog = null;
+    }
+    if (letterHintLoadWatchdog) {
+      clearTimeout(letterHintLoadWatchdog);
+      letterHintLoadWatchdog = null;
+    }
+    void destroyAd(interstitialAd);
+    void destroyAd(extraAttemptAd);
+    void destroyAd(letterHintAd);
+    interstitialAd = null;
+    extraAttemptAd = null;
+    letterHintAd = null;
+    pendingExtraAttemptReward = null;
+    pendingLetterHintReward = null;
     interstitialRetryAttempt = 0;
-    rewardedRetryAttempt = 0;
-    rewardedInterstitialRetryAttempt = 0;
+    extraAttemptRetryAttempt = 0;
+    letterHintRetryAttempt = 0;
     set({
       interstitialLoaded: false,
       interstitialLoading: false,
-      rewardedLoaded: false,
-      rewardedLoading: false,
-      rewardedInterstitialLoaded: false,
-      rewardedInterstitialLoading: false,
+      extraAttemptLoaded: false,
+      extraAttemptLoading: false,
+      letterHintLoaded: false,
+      letterHintLoading: false,
       gamesSinceLastAd: 0,
     });
   },

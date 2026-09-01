@@ -1,11 +1,5 @@
 /**
- * D-195: which helper ad format to use for an extra-attempt watch.
- * Last remaining attempt → classic rewarded; otherwise rewarded interstitial.
+ * Dedicated LevelPlay rewarded units for in-game helpers.
+ * Extra attempts and letter hints no longer share a rewarded-interstitial slot.
  */
-export type HelperAdFormat = 'rewarded' | 'rewarded_interstitial';
-
-export function selectExtraAttemptAdFormat(
-  extraAttemptsRemaining: number,
-): HelperAdFormat {
-  return extraAttemptsRemaining === 1 ? 'rewarded' : 'rewarded_interstitial';
-}
+export type HelperAdFormat = 'extra_attempt' | 'letter_hint';

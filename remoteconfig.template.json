@@ -1,28 +1,46 @@
 {
   "parameters": {
-    "admob_interstitial_id": {
+    "levelplay_app_key": {
       "defaultValue": {
-        "value": "ca-app-pub-4297882562709937/5589745315"
+        "value": "27c77ea8d"
       },
-      "description": "AdMob interstitial ad unit ID for free-tier game-over ads"
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
+      "valueType": "STRING"
     },
-    "admob_rewarded_id": {
+    "levelplay_interstitial_id": {
       "defaultValue": {
-        "value": "ca-app-pub-4297882562709937/8970431595"
+        "value": "s30cnanav91qppyc"
       },
-      "description": "AdMob rewarded ad unit ID — D-195: last remaining +1 attempt (and RI fallback)"
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
+      "valueType": "STRING"
     },
-    "admob_rewarded_interstitial_id": {
+    "levelplay_rewarded_extra_rows_id": {
       "defaultValue": {
-        "value": "ca-app-pub-4297882562709937/6430297077"
+        "value": "hcokdlvoiili0xya"
       },
-      "description": "AdMob rewarded interstitial unit ID — D-195: letter hint + non-last +1 attempts"
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
+      "valueType": "STRING"
     },
-    "admob_interstitial_frequency_override": {
+    "levelplay_rewarded_letter_hint_id": {
+      "defaultValue": {
+        "value": "yz51hy84w8m16lbc"
+      },
+      "description": "Unused by the app (IDs are compiled in). Kept so a template deploy does not delete the live key.",
+      "valueType": "STRING"
+    },
+    "levelplay_interstitial_frequency_override": {
       "defaultValue": {
         "value": ""
       },
-      "description": "Optional override for interstitial frequency capping (reserved; unused in MVP)"
+      "description": "Optional override for interstitial frequency capping (reserved; unused in MVP)",
+      "valueType": "STRING"
+    },
+    "min_supported_version": {
+      "defaultValue": {
+        "value": "1.0.1"
+      },
+      "description": "Minimum app version (semver). Builds below this see a soft update modal.",
+      "valueType": "STRING"
     }
   }
 }

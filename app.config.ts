@@ -10,7 +10,7 @@ const playGamesAppId =
 const config: ExpoConfig = {
   name: 'Word Guess',
   slug: 'word-guess',
-  version: '1.0.2',
+  version: '1.0.3',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -28,6 +28,14 @@ const config: ExpoConfig = {
     package: 'com.vorithstudio.wordguess',
     googleServicesFile:
       process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+    // WorkManager merges FOREGROUND_SERVICE even though we never run a
+    // foreground service (BGM/SFX are in-app only). Blocking it so Play
+    // does not require an FGS declaration.
+    blockedPermissions: [
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+      'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
+    ],
   },
   plugins: [
     'expo-dev-client',
@@ -44,13 +52,6 @@ const config: ExpoConfig = {
     '@react-native-firebase/app',
     '@react-native-firebase/auth',
     [
-      'react-native-google-mobile-ads',
-      {
-        androidAppId: 'ca-app-pub-4297882562709937~6535839946',
-        iosAppId: '',
-      },
-    ],
-    [
       'expo-build-properties',
       {
         android: {
@@ -63,11 +64,15 @@ const config: ExpoConfig = {
             '-keep class com.mrousavy.nitro.** { *; }',
             '-keep class com.google.android.gms.games.** { *; }',
             '-keep class com.google.firebase.** { *; }',
-            '-keep class com.google.android.gms.ads.** { *; }',
+            '-keep class com.ironsource.** { *; }',
+            '-keep class com.unity3d.** { *; }',
+            '-dontwarn com.ironsource.**',
+            '-dontwarn com.unity3d.**',
           ].join('\n'),
         },
       },
     ],
+    './plugins/withLevelPlayAndroid.js',
     [
       'expo-audio',
       {

@@ -13,9 +13,8 @@ export interface RewardedInterstitialIntroModalProps {
 }
 
 /**
- * Pre-ad confirm shown before helper formats (D-195):
- * required for Rewarded Interstitial; also used for classic rewarded
- * for consistency and to reduce accidental watch taps.
+ * Pre-ad confirm shown before helper rewarded ads
+ * to reduce accidental watch taps.
  */
 export function RewardedInterstitialIntroModal({
   visible,

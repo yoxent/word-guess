@@ -1,11 +1,3 @@
-jest.mock('react-native-google-mobile-ads', () => ({
-  TestIds: {
-    INTERSTITIAL: 'test-interstitial',
-    REWARDED: 'test-rewarded',
-    REWARDED_INTERSTITIAL: 'test-rewarded-interstitial',
-  },
-}));
-
 const mockGetValue = jest.fn();
 
 jest.mock('@react-native-firebase/remote-config', () => ({
@@ -16,7 +8,15 @@ jest.mock('@react-native-firebase/remote-config', () => ({
 
 import {
   DEFAULT_MIN_SUPPORTED_VERSION,
+  PRODUCTION_INTERSTITIAL_ID,
+  PRODUCTION_LEVELPLAY_APP_KEY,
+  PRODUCTION_REWARDED_EXTRA_ROWS_ID,
+  PRODUCTION_REWARDED_LETTER_HINT_ID,
+  getInterstitialAdId,
+  getLevelPlayAppKey,
   getMinSupportedVersion,
+  getRewardedExtraRowsAdId,
+  getRewardedLetterHintAdId,
   isUpdateRequired,
 } from '../remoteConfig';
 
@@ -58,5 +58,30 @@ describe('remoteConfig version helpers', () => {
     });
     expect(getMinSupportedVersion()).toBe(DEFAULT_MIN_SUPPORTED_VERSION);
     expect(isUpdateRequired('1.0.0')).toBe(false);
+  });
+});
+
+describe('LevelPlay ad IDs are compiled in', () => {
+  beforeEach(() => {
+    mockGetValue.mockReset();
+  });
+
+  function mockKeys(values: Record<string, string>) {
+    mockGetValue.mockImplementation((_rc: unknown, key: string) => ({
+      asString: () => values[key] ?? '',
+    }));
+  }
+
+  it('uses compiled-in LevelPlay IDs even when RC has other values', () => {
+    mockKeys({
+      levelplay_app_key: 'app-from-rc',
+      levelplay_interstitial_id: 'int-from-rc',
+      levelplay_rewarded_extra_rows_id: 'rows-from-rc',
+      levelplay_rewarded_letter_hint_id: 'hint-from-rc',
+    });
+    expect(getLevelPlayAppKey()).toBe(PRODUCTION_LEVELPLAY_APP_KEY);
+    expect(getInterstitialAdId()).toBe(PRODUCTION_INTERSTITIAL_ID);
+    expect(getRewardedExtraRowsAdId()).toBe(PRODUCTION_REWARDED_EXTRA_ROWS_ID);
+    expect(getRewardedLetterHintAdId()).toBe(PRODUCTION_REWARDED_LETTER_HINT_ID);
   });
 });
