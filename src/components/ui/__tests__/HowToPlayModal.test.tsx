@@ -72,7 +72,7 @@ describe('HowToPlayModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('starts the guided game when requested', () => {
+  it('starts the tutorial when requested', () => {
     const onPlayTutorial = jest.fn();
     render(
       <HowToPlayModal
@@ -81,7 +81,7 @@ describe('HowToPlayModal', () => {
         onPlayTutorial={onPlayTutorial}
       />,
     );
-    fireEvent.press(screen.getByLabelText('Try a guided game'));
+    fireEvent.press(screen.getByLabelText('Play Tutorial'));
     expect(onPlayTutorial).toHaveBeenCalledTimes(1);
   });
 });

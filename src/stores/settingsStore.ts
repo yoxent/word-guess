@@ -28,6 +28,60 @@ type PersistedSettings = Omit<
   'hardModeEnabled'
 >;
 
+export function migrateSettings(persistedState: unknown, version: number): unknown {
+  let state = persistedState as Record<string, unknown> & {
+    soundEnabled?: boolean;
+    hardModeEnabled?: boolean;
+    bgmVolume?: number;
+    sfxVolume?: number;
+    keyboardLayout?: string;
+    colorBlindMode?: boolean;
+    hasCompletedOnboarding?: boolean;
+  };
+
+  if (version < 2) {
+    const wasEnabled = state.soundEnabled !== false;
+    const { soundEnabled: _omit, ...rest } = state;
+    state = {
+      ...rest,
+      bgmVolume: wasEnabled ? 0.75 : 0,
+      sfxVolume: wasEnabled ? 0.75 : 0,
+    };
+  }
+
+  if (version < 3) {
+    const { hardModeEnabled: _hard, ...rest } = state;
+    state = { ...rest };
+    if (typeof state.bgmVolume === 'number') {
+      state.bgmVolume = snapVolume(state.bgmVolume);
+    }
+    if (typeof state.sfxVolume === 'number') {
+      state.sfxVolume = snapVolume(state.sfxVolume);
+    }
+  }
+
+  if (version < 4) {
+    state = {
+      ...state,
+      keyboardLayout: state.keyboardLayout ?? 'qwerty',
+    };
+  }
+
+  if (version < 5) {
+    state = {
+      ...state,
+      hasCompletedOnboarding: false,
+    };
+  }
+
+  if (version < 6) {
+    const { colorBlindMode: _removed, ...rest } = state;
+    state = rest;
+  }
+
+  return state;
+}
+
 interface SettingsState extends AppSettings {
   toggleHardMode: () => void;
   setBgmVolume: (v: number) => void;
@@ -87,58 +141,7 @@ export const useSettingsStore = create<SettingsState>()(
         keyboardLayout: state.keyboardLayout,
         hasCompletedOnboarding: state.hasCompletedOnboarding,
       }),
-      migrate: (persistedState, version) => {
-        let state = persistedState as Record<string, unknown> & {
-          soundEnabled?: boolean;
-          hardModeEnabled?: boolean;
-          bgmVolume?: number;
-          sfxVolume?: number;
-          keyboardLayout?: string;
-          colorBlindMode?: boolean;
-        };
-
-        if (version < 2) {
-          const wasEnabled = state.soundEnabled !== false;
-          const { soundEnabled: _omit, ...rest } = state;
-          state = {
-            ...rest,
-            bgmVolume: wasEnabled ? 0.75 : 0,
-            sfxVolume: wasEnabled ? 0.75 : 0,
-          };
-        }
-
-        if (version < 3) {
-          const { hardModeEnabled: _hard, ...rest } = state;
-          state = { ...rest };
-          if (typeof state.bgmVolume === 'number') {
-            state.bgmVolume = snapVolume(state.bgmVolume);
-          }
-          if (typeof state.sfxVolume === 'number') {
-            state.sfxVolume = snapVolume(state.sfxVolume);
-          }
-        }
-
-        if (version < 4) {
-          state = {
-            ...state,
-            keyboardLayout: state.keyboardLayout ?? 'qwerty',
-          };
-        }
-
-        if (version < 5) {
-          state = {
-            ...state,
-            hasCompletedOnboarding: true,
-          };
-        }
-
-        if (version < 6) {
-          const { colorBlindMode: _removed, ...rest } = state;
-          state = rest;
-        }
-
-        return state as typeof persistedState;
-      },
+      migrate: migrateSettings,
     }
   )
 );

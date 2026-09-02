@@ -16,7 +16,7 @@ jest.mock('zustand/middleware', () => ({
   }),
 }));
 
-import { useSettingsStore } from '../settingsStore';
+import { migrateSettings, useSettingsStore } from '../settingsStore';
 
 describe('settingsStore', () => {
   beforeEach(() => {
@@ -127,6 +127,21 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().hasCompletedOnboarding).toBe(false);
       useSettingsStore.getState().markOnboardingComplete();
       expect(useSettingsStore.getState().hasCompletedOnboarding).toBe(true);
+    });
+  });
+
+  describe('migrateSettings', () => {
+    it('does not mark onboarding complete for existing installs', () => {
+      const migrated = migrateSettings({}, 4) as { hasCompletedOnboarding?: boolean };
+      expect(migrated.hasCompletedOnboarding).toBe(false);
+    });
+
+    it('keeps a local completed flag from a later persist version', () => {
+      const migrated = migrateSettings(
+        { hasCompletedOnboarding: true },
+        6,
+      ) as { hasCompletedOnboarding?: boolean };
+      expect(migrated.hasCompletedOnboarding).toBe(true);
     });
   });
 });

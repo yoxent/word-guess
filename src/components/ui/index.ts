@@ -9,3 +9,4 @@ export { RewardedInterstitialIntroModal } from './RewardedInterstitialIntroModal
 export { ProgressRing } from './ProgressRing';
 export { HomeBackground } from './HomeBackground';
 export { TutorialCoach } from './TutorialCoach';
+export { SkipOnboardingModal } from './SkipOnboardingModal';

@@ -10,22 +10,25 @@ import { useSettingsStore } from './settingsStore';
 interface TutorialState {
   active: boolean;
   phase: TutorialPhase;
+  skipConfirmVisible: boolean;
   start: () => void;
   stop: () => void;
   skip: () => void;
   finish: () => void;
+  requestSkip: () => void;
+  cancelSkip: () => void;
   continueExplain: () => void;
   advanceAfterReveal: () => void;
 }
 
-function reset(): Pick<TutorialState, 'active' | 'phase'> {
-  return { active: false, phase: TUTORIAL_INITIAL_PHASE };
+function reset(): Pick<TutorialState, 'active' | 'phase' | 'skipConfirmVisible'> {
+  return { active: false, phase: TUTORIAL_INITIAL_PHASE, skipConfirmVisible: false };
 }
 
 export const useTutorialStore = create<TutorialState>((set, get) => ({
   ...reset(),
 
-  start: () => set({ active: true, phase: TUTORIAL_INITIAL_PHASE }),
+  start: () => set({ active: true, phase: TUTORIAL_INITIAL_PHASE, skipConfirmVisible: false }),
 
   stop: () => set(reset()),
 
@@ -38,6 +41,13 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     useSettingsStore.getState().markOnboardingComplete();
     set(reset());
   },
+
+  requestSkip: () => {
+    if (!get().active) return;
+    set({ skipConfirmVisible: true });
+  },
+
+  cancelSkip: () => set({ skipConfirmVisible: false }),
 
   continueExplain: () => {
     const { active, phase } = get();

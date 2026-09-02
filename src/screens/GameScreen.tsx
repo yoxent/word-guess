@@ -44,7 +44,7 @@ import { typography } from '../constants/typography';
 import { GameBoard } from '../components/game/GameBoard';
 import { Keyboard } from '../components/game/Keyboard';
 import { ResultModal } from '../components/game/ResultModal';
-import { HowToPlayModal, HintAdButton, RewardedInterstitialIntroModal, TutorialCoach } from '../components/ui';
+import { HowToPlayModal, HintAdButton, RewardedInterstitialIntroModal, SkipOnboardingModal, TutorialCoach } from '../components/ui';
 import type { GameMode, GameSession } from '../types';
 import { shouldRestoreActiveGame } from '../utils/activeGame';
 import type { HelperAdFormat } from '../utils/adFormat';
@@ -269,6 +269,7 @@ export function GameScreen({ route }: Props) {
   const { mode, letterCount, tutorial: isTutorialRoute } = route.params;
   const headerColor = MODE_HEADER_COLORS[mode];
   const session = useGameStore((s) => s.session);
+  const skipConfirmVisible = useTutorialStore((s) => s.skipConfirmVisible);
   const startGame = useGameStore((s) => s.startGame);
   const restoreSession = useGameStore((s) => s.restoreSession);
   const error = useGameStore((s) => s.error);
@@ -452,9 +453,7 @@ export function GameScreen({ route }: Props) {
   const handleBack = useCallback(() => {
     const currentSession = useGameStore.getState().session;
     if (currentSession?.isTutorial) {
-      useTutorialStore.getState().stop();
-      useGameStore.getState().resetGame();
-      navigation.goBack();
+      useTutorialStore.getState().requestSkip();
       return;
     }
     if (currentSession && currentSession.status === 'playing') {
@@ -465,6 +464,16 @@ export function GameScreen({ route }: Props) {
 
   const handleFinishTutorial = useCallback(() => {
     useTutorialStore.getState().finish();
+    useGameStore.getState().resetGame();
+    navigation.goBack();
+  }, [navigation]);
+
+  const handleCancelSkipTutorial = useCallback(() => {
+    useTutorialStore.getState().cancelSkip();
+  }, []);
+
+  const handleConfirmSkipTutorial = useCallback(() => {
+    useTutorialStore.getState().skip();
     useGameStore.getState().resetGame();
     navigation.goBack();
   }, [navigation]);
@@ -568,6 +577,11 @@ export function GameScreen({ route }: Props) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.status.accent} />
+        <SkipOnboardingModal
+          visible={skipConfirmVisible}
+          onCancel={handleCancelSkipTutorial}
+          onSkip={handleConfirmSkipTutorial}
+        />
       </View>
     );
   }
@@ -739,6 +753,12 @@ export function GameScreen({ route }: Props) {
           void handleAdIntroWatch();
         }}
         onSkip={handleAdIntroSkip}
+      />
+
+      <SkipOnboardingModal
+        visible={skipConfirmVisible}
+        onCancel={handleCancelSkipTutorial}
+        onSkip={handleConfirmSkipTutorial}
       />
     </View>
   );

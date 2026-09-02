@@ -271,10 +271,10 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
                 activeOpacity={0.8}
                 accessible
                 accessibilityRole="button"
-                accessibilityLabel="Try a guided game"
+                accessibilityLabel="Play Tutorial"
               >
                 <AppText style={styles.tutorialButtonText} numberOfLines={1}>
-                  Try a guided game
+                  Play Tutorial
                 </AppText>
               </TouchableOpacity>
             ) : null}

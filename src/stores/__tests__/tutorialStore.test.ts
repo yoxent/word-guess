@@ -16,6 +16,7 @@ describe('tutorialStore', () => {
     useTutorialStore.setState({
       active: false,
       phase: 'intro-welcome',
+      skipConfirmVisible: false,
     });
   });
 
@@ -98,5 +99,36 @@ describe('tutorialStore', () => {
     useTutorialStore.getState().finish();
     expect(useTutorialStore.getState().active).toBe(false);
     expect(useTutorialStore.getState().phase).toBe('intro-welcome');
+  });
+
+  it('requestSkip opens the skip confirm without completing onboarding', () => {
+    useTutorialStore.getState().start();
+    useTutorialStore.getState().requestSkip();
+    expect(useTutorialStore.getState().skipConfirmVisible).toBe(true);
+    expect(useTutorialStore.getState().active).toBe(true);
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled();
+  });
+
+  it('cancelSkip hides the confirm and leaves onboarding incomplete', () => {
+    useTutorialStore.getState().start();
+    useTutorialStore.getState().requestSkip();
+    useTutorialStore.getState().cancelSkip();
+    expect(useTutorialStore.getState().skipConfirmVisible).toBe(false);
+    expect(useTutorialStore.getState().active).toBe(true);
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled();
+  });
+
+  it('skip clears the confirm after marking onboarding complete', () => {
+    useTutorialStore.getState().start();
+    useTutorialStore.getState().requestSkip();
+    useTutorialStore.getState().skip();
+    expect(useTutorialStore.getState().skipConfirmVisible).toBe(false);
+    expect(useTutorialStore.getState().active).toBe(false);
+    expect(mockMarkOnboardingComplete).toHaveBeenCalled();
+  });
+
+  it('requestSkip is a no-op when the tutorial is not active', () => {
+    useTutorialStore.getState().requestSkip();
+    expect(useTutorialStore.getState().skipConfirmVisible).toBe(false);
   });
 });

@@ -128,24 +128,6 @@ export function HomeScreen() {
           marginTop: 16,
           marginBottom: 8,
         },
-        // TEMP: remove once onboarding is signed off
-        tempTutorialButton: {
-          marginTop: 12,
-          alignSelf: 'stretch',
-          maxWidth: 340,
-          borderRadius: layout.buttonBorderRadius,
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          alignItems: 'center',
-          borderWidth: 1.5,
-          borderColor: theme.colors.brand.secondary,
-          backgroundColor: theme.colors.surface.card,
-        },
-        tempTutorialButtonText: {
-          ...typography.caption,
-          fontWeight: '700',
-          color: theme.colors.brand.secondary,
-        },
         // ── Continue Modal ──
         modalOverlay: {
           flex: 1,
@@ -526,16 +508,6 @@ export function HomeScreen() {
         {/* ── Hard Mode Toggle ── */}
         <Animated.View style={[styles.hardModeSection, fadeSlide(hardModeAnim)]}>
           <HardModePill enabled={hardMode} onToggle={toggleHardMode} />
-          <TouchableOpacity
-            style={styles.tempTutorialButton}
-            onPress={startTutorial}
-            activeOpacity={0.7}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel="Play tutorial"
-          >
-            <AppText style={styles.tempTutorialButtonText} numberOfLines={1}>TEMP: Play tutorial</AppText>
-          </TouchableOpacity>
         </Animated.View>
 
         {/* ── Daily Preview ── */}
