@@ -1,4 +1,4 @@
-import { lightColors, darkColors } from '../constants/colors';
+import { lightColors, darkColors, PRESENT_LETTER_COLOR } from '../constants/colors';
 import { useSystemColorScheme } from './useSystemColorScheme';
 import { useSettingsStore } from '../stores/settingsStore';
 import type { Theme, ThemeColors } from '../types/theme';
@@ -37,7 +37,7 @@ function buildSemantic(
       inverse: raw.textInverse,
       // Present tile/key background is a similar warm yellow in both
       // themes, so dark text works for both.
-      onPresent: '#37474F',
+      onPresent: PRESENT_LETTER_COLOR,
     },
 
     button: {

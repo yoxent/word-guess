@@ -36,7 +36,7 @@ export const lightColors = {
 
   // ── Text ──
   textPrimary: '#263238',    // dark blue-gray — main text
-  textSecondary: '#78909C',  // blue-gray — labels, captions
+  textSecondary: '#546E7A',  // blue-gray — labels, captions (WCAG AA on light surfaces)
   textInverse: '#FFFFFF',    // white — text on colored bg
   headerText: '#263238',     // header text (matches textPrimary)
 
@@ -97,5 +97,8 @@ export const darkColors = {
   danger: '#FF8A65',         // coral (lighter for dark bg)
   success: '#81C784',        // green (lighter for dark bg)
 } as const;
+
+/** Letter color on present (yellow) tiles/keys. Same in both themes. */
+export const PRESENT_LETTER_COLOR = '#37474F';
 
 export type AppColor = keyof typeof lightColors;

@@ -41,6 +41,17 @@ export const CONFETTI_DURATION = 1500;
 /** Confetti stagger delay between particles in ms */
 export const CONFETTI_STAGGER_DELAY = 15;
 
+/** Win confetti hues — no white (invisible on ResultModal overlay). */
+export const CONFETTI_PARTICLE_COLORS = [
+  '#6aaa64',
+  '#c9b458',
+  '#4a9eff',
+  '#e74c3c',
+  '#f1c40f',
+  '#f39c12',
+  '#9b59b6',
+] as const;
+
 // ── Home Screen Stagger Entrance (Phase 6, D-175–D-177) ──
 
 /** Home screen stagger entrance: delay between element groups in ms */

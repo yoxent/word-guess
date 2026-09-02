@@ -13,17 +13,9 @@ import {
   CONFETTI_PARTICLE_COUNT,
   CONFETTI_DURATION,
   CONFETTI_STAGGER_DELAY,
+  CONFETTI_PARTICLE_COLORS,
 } from '../../constants/animations';
 
-const PARTICLE_COLORS = [
-  '#6aaa64',
-  '#c9b458',
-  '#4a9eff',
-  '#e74c3c',
-  '#f1c40f',
-  '#f39c12',
-  '#9b59b6',
-];
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -46,7 +38,7 @@ function Particle({ index }: ParticleProps) {
   }, []);
 
   // Deterministic random values per particle (seeded from index)
-  const hue = PARTICLE_COLORS[index % PARTICLE_COLORS.length];
+  const hue = CONFETTI_PARTICLE_COLORS[index % CONFETTI_PARTICLE_COLORS.length];
   const size = 6 + ((index * 7) % 9); // 6-14px range
   const startX = SCREEN_WIDTH / 2 + ((index * 53) % (SCREEN_WIDTH * 3)) - (SCREEN_WIDTH * 1.5);
   const fallDistance = 400 + ((index * 37) % 300); // 400-700px

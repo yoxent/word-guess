@@ -224,7 +224,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
   // Compute dynamic text color with proper WCAG contrast in BOTH themes.
   //
   // - 'present' (yellow): yellow is similar in both themes -> always use
-  //   text.onPresent (hardcoded dark #1a1a2e) which contrasts well.
+  //   text.onPresent (#37474F) which contrasts well.
   // - 'correct' (green): green is similar in both themes -> text.inverse
   //   (white in light, dark in dark) gives good contrast (~7.5:1 in dark).
   // - 'absent' (gray): gray differs between themes (#787c7e light, #636669
