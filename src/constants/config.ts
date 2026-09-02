@@ -1,6 +1,6 @@
 export const config = {
   appName: 'Word Guess',
-  appVersion: '1.0.3',
+  appVersion: '1.1.0',
   minWordLength: 5,
   maxWordLength: 10,
   baseAttempts: (letterCount: number) => letterCount + 1,
