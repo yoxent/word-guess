@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   Modal,
   TouchableOpacity,
   Animated,
@@ -11,6 +10,7 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { AppText } from './AppText';
 import {
   PLAY_STORE_HTTPS_URL,
   PLAY_STORE_MARKET_URL,
@@ -137,10 +137,10 @@ export function UpdateRequiredModal({
             { transform: [{ scale: cardScale }], opacity: cardOpacity },
           ]}
         >
-          <Text style={styles.title}>Update available</Text>
-          <Text style={styles.body}>
+          <AppText style={styles.title}>Update available</AppText>
+          <AppText style={styles.body}>
             A newer version is available on the Play Store.
-          </Text>
+          </AppText>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => {
@@ -151,7 +151,7 @@ export function UpdateRequiredModal({
             accessibilityRole="button"
             accessibilityLabel="Update"
           >
-            <Text style={styles.primaryText}>Update</Text>
+            <AppText style={styles.primaryText} numberOfLines={1}>Update</AppText>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
@@ -161,7 +161,7 @@ export function UpdateRequiredModal({
             accessibilityRole="button"
             accessibilityLabel="Later"
           >
-            <Text style={styles.secondaryText}>Later</Text>
+            <AppText style={styles.secondaryText} numberOfLines={1}>Later</AppText>
           </TouchableOpacity>
         </Animated.View>
       </View>

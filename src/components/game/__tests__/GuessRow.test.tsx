@@ -5,7 +5,6 @@ import { GuessRow } from '../GuessRow';
 jest.mock('../../../stores', () => ({
   useSettingsStore: jest.fn((selector: any) =>
     selector({
-      colorBlindMode: false,
       reduceMotion: false,
     }),
   ),
@@ -117,7 +116,6 @@ describe('GuessRow', () => {
     );
     expect(screen.getByText('A')).toBeTruthy();
     expect(screen.getByText('P')).toBeTruthy();
-    expect(screen.getByLabelText('Position 3: P, hint')).toBeTruthy();
   });
 
   it('hides ghost when the hinted cell is filled', () => {
@@ -132,7 +130,7 @@ describe('GuessRow', () => {
         hintTile={{ index: 1, letter: 'X' }}
       />,
     );
-    expect(screen.queryByLabelText('Position 2: X, hint')).toBeNull();
-    expect(screen.getByLabelText('Position 2: P, active')).toBeTruthy();
+    expect(screen.queryByText('X')).toBeNull();
+    expect(screen.getAllByText('P')).toHaveLength(2);
   });
 });

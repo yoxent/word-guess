@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { FONTS } from '../../utils/fonts';
 import { layout } from '../../constants/layout';
+import { noFontScaling } from '../../constants/typography';
 
 const ICON_COLOR = '#FFFFFF';
 const ICON_SIZE = 18;
@@ -101,7 +102,7 @@ export function HintAdButton({
     >
       <View style={styles.content} pointerEvents="none">
         {icon === 'play' ? <PlayIcon /> : <HintIcon />}
-        <Text style={styles.label} numberOfLines={1}>
+        <Text {...noFontScaling} style={styles.label} numberOfLines={1}>
           {label}
         </Text>
       </View>

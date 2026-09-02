@@ -34,7 +34,6 @@ interface SettingsState extends AppSettings {
   setSfxVolume: (v: number) => void;
   toggleHaptic: () => void;
   setPro: (value: boolean) => void;
-  toggleColorBlindMode: () => void;
   toggleReduceMotion: () => void;
   setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
   setKeyboardLayout: (layout: AppSettings['keyboardLayout']) => void;
@@ -49,7 +48,6 @@ export const useSettingsStore = create<SettingsState>()(
       sfxVolume: 0.75,
       hapticEnabled: true,
       isPro: false,
-      colorBlindMode: false,
       reduceMotion: false,
       themeMode: 'system',
       keyboardLayout: 'qwerty',
@@ -66,7 +64,6 @@ export const useSettingsStore = create<SettingsState>()(
         const { useGameStore } = require('./gameStore') as typeof import('./gameStore');
         useGameStore.getState().syncMaxAttemptsForEntitlement();
       },
-      toggleColorBlindMode: () => set((s) => ({ colorBlindMode: !s.colorBlindMode })),
       toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
       setThemeMode: (mode) => {
         applyNativeThemeMode(mode);
@@ -78,14 +75,13 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       storage: createJSONStorage(() => mmkvZustandStorage),
-      // v5: hasCompletedOnboarding (existing installs skip the new tutorial)
-      version: 5,
+      // v6: drop colorBlindMode (feature removed)
+      version: 6,
       partialize: (state): PersistedSettings => ({
         bgmVolume: state.bgmVolume,
         sfxVolume: state.sfxVolume,
         hapticEnabled: state.hapticEnabled,
         isPro: state.isPro,
-        colorBlindMode: state.colorBlindMode,
         reduceMotion: state.reduceMotion,
         themeMode: state.themeMode,
         keyboardLayout: state.keyboardLayout,
@@ -98,6 +94,7 @@ export const useSettingsStore = create<SettingsState>()(
           bgmVolume?: number;
           sfxVolume?: number;
           keyboardLayout?: string;
+          colorBlindMode?: boolean;
         };
 
         if (version < 2) {
@@ -133,6 +130,11 @@ export const useSettingsStore = create<SettingsState>()(
             ...state,
             hasCompletedOnboarding: true,
           };
+        }
+
+        if (version < 6) {
+          const { colorBlindMode: _removed, ...rest } = state;
+          state = rest;
         }
 
         return state as typeof persistedState;

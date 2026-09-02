@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 
 const ALL_LENGTHS = [5, 6, 7, 8, 9, 10];
 
@@ -101,6 +101,7 @@ export function DailyPreview({ completedLengths }: DailyPreviewProps) {
               accessibilityLabel={`${length} letters${done ? ', completed' : ', not started'}`}
             >
               <Text
+                {...noFontScaling}
                 style={[
                   styles.pillText,
                   done ? styles.pillTextCompleted : styles.pillTextIncomplete,

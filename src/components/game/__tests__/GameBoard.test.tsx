@@ -5,7 +5,6 @@ import { GameBoard } from '../GameBoard';
 jest.mock('../../../stores', () => ({
   useSettingsStore: jest.fn((selector: any) =>
     selector({
-      colorBlindMode: false,
       reduceMotion: false,
     })
   ),

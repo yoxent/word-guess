@@ -16,9 +16,10 @@ import {
   tutorialCopy,
   tutorialSampleTiles,
 } from '../../services/tutorialScript';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 import { layout } from '../../constants/layout';
 import { FONTS } from '../../utils/fonts';
+import { AppText } from './AppText';
 import type { TileFeedback } from '../../types';
 
 type TutorialCoachProps = {
@@ -68,10 +69,12 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
           justifyContent: 'center',
           alignItems: 'center',
           paddingHorizontal: 28,
+          paddingVertical: 24,
         },
         modalCard: {
           width: '100%',
           maxWidth: 300,
+          maxHeight: '100%',
           backgroundColor: theme.colors.surface.card,
           borderRadius: layout.modalBorderRadius,
           paddingHorizontal: 22,
@@ -153,7 +156,7 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
           accessibilityRole="text"
           accessibilityLabel={`Type ${copy.body}`}
         >
-          <Text style={styles.reminderWord}>{copy.body}</Text>
+          <Text style={styles.reminderWord} allowFontScaling={false}>{copy.body}</Text>
         </View>
       ) : null}
 
@@ -171,7 +174,7 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
             accessibilityRole="alert"
             accessibilityLabel={copy.title ? `${copy.title}. ${copy.body}` : copy.body}
           >
-            {copy.title ? <Text style={styles.modalTitle}>{copy.title}</Text> : null}
+            {copy.title ? <AppText style={styles.modalTitle}>{copy.title}</AppText> : null}
             {samples.length > 0 ? (
               <View style={styles.samplesRow}>
                 {samples.map((tile, index) => (
@@ -185,6 +188,7 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
                     accessibilityLabel={`${tile.letter}, ${tile.feedback}`}
                   >
                     <Text
+                      {...noFontScaling}
                       style={[
                         styles.sampleLetter,
                         tile.feedback === 'present' && styles.sampleLetterDark,
@@ -196,7 +200,7 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
                 ))}
               </View>
             ) : null}
-            <Text style={styles.modalBody}>{copy.body}</Text>
+            <AppText style={styles.modalBody}>{copy.body}</AppText>
             <TouchableOpacity
               style={styles.modalButton}
               onPress={phase === 'complete' ? onFinish : continueExplain}
@@ -205,7 +209,9 @@ export function TutorialCoach({ onFinish }: TutorialCoachProps) {
               accessibilityRole="button"
               accessibilityLabel={copy.continueLabel ?? 'Next'}
             >
-              <Text style={styles.continueText}>{copy.continueLabel ?? 'Next'}</Text>
+              <AppText style={styles.continueText} numberOfLines={1}>
+                {copy.continueLabel ?? 'Next'}
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>

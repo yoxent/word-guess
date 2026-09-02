@@ -1,4 +1,5 @@
 export { Button } from './Button';
+export { AppText } from './AppText';
 export { StatCard } from './StatCard';
 export { SettingsRow } from './SettingsRow';
 export { HowToPlayModal } from './HowToPlayModal';

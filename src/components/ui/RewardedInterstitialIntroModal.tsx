@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { AppText } from './AppText';
 
 export interface RewardedInterstitialIntroModalProps {
   visible: boolean;
@@ -99,11 +100,11 @@ export function RewardedInterstitialIntroModal({
           accessibilityRole="summary"
           accessibilityLabel={`Watch a short ad for ${rewardLabel}`}
         >
-          <Text style={styles.title}>Watch a short ad?</Text>
-          <Text style={styles.body}>
+          <AppText style={styles.title}>Watch a short ad?</AppText>
+          <AppText style={styles.body}>
             Watch now to earn {rewardLabel}. You can skip if you prefer not to
             watch.
-          </Text>
+          </AppText>
           <TouchableOpacity
             style={styles.watchButton}
             onPress={onWatch}
@@ -112,7 +113,7 @@ export function RewardedInterstitialIntroModal({
             accessibilityRole="button"
             accessibilityLabel={`Watch ad for ${rewardLabel}`}
           >
-            <Text style={styles.watchText}>Watch</Text>
+            <AppText style={styles.watchText} numberOfLines={1}>Watch</AppText>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
@@ -122,7 +123,7 @@ export function RewardedInterstitialIntroModal({
             accessibilityRole="button"
             accessibilityLabel="No thanks, skip the ad"
           >
-            <Text style={styles.skipText}>No thanks</Text>
+            <AppText style={styles.skipText} numberOfLines={1}>No thanks</AppText>
           </TouchableOpacity>
         </View>
       </View>

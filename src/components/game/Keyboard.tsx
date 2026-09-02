@@ -10,6 +10,7 @@ import {
 } from '../../constants/keyboardLayouts';
 import { computeLetterKeyWidth } from '../../utils/gameLayout';
 import { FONTS } from '../../utils/fonts';
+import { noFontScaling } from '../../constants/typography';
 import * as Haptics from 'expo-haptics';
 import * as sound from '../../services/sound';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -26,7 +27,6 @@ function isActionKey(key: string): boolean {
 
 /** Individual key with lightweight press scale (transform only, native driver). */
 const KeyboardKey = memo(function KeyboardKey({
-  label,
   displayText,
   fontSize,
   backgroundColor,
@@ -40,7 +40,6 @@ const KeyboardKey = memo(function KeyboardKey({
   highlighted,
   onPress,
 }: {
-  label: string;
   displayText: string;
   fontSize: number;
   backgroundColor: string;
@@ -119,15 +118,12 @@ const KeyboardKey = memo(function KeyboardKey({
         onPressOut={onPressOut}
         disabled={disabled}
         activeOpacity={1}
-        accessible
-        accessibilityRole="keyboardkey"
-        accessibilityLabel={label}
-        accessibilityState={{ disabled }}
       >
         {showBackspaceIcon ? (
           <MaterialIcons name="backspace" size={20} color={textColor} />
         ) : (
           <Text
+            {...noFontScaling}
             style={[keyStyles.keyText, { fontSize, color: textColor }]}
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -357,25 +353,24 @@ function KeyboardComponent() {
   );
 
   const getKeyDisplay = useCallback(
-    (key: string): { text: string; fontSize: number; label: string } => {
-      if (key === 'ENTER') return { text: 'Submit', fontSize: 16, label: 'Submit' };
+    (key: string): { text: string; fontSize: number } => {
+      if (key === 'ENTER') return { text: 'Submit', fontSize: 16 };
       if (key === 'BACKSPACE') {
-        return { text: '⌫', fontSize: 18, label: 'Backspace' };
+        return { text: '⌫', fontSize: 18 };
       }
-      return { text: key, fontSize: 16, label: key };
+      return { text: key, fontSize: 16 };
     },
     [],
   );
 
   const renderLetterKey = (key: string) => {
-    const { text, fontSize, label } = getKeyDisplay(key);
+    const { text, fontSize } = getKeyDisplay(key);
     const disabled = isKeyDisabled(key);
     const feedback = getKeyFeedback(key);
     const highlighted = highlightedKey === key;
     return (
       <KeyboardKey
         key={key}
-        label={highlighted ? `Type ${label}` : label}
         displayText={text}
         fontSize={fontSize}
         backgroundColor={getKeyBackground(key)}
@@ -396,9 +391,6 @@ function KeyboardComponent() {
     <View style={styles.container} onLayout={onKeyboardLayout}>
       <View style={styles.actionBar}>
         <KeyboardKey
-          label={
-            highlightedKey === 'ENTER' ? 'Submit now' : submitDisplay.label
-          }
           displayText={submitDisplay.text}
           fontSize={submitDisplay.fontSize}
           backgroundColor={getKeyBackground('ENTER')}
@@ -410,7 +402,6 @@ function KeyboardComponent() {
           onPress={pressHandlers.ENTER}
         />
         <KeyboardKey
-          label={backspaceDisplay.label}
           displayText={backspaceDisplay.text}
           fontSize={backspaceDisplay.fontSize}
           backgroundColor={getKeyBackground('BACKSPACE')}

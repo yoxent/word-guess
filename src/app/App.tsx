@@ -11,6 +11,7 @@ import {
   isUpdateRequired,
 } from '../services/remoteConfig';
 import { loadFonts } from '../utils/fonts';
+import { applyFontScalingDefaults } from '../utils/fontScaling';
 import { configureAuth } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { applyNativeThemeMode, useSettingsStore } from '../stores/settingsStore';
@@ -22,6 +23,8 @@ import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
 import { initIap, applyProEntitlementForSession } from '../services/iapService';
 import { hasSignedInPlayer } from '../utils/authState';
+
+applyFontScalingDefaults();
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);

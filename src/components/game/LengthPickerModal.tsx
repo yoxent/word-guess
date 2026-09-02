@@ -3,8 +3,9 @@ import { View, Text, Modal, Pressable, TouchableOpacity, Animated, StyleSheet } 
 import { MaterialIcons } from '@expo/vector-icons';
 import type { GameMode } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { AppText } from '../ui/AppText';
 
 const LENGTHS = [5, 6, 7, 8, 9, 10];
 
@@ -65,6 +66,7 @@ export function LengthPickerModal({
           backgroundColor: 'rgba(13, 27, 42, 0.6)',
           justifyContent: 'center',
           alignItems: 'center',
+          paddingVertical: 24,
         },
         card: {
           backgroundColor: theme.colors.surface.card,
@@ -73,6 +75,7 @@ export function LengthPickerModal({
           alignItems: 'center',
           maxWidth: 360,
           width: '85%',
+          maxHeight: '100%',
           // Soft shadow with brand color
           shadowColor: theme.colors.brand.primary,
           shadowOffset: { width: 0, height: 8 },
@@ -200,10 +203,10 @@ export function LengthPickerModal({
             />
           </View>
 
-          <Text style={styles.title}>{getTitle(mode)}</Text>
+          <AppText style={styles.title}>{getTitle(mode)}</AppText>
 
           {subtitle != null && (
-            <Text style={styles.subtitle}>{subtitle}</Text>
+            <AppText style={styles.subtitle}>{subtitle}</AppText>
           )}
 
           <View style={styles.grid}>
@@ -226,6 +229,7 @@ export function LengthPickerModal({
                 >
                   <View style={styles.lengthButtonContent}>
                     <Text
+                      {...noFontScaling}
                       style={[
                         styles.lengthNumber,
                         isCompleted && styles.lengthNumberCompleted,
@@ -233,14 +237,15 @@ export function LengthPickerModal({
                     >
                       {length}
                     </Text>
-                    <Text
+                    <AppText
+                      {...noFontScaling}
                       style={[
                         styles.lengthSubtitle,
                         isCompleted && styles.lengthSubtitleCompleted,
                       ]}
                     >
                       letters
-                    </Text>
+                    </AppText>
                     {isCompleted && (
                       <View style={styles.checkmarkContainer}>
                         <MaterialIcons

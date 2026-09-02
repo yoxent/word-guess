@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 
 interface HardModePillProps {
   enabled: boolean;
@@ -63,8 +63,9 @@ export function HardModePill({ enabled, onToggle }: HardModePillProps) {
       accessibilityState={{ checked: enabled }}
       accessibilityLabel={`Hard mode ${enabled ? 'on' : 'off'}`}
     >
-      <Text style={styles.icon}>{enabled ? '🔥' : '🧘'}</Text>
+      <Text {...noFontScaling} style={styles.icon}>{enabled ? '🔥' : '🧘'}</Text>
       <Text
+        {...noFontScaling}
         style={[
           styles.label,
           enabled ? styles.labelActive : styles.labelInactive,

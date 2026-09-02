@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 
 interface ProgressRingProps {
   /** Progress fraction (0–1). */
@@ -100,7 +100,7 @@ export function ProgressRing({
           />
         </Svg>
         {showPercent && (
-          <Text style={styles.percentText}>{percent}%</Text>
+          <Text {...noFontScaling} style={styles.percentText}>{percent}%</Text>
         )}
       </View>
       {label && <Text style={styles.label}>{label}</Text>}

@@ -26,7 +26,6 @@ describe('settingsStore', () => {
       sfxVolume: 0.75,
       hapticEnabled: true,
       isPro: false,
-      colorBlindMode: false,
       reduceMotion: false,
       themeMode: 'system',
       keyboardLayout: 'qwerty',
@@ -99,13 +98,6 @@ describe('settingsStore', () => {
     it('sets pro status', () => {
       useSettingsStore.getState().setPro(true);
       expect(useSettingsStore.getState().isPro).toBe(true);
-    });
-  });
-
-  describe('toggleColorBlindMode', () => {
-    it('toggles color blind mode', () => {
-      useSettingsStore.getState().toggleColorBlindMode();
-      expect(useSettingsStore.getState().colorBlindMode).toBe(true);
     });
   });
 

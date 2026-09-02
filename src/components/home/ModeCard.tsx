@@ -2,7 +2,6 @@ import React, { useRef, useMemo } from 'react';
 import {
   TouchableOpacity,
   View,
-  Text,
   Animated,
   StyleSheet,
 } from 'react-native';
@@ -11,6 +10,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { typography } from '../../constants/typography';
+import { AppText } from '../ui/AppText';
 
 /**
  * Gradient presets for each game mode.
@@ -181,12 +181,12 @@ export function ModeCard({
           style={styles.gradient}
         >
           <View style={styles.header}>
-            <Text style={styles.titleText}>{title}</Text>
+            <AppText style={styles.titleText} numberOfLines={1}>{title}</AppText>
             <View style={styles.icon}>
               <MaterialIcons name={icon} size={28} color={TITLE_COLOR} />
             </View>
           </View>
-          <Text style={styles.subtitleText}>{subtitle}</Text>
+          <AppText style={styles.subtitleText} numberOfLines={2}>{subtitle}</AppText>
 
           {progress !== undefined && (
             <View style={styles.progressSection}>
@@ -199,7 +199,7 @@ export function ModeCard({
                 />
               </View>
               {progressLabel && (
-                <Text style={styles.progressLabel}>{progressLabel}</Text>
+                <AppText style={styles.progressLabel} numberOfLines={1}>{progressLabel}</AppText>
               )}
             </View>
           )}

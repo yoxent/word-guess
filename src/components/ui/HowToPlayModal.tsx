@@ -1,8 +1,17 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, Text, Modal, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import {
+  View,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+  Animated,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { AppText } from './AppText';
 
 interface HowToPlayModalProps {
   visible: boolean;
@@ -17,47 +26,59 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
       StyleSheet.create({
         overlay: {
           flex: 1,
-          backgroundColor: 'rgba(13, 27, 42, 0.6)', // dark navy overlay, softer than pure black
+          backgroundColor: 'rgba(13, 27, 42, 0.6)',
           justifyContent: 'center',
           alignItems: 'center',
+          paddingVertical: 24,
+          paddingHorizontal: 16,
+        },
+        backdrop: {
+          ...StyleSheet.absoluteFillObject,
         },
         card: {
           backgroundColor: theme.colors.surface.card,
           borderRadius: layout.modalBorderRadius,
-          padding: 24,
-          alignItems: 'center',
-          maxWidth: '85%',
-          minWidth: 280,
-          // Soft shadow with brand color tint
+          width: '100%',
+          maxWidth: 360,
+          maxHeight: '100%',
           shadowColor: theme.colors.brand.primary,
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.15,
           shadowRadius: 24,
           elevation: 8,
         },
+        scroll: {
+          flexGrow: 0,
+        },
+        scrollContent: {
+          padding: 24,
+          alignItems: 'center',
+        },
         title: {
           ...typography.heading,
           color: theme.colors.text.primary,
           marginBottom: 20,
+          textAlign: 'center',
         },
         examplesRow: {
           flexDirection: 'row',
-          justifyContent: 'center',
-          gap: 16,
+          width: '100%',
+          justifyContent: 'space-between',
+          gap: 8,
           marginBottom: 20,
         },
         exampleItem: {
           alignItems: 'center',
-          width: 85,
+          flex: 1,
+          minWidth: 0,
         },
         exampleTile: {
           width: 52,
           height: 52,
-          borderRadius: 10, // more rounded than game tiles
+          borderRadius: 10,
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 8,
-          // Soft shadow on each example tile
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
@@ -83,7 +104,6 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
           color: theme.colors.text.secondary,
           textAlign: 'center',
           marginBottom: 16,
-          lineHeight: 22,
         },
         hardModeCard: {
           width: '100%',
@@ -115,16 +135,14 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
           ...typography.small,
           color: theme.colors.brand.secondary,
           textAlign: 'center',
-          lineHeight: 18,
         },
         gotItButton: {
           backgroundColor: theme.colors.brand.primary,
-          borderRadius: 20, // pill shape
+          borderRadius: 20,
           paddingVertical: 14,
           paddingHorizontal: 48,
           width: '100%',
           alignItems: 'center',
-          // Soft shadow
           shadowColor: theme.colors.brand.primary,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
@@ -153,7 +171,6 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
     [theme],
   );
 
-  // ── Scale+fade open animation (Phase 7D) ──
   const cardScale = useRef(new Animated.Value(0.9)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
@@ -179,89 +196,102 @@ export function HowToPlayModal({ visible, onClose, onPlayTutorial }: HowToPlayMo
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-        accessible
-        accessibilityLabel="How to Play"
-      >
+      <View style={styles.overlay}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={onClose}
+          accessible
+          accessibilityLabel="How to Play"
+        />
         <Animated.View
           style={[styles.card, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}
-          onStartShouldSetResponder={() => true}
         >
-          <Text style={styles.title}>How to Play</Text>
-
-          {/* Tile examples row */}
-          <View style={styles.examplesRow}>
-            {/* Correct tile */}
-            <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.correct }]}>
-                <Text style={styles.exampleTileText}>A</Text>
-              </View>
-              <Text style={styles.exampleLabel}>Right letter,{'\n'}right spot</Text>
-            </View>
-            {/* Present tile */}
-            <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.present }]}>
-                <Text style={[styles.exampleTileText, styles.exampleTileTextDark]}>B</Text>
-              </View>
-              <Text style={styles.exampleLabel}>Right letter,{'\n'}wrong spot</Text>
-            </View>
-            {/* Absent tile */}
-            <View style={styles.exampleItem}>
-              <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.absent }]}>
-                <Text style={styles.exampleTileText}>C</Text>
-              </View>
-              <Text style={styles.exampleLabel}>Letter not{'\n'}in word</Text>
-            </View>
-          </View>
-
-          {/* Rules text */}
-          <Text style={styles.rulesText}>
-            Guess the word before you run out of tries. Each guess must be a valid word.
-          </Text>
-
-          <View
-            style={styles.hardModeCard}
-            accessible
-            accessibilityLabel="Hard Mode rules"
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.hardModeTitleRow}>
-              <Text style={styles.hardModeIcon}>🔥</Text>
-              <Text style={styles.hardModeTitle}>Hard Mode</Text>
-            </View>
-            <Text style={styles.hardModeText}>
-              Turn it on from the Home screen. Every new guess must keep green letters in the same spots and include all revealed yellow letters somewhere in the word.
-            </Text>
-          </View>
+            <AppText style={styles.title}>How to Play</AppText>
 
-          {onPlayTutorial ? (
+            <View style={styles.examplesRow}>
+              <View style={styles.exampleItem}>
+                <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.correct }]}>
+                  <AppText {...noFontScaling} style={styles.exampleTileText}>A</AppText>
+                </View>
+                <AppText {...noFontScaling} style={styles.exampleLabel}>
+                  Right letter,{'\n'}right spot
+                </AppText>
+              </View>
+              <View style={styles.exampleItem}>
+                <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.present }]}>
+                  <AppText
+                    {...noFontScaling}
+                    style={[styles.exampleTileText, styles.exampleTileTextDark]}
+                  >
+                    B
+                  </AppText>
+                </View>
+                <AppText {...noFontScaling} style={styles.exampleLabel}>
+                  Right letter,{'\n'}wrong spot
+                </AppText>
+              </View>
+              <View style={styles.exampleItem}>
+                <View style={[styles.exampleTile, { backgroundColor: theme.colors.tile.absent }]}>
+                  <AppText {...noFontScaling} style={styles.exampleTileText}>C</AppText>
+                </View>
+                <AppText {...noFontScaling} style={styles.exampleLabel}>
+                  Letter not{'\n'}in word
+                </AppText>
+              </View>
+            </View>
+
+            <AppText style={styles.rulesText}>
+              Guess the word before you run out of tries. Each guess must be a valid word.
+            </AppText>
+
+            <View
+              style={styles.hardModeCard}
+              accessible
+              accessibilityLabel="Hard Mode rules"
+            >
+              <View style={styles.hardModeTitleRow}>
+                <AppText {...noFontScaling} style={styles.hardModeIcon}>🔥</AppText>
+                <AppText {...noFontScaling} style={styles.hardModeTitle}>Hard Mode</AppText>
+              </View>
+              <AppText style={styles.hardModeText}>
+                Turn it on from the Home screen. Every new guess must keep green letters in the same spots and include all revealed yellow letters somewhere in the word.
+              </AppText>
+            </View>
+
+            {onPlayTutorial ? (
+              <TouchableOpacity
+                style={styles.tutorialButton}
+                onPress={onPlayTutorial}
+                activeOpacity={0.8}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel="Try a guided game"
+              >
+                <AppText style={styles.tutorialButtonText} numberOfLines={1}>
+                  Try a guided game
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+
             <TouchableOpacity
-              style={styles.tutorialButton}
-              onPress={onPlayTutorial}
+              style={styles.gotItButton}
+              onPress={onClose}
               activeOpacity={0.8}
               accessible
               accessibilityRole="button"
-              accessibilityLabel="Try a guided game"
+              accessibilityLabel="Got it"
             >
-              <Text style={styles.tutorialButtonText}>Try a guided game</Text>
+              <AppText style={styles.gotItText} numberOfLines={1}>Got it!</AppText>
             </TouchableOpacity>
-          ) : null}
-
-          {/* Got it button */}
-          <TouchableOpacity
-            style={styles.gotItButton}
-            onPress={onClose}
-            activeOpacity={0.8}
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel="Got it"
-          >
-            <Text style={styles.gotItText}>Got it!</Text>
-          </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }

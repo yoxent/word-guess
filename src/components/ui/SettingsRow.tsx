@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 import type { SettingsRowConfig } from '../../config/ui';
 import { useSettingsStore, snapVolume } from '../../stores/settingsStore';
 import { setBgmVolume, setSfxVolume } from '../../services';
@@ -94,7 +94,6 @@ function ToggleRow({ config }: { config: SettingsRowConfig & { type: 'toggle' } 
     switch (config.storeKey) {
       case 'hardModeEnabled': return s.toggleHardMode;
       case 'hapticEnabled': return s.toggleHaptic;
-      case 'colorBlindMode': return s.toggleColorBlindMode;
       case 'reduceMotion': return s.toggleReduceMotion;
       default: return () => {};
     }
@@ -351,6 +350,7 @@ function ThemeSelectorRow({ config: _config }: { config: SettingsRowConfig & { t
             accessibilityLabel={mode === 'light' ? 'Light theme' : mode === 'dark' ? 'Dark theme' : 'System theme'}
           >
             <Text
+              {...noFontScaling}
               style={[
                 styles.segmentText,
                 themeMode === mode && styles.segmentTextActive,
@@ -399,6 +399,7 @@ function KeyboardLayoutSelectorRow({
               accessibilityLabel={`${option.label} keyboard, ${option.description}`}
             >
               <Text
+                {...noFontScaling}
                 style={[
                   styles.segmentText,
                   selected && styles.segmentTextActive,
@@ -408,6 +409,7 @@ function KeyboardLayoutSelectorRow({
                 {option.label}
               </Text>
               <Text
+                {...noFontScaling}
                 style={[
                   styles.keyboardLayoutHint,
                   selected && styles.keyboardLayoutHintActive,

@@ -98,12 +98,11 @@ describe('Keyboard', () => {
   it('renders Submit action', () => {
     render(<Keyboard />);
     expect(screen.getByText('Submit')).toBeTruthy();
-    expect(screen.getByLabelText('Submit')).toBeTruthy();
   });
 
-  it('renders Backspace action with accessibility label', () => {
+  it('renders Backspace action', () => {
     render(<Keyboard />);
-    expect(screen.getByLabelText('Backspace')).toBeTruthy();
+    expect(screen.getByText('backspace')).toBeTruthy();
   });
 
   it('adds a letter via the game store', () => {
@@ -114,13 +113,13 @@ describe('Keyboard', () => {
 
   it('submits via Submit key (internal ENTER)', () => {
     render(<Keyboard />);
-    fireEvent.press(screen.getByLabelText('Submit'));
+    fireEvent.press(screen.getByText('Submit'));
     expect(mockSubmitGuess).toHaveBeenCalled();
   });
 
   it('removes a letter via Backspace', () => {
     render(<Keyboard />);
-    fireEvent.press(screen.getByLabelText('Backspace'));
+    fireEvent.press(screen.getByText('backspace'));
     expect(mockRemoveLetter).toHaveBeenCalled();
   });
 

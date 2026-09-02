@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   Modal,
   Animated,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -19,8 +19,9 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAdStore } from '../../stores/adStore';
 import { Button } from '../../components/ui';
 import { Confetti } from './Confetti';
-import { typography } from '../../constants/typography';
+import { typography, noFontScaling } from '../../constants/typography';
 import { layout } from '../../constants/layout';
+import { AppText } from '../../components/ui';
 import { generateShareText } from '../../utils/share';
 import {
   clearActiveGame,
@@ -50,20 +51,31 @@ export function ResultModal() {
           backgroundColor: 'rgba(13, 27, 42, 0.7)', // darker for celebration contrast
           justifyContent: 'center',
           alignItems: 'center',
+          paddingVertical: 24,
+          paddingHorizontal: 16,
         },
         card: {
           backgroundColor: theme.colors.surface.card,
           borderRadius: layout.modalBorderRadius,
-          padding: 28,
           alignItems: 'center',
-          minWidth: 300,
-          maxWidth: '85%',
+          width: '100%',
+          maxWidth: 360,
+          maxHeight: '100%',
           // Colored shadow — green for win, coral for loss
           shadowColor: theme.colors.brand.primary,
           shadowOffset: { width: 0, height: 12 },
           shadowOpacity: 0.2,
           shadowRadius: 32,
           elevation: 12,
+        },
+        scroll: {
+          flexGrow: 0,
+          width: '100%',
+        },
+        scrollContent: {
+          padding: 28,
+          paddingTop: 36,
+          alignItems: 'center',
         },
         shareButton: {
           position: 'absolute',
@@ -409,6 +421,12 @@ export function ResultModal() {
             </TouchableOpacity>
           )}
 
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
           {/* Result icon */}
           <View
             style={[
@@ -424,45 +442,46 @@ export function ResultModal() {
           </View>
 
           {/* Title */}
-          <Text
+          <AppText
             style={[
               styles.title,
               { color: isWin ? theme.colors.status.success : theme.colors.status.danger },
             ]}
           >
             {isWin ? 'You Won!' : 'Game Over'}
-          </Text>
+          </AppText>
 
           {/* Word — keep on one line; shrink for 8–10 letter answers */}
-          <Text
+          <AppText
+            {...noFontScaling}
             style={styles.word}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.5}
           >
             {session.word.toUpperCase()}
-          </Text>
+          </AppText>
 
           {/* Definition */}
           {definition && (
-            <Text style={styles.definition}>{definition}</Text>
+            <AppText style={styles.definition}>{definition}</AppText>
           )}
 
           {/* Streak */}
           {session.mode === 'endless' && (
-            <Text
+            <AppText
               style={[
                 styles.streak,
                 { color: isWin ? theme.colors.brand.secondary : theme.colors.text.secondary },
               ]}
             >
               {isWin ? `🔥 Streak: ${endlessStreak}` : `Final streak: ${endlessStreak}`}
-            </Text>
+            </AppText>
           )}
 
           {/* Emoji grid */}
           <View style={styles.emojiContainer}>
-            <Text style={styles.emojiText}>{emojiText}</Text>
+            <AppText {...noFontScaling} style={styles.emojiText}>{emojiText}</AppText>
           </View>
 
           {/* Buttons */}
@@ -489,6 +508,7 @@ export function ResultModal() {
               />
             )}
           </View>
+          </ScrollView>
         </Animated.View>
         {isWin && showConfetti && <Confetti />}
         {toast && (
@@ -508,7 +528,7 @@ export function ResultModal() {
               size={18}
               color={theme.colors.text.inverse}
             />
-            <Text style={styles.toastText}>{toast.message}</Text>
+            <AppText style={styles.toastText}>{toast.message}</AppText>
           </View>
         )}
       </View>

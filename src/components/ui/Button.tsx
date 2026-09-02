@@ -10,7 +10,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { typography } from '../../constants/typography';
+import { typography, MAX_FONT_SIZE_MULTIPLIER } from '../../constants/typography';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -204,6 +204,8 @@ export function Button({
           />
         )}
         <Text
+          maxFontSizeMultiplier={MAX_FONT_SIZE_MULTIPLIER}
+          numberOfLines={1}
           style={[
             styles.text,
             { color: colors.fg },

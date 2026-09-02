@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   Modal,
   Pressable,
@@ -22,7 +21,7 @@ import {
 } from '../constants/animations';
 import { layout } from '../constants/layout';
 import { typography } from '../constants/typography';
-import { HowToPlayModal, HomeBackground } from '../components/ui';
+import { HowToPlayModal, HomeBackground, AppText } from '../components/ui';
 import { LengthPickerModal } from '../components/game';
 import { ModeCard, DailyPreview, HardModePill } from '../components/home';
 import { useSettingsStore } from '../stores';
@@ -484,10 +483,10 @@ export function HomeScreen() {
         {/* ── Title & Branding ── */}
         <View style={styles.titleSection}>
           <Animated.View style={fadeSlide(titleAnim)}>
-            <Text style={styles.title}>Word Guess</Text>
+            <AppText style={styles.title} numberOfLines={1}>Word Guess</AppText>
           </Animated.View>
           <Animated.View style={fadeSlide(subtitleAnim)}>
-            <Text style={styles.subtitle}>Guess the word!</Text>
+            <AppText style={styles.subtitle} numberOfLines={1}>Guess the word!</AppText>
           </Animated.View>
         </View>
 
@@ -535,7 +534,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Play tutorial"
           >
-            <Text style={styles.tempTutorialButtonText}>TEMP: Play tutorial</Text>
+            <AppText style={styles.tempTutorialButtonText} numberOfLines={1}>TEMP: Play tutorial</AppText>
           </TouchableOpacity>
         </Animated.View>
 
@@ -576,25 +575,25 @@ export function HomeScreen() {
             style={styles.modalCard}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={styles.modalTitle}>Continue Game?</Text>
-            <Text style={styles.modalMessage}>
+            <AppText style={styles.modalTitle}>Continue Game?</AppText>
+            <AppText style={styles.modalMessage}>
               You have an unfinished {continueModal?.mode}{' '}
               {continueModal?.length}-letter game.
-            </Text>
+            </AppText>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalButtonContinue}
                 onPress={handleContinue}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalButtonContinueText}>Continue</Text>
+                <AppText style={styles.modalButtonContinueText} numberOfLines={1}>Continue</AppText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonNew}
                 onPress={handleNewGame}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalButtonNewText}>New Game</Text>
+                <AppText style={styles.modalButtonNewText} numberOfLines={1}>New Game</AppText>
               </TouchableOpacity>
             </View>
           </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
+import { StyleSheet, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   withTiming,
@@ -15,6 +15,7 @@ import type { TileFeedback } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
 import { layout } from '../../constants/layout';
 import { FONTS } from '../../utils/fonts';
+import { noFontScaling } from '../../constants/typography';
 import { useSettingsStore } from '../../stores';
 import {
   TILE_FLIP_DURATION,
@@ -34,18 +35,8 @@ interface TileProps {
   tileSize: number;
 }
 
-function getAccessibilityLabel(letter: string, feedback: TileFeedback, index: number): string {
-  const position = index + 1;
-  if (letter === ' ' || letter === '') {
-    return `Position ${position}: empty`;
-  }
-  const state = feedback === 'empty' ? 'active' : feedback;
-  return `Position ${position}: ${letter.toUpperCase()}, ${state}`;
-}
-
 export function Tile({ letter, feedback, index, isRevealing, tileSize }: TileProps) {
   const theme = useTheme();
-  const colorBlindMode = useSettingsStore((s) => s.colorBlindMode);
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const flipProgress = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -78,24 +69,6 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         fontWeight: '700',
         color: c.text.inverse,
         textTransform: 'uppercase',
-      },
-      textureContainer: {
-        borderRadius: layout.tileBorderRadius,
-        overflow: 'hidden',
-      },
-      dot: {
-        position: 'absolute',
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255,255,255,0.7)',
-      },
-      stripeBar: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        height: 2,
-        backgroundColor: 'rgba(255,255,255,0.35)',
       },
     });
     return { styles, feedbackColors };
@@ -286,9 +259,6 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
 
   return (
     <Animated.View
-      accessible={true}
-      accessibilityLabel={getAccessibilityLabel(letter, feedback, index)}
-      accessibilityRole="text"
       style={[
         tileStyle,
         showBorder && styles.tileBorder,
@@ -297,6 +267,7 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
     >
       {!isEmpty && (
         <Animated.Text
+          {...noFontScaling}
           style={[
             styles.letter,
             { fontSize: tileFontSize, color: letterColor },
@@ -305,40 +276,6 @@ export function Tile({ letter, feedback, index, isRevealing, tileSize }: TilePro
         >
           {letter.toUpperCase()}
         </Animated.Text>
-      )}
-
-      {/* Texture overlay for color blind mode (LAUNCH-01). Container is always
-          mounted when colorBlindMode is on so feedback transitions do not
-          insert native views mid-flip (Fabric mount + Reanimated prop flush). */}
-      {colorBlindMode && (
-        <View style={[StyleSheet.absoluteFill, styles.textureContainer]} pointerEvents="none">
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { opacity: feedback === 'correct' ? 1 : 0 },
-            ]}
-          >
-            <View style={[styles.dot, { top: '25%', left: '50%', marginLeft: -3, marginTop: -3 }]} />
-            <View style={[styles.dot, { top: '60%', left: '25%', marginLeft: -3, marginTop: -3 }]} />
-            <View style={[styles.dot, { top: '60%', left: '75%', marginLeft: -3, marginTop: -3 }]} />
-          </View>
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { opacity: feedback === 'present' ? 1 : 0, transform: [{ rotate: '45deg' }] },
-            ]}
-          >
-            <View style={[styles.stripeBar, { top: '20%' }]} />
-            <View style={[styles.stripeBar, { top: '50%' }]} />
-            <View style={[styles.stripeBar, { top: '80%' }]} />
-          </View>
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { opacity: feedback === 'absent' ? 1 : 0, backgroundColor: 'rgba(0,0,0,0.15)' },
-            ]}
-          />
-        </View>
       )}
     </Animated.View>
   );
