@@ -8,6 +8,7 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
+    '/functions/',
     '/src/__tests__/testSetup\\.ts$',
     '/src/__tests__/fileMock\\.js$',
     '/src/__tests__/mocks/',

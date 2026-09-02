@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-08-25
+**Last updated:** 2026-09-03
 
 Word Guess ("the App") is developed by Vorith Studio ("we," "us," or "our"). This Privacy Policy explains what information the App collects, how it is used, and the choices you have.
 
@@ -48,6 +48,17 @@ LevelPlay's data collection is governed by Unity's privacy policies:
 
 You may reset your Advertising ID or opt out of personalized advertising in your device's Google settings.
 
+### 1.4 In-app purchase verification (signed-in users)
+
+If you sign in and purchase or restore the Pro upgrade, the App sends the Google Play purchase token to a **Firebase Cloud Function** so we can confirm the purchase with Google Play. We then store, in Firebase Firestore:
+
+- **Product ID** (`word_guess_pro`)
+- **Entitlement state** (`purchased` or `none`)
+- **A SHA-256 hash of the purchase token** (not the raw token)
+- **Verification timestamp**
+
+We do **not** store the raw purchase token. If you are not signed in, we do not send the token to our servers; Pro then relies on on-device Play Billing only.
+
 ---
 
 ## 2. How We Use Information
@@ -56,6 +67,7 @@ We use the limited information described above to:
 
 - **Operate the App** — generate daily puzzles, record your statistics, and persist your settings.
 - **Provide cloud features** — sync your stats and submit scores to leaderboards (only if you are signed in).
+- **Verify Pro purchases** — confirm Play ownership for signed-in users and record a hashed purchase token in Firestore.
 - **Display advertising** — show ads via Unity LevelPlay. Ads help support the free version of the App.
 - **Diagnose and fix issues** — debug crashes and improve performance.
 
@@ -72,9 +84,11 @@ The App uses the following third-party services, each governed by its own privac
 | **Unity LevelPlay** | Advertising | <https://unity.com/legal/game-player-and-app-user-privacy-policy> |
 | **Google Play Games Services** | Optional account authentication (Android) | <https://policies.google.com/privacy> |
 | **Firebase Authentication** | Account management | <https://firebase.google.com/support/privacy> |
-| **Firebase Firestore** | Cloud storage of stats and leaderboard scores | <https://firebase.google.com/support/privacy> |
+| **Firebase Firestore** | Cloud storage of stats, leaderboard scores, and Pro entitlement (hashed purchase token) | <https://firebase.google.com/support/privacy> |
+| **Firebase Cloud Functions** | Server-side Pro purchase verification | <https://firebase.google.com/support/privacy> |
 | **Firebase Remote Config** | App configuration (e.g. minimum supported version) | <https://firebase.google.com/support/privacy> |
 | **Google Play Billing** | In-app purchases (Pro upgrade) | <https://policies.google.com/privacy> |
+| **Google Play Android Developer API** | Confirm Pro purchase tokens with Google Play | <https://policies.google.com/privacy> |
 | **Google Play Services** | Core Android platform integration | <https://policies.google.com/privacy> |
 
 ---
@@ -92,7 +106,7 @@ If you believe we have inadvertently collected information from a child under 13
 ## 5. Data Storage and Security
 
 - **On-device data** is stored using standard Android platform storage mechanisms (SQLite database for game history, MMKV for settings, AsyncStorage for tokens). It remains on your device until you uninstall the App.
-- **Cloud data** (if you sign in) is stored in Firebase Firestore using Google's infrastructure. Google applies industry-standard security measures; see <https://cloud.google.com/security>.
+- **Cloud data** (if you sign in) is stored in Firebase Firestore using Google's infrastructure. This includes optional stats/leaderboard data and, after a Pro purchase or restore, a hashed purchase token and entitlement state. Google applies industry-standard security measures; see <https://cloud.google.com/security>.
 - **Sign-out and data deletion**: you may sign out at any time from the App's Settings screen. Signing out removes your locally cached authentication tokens. To request deletion of cloud-stored data associated with your account, contact us at the address below.
 
 ---

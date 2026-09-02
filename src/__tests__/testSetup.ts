@@ -154,6 +154,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+jest.mock('@react-native-firebase/functions', () => ({
+  getFunctions: jest.fn(() => ({})),
+  httpsCallable: jest.fn(() => jest.fn()),
+}));
+
 // LAUNCH-07 markers fire in __DEV__; keep unit output quiet.
 jest.spyOn(console, 'time').mockImplementation(() => {});
 jest.spyOn(console, 'timeEnd').mockImplementation(() => {});

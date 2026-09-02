@@ -1,7 +1,6 @@
 /**
  * Expo config plugin: LevelPlay Android extras (GAID + AD_ID permission).
- *
- * AdMob / AdSense are not added as mediation adapters.
+ * Extra network adapters are not added.
  */
 const {
   AndroidConfig,
@@ -51,7 +50,7 @@ function withLevelPlayAndroid(config) {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(
       cfg.modResults,
     );
-    // Drop leftover AdMob APPLICATION_ID / flags if a previous prebuild injected them.
+    // Drop leftover Google ads APPLICATION_ID / flags if an older prebuild injected them.
     AndroidConfig.Manifest.removeMetaDataItemFromMainApplication(
       application,
       'com.google.android.gms.ads.APPLICATION_ID',

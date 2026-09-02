@@ -15,6 +15,7 @@ import {
 } from 'react-native-iap';
 import { config } from '../constants/config';
 import { useSettingsStore } from '../stores/settingsStore';
+import { applyServerProVerification } from './proPurchaseVerify';
 
 type IapUiHandlers = {
   onPurchaseSuccess?: () => void;
@@ -52,6 +53,11 @@ async function acknowledgeProPurchase(purchase: Purchase): Promise<void> {
 
   await finishTransaction({ purchase, isConsumable: false });
   useSettingsStore.getState().setPro(true);
+  const outcome = await applyServerProVerification(purchase);
+  if (outcome === 'none') {
+    uiHandlers.onPurchaseError?.('Purchase could not be verified.');
+    return;
+  }
   uiHandlers.onPurchaseSuccess?.();
 }
 
@@ -133,8 +139,13 @@ export async function initIap(): Promise<boolean> {
 export async function syncProFromStore(): Promise<boolean> {
   try {
     const purchases = await getAvailablePurchases();
-    const hasPro = purchases.some((p) => isProSku(p.productId));
+    const proPurchase = purchases.find((p) => isProSku(p.productId));
+    const hasPro = Boolean(proPurchase);
     useSettingsStore.getState().setPro(hasPro);
+    if (proPurchase) {
+      const outcome = await applyServerProVerification(proPurchase);
+      if (outcome === 'none') return false;
+    }
     return hasPro;
   } catch (error) {
     console.warn('[iap] getAvailablePurchases failed', error);

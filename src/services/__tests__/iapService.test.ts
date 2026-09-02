@@ -2,11 +2,20 @@ const mockInitConnection = jest.fn(async () => true);
 const mockEndConnection = jest.fn(async () => {});
 const mockFetchProducts = jest.fn(async (_opts?: unknown) => [] as { id: string }[]);
 const mockRequestPurchase = jest.fn(async (_opts?: unknown) => {});
-const mockGetAvailablePurchases = jest.fn(async () => []);
+const mockGetAvailablePurchases = jest.fn(
+  async (): Promise<{ productId: string; purchaseToken?: string }[]> => [],
+);
 const mockFinishTransaction = jest.fn(async (_opts?: unknown) => {});
 const mockSetPro = jest.fn();
+const mockApplyServerProVerification = jest.fn(
+  async (_purchase?: unknown): Promise<'skipped' | 'none' | 'purchased' | 'failed'> =>
+    'skipped',
+);
 
-let updateListener: ((purchase: { productId: string }) => Promise<void> | void) | null = null;
+let updateListener: ((purchase: {
+  productId: string;
+  purchaseToken?: string;
+}) => Promise<void> | void) | null = null;
 let errorListener: ((error: { code?: string; message?: string }) => Promise<void> | void) | null = null;
 
 jest.mock('react-native-iap', () => ({
@@ -39,6 +48,11 @@ jest.mock('../../stores/settingsStore', () => ({
   },
 }));
 
+jest.mock('../proPurchaseVerify', () => ({
+  applyServerProVerification: (purchase: unknown) =>
+    mockApplyServerProVerification(purchase),
+}));
+
 jest.mock('react-native', () => ({
   Platform: { OS: 'android' },
 }));
@@ -47,6 +61,7 @@ import {
   initIap,
   isIapActive,
   purchasePro,
+  syncProFromStore,
   teardownIap,
 } from '../iapService';
 import { ErrorCode } from 'react-native-iap';
@@ -63,6 +78,9 @@ describe('iapService purchase activity', () => {
     mockFetchProducts.mockResolvedValue([{ id: 'word_guess_pro' }]);
     mockRequestPurchase.mockResolvedValue(undefined);
     mockSetPro.mockReset();
+    mockApplyServerProVerification.mockReset();
+    mockApplyServerProVerification.mockResolvedValue('skipped');
+    mockGetAvailablePurchases.mockResolvedValue([]);
     updateListener = null;
     errorListener = null;
     await teardownIap();
@@ -117,5 +135,41 @@ describe('iapService purchase activity', () => {
     await purchasePro();
     await teardownIap();
     expect(isIapActive()).toBe(false);
+  });
+
+  it('verifies a finished Pro purchase with the server', async () => {
+    await purchasePro();
+    await updateListener?.({
+      productId: 'word_guess_pro',
+      purchaseToken: 'tok-1',
+    });
+    await flush();
+
+    expect(mockApplyServerProVerification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'word_guess_pro',
+        purchaseToken: 'tok-1',
+      }),
+    );
+  });
+
+  it('verifies restored Play purchases with the server', async () => {
+    mockGetAvailablePurchases.mockResolvedValueOnce([
+      { productId: 'word_guess_pro', purchaseToken: 'tok-2' },
+    ]);
+
+    await expect(syncProFromStore()).resolves.toBe(true);
+    expect(mockApplyServerProVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ purchaseToken: 'tok-2' }),
+    );
+  });
+
+  it('reports no Pro when the server says the token is none', async () => {
+    mockGetAvailablePurchases.mockResolvedValueOnce([
+      { productId: 'word_guess_pro', purchaseToken: 'tok-3' },
+    ]);
+    mockApplyServerProVerification.mockResolvedValueOnce('none');
+
+    await expect(syncProFromStore()).resolves.toBe(false);
   });
 });
