@@ -61,6 +61,24 @@ describe('statsStore', () => {
       await useStatsStore.getState().loadStats();
       expect(useStatsStore.getState().isLoading).toBe(false);
     });
+
+    it('times stats-read around the SQLite load', async () => {
+      const order: string[] = [];
+      jest.spyOn(console, 'time').mockImplementation((label?: string) => {
+        order.push(`time:${label}`);
+      });
+      jest.spyOn(console, 'timeEnd').mockImplementation((label?: string) => {
+        order.push(`timeEnd:${label}`);
+      });
+      (storage.getStats as jest.Mock).mockImplementation(async () => {
+        order.push('getStats');
+        return null;
+      });
+
+      await useStatsStore.getState().loadStats();
+
+      expect(order).toEqual(['time:stats-read', 'getStats', 'timeEnd:stats-read']);
+    });
   });
 
   describe('recordGame', () => {
@@ -191,6 +209,36 @@ describe('statsStore', () => {
       expect(state.stats?.totalGames).toBe(51);
       expect(state.stats?.wins).toBe(41);
       expect(storage.computeStatsFromHistory).not.toHaveBeenCalled();
+    });
+
+    it('times stats-write around the SQLite save', async () => {
+      const order: string[] = [];
+      jest.spyOn(console, 'time').mockImplementation((label?: string) => {
+        order.push(`time:${label}`);
+      });
+      jest.spyOn(console, 'timeEnd').mockImplementation((label?: string) => {
+        order.push(`timeEnd:${label}`);
+      });
+      (storage.saveGameResult as jest.Mock).mockImplementation(async () => {
+        order.push('saveGameResult');
+      });
+
+      await useStatsStore.getState().recordGame({
+        id: 'timed-write',
+        mode: 'random',
+        word: 'APPLE',
+        letterCount: 5,
+        guesses: 4,
+        won: true,
+        hardMode: false,
+        extraGuessesUsed: 0,
+        completedAt: '2026-07-10T15:30:00Z',
+        feedback: [],
+      });
+
+      expect(order[0]).toBe('time:stats-write');
+      expect(order).toContain('saveGameResult');
+      expect(order[order.length - 1]).toBe('timeEnd:stats-write');
     });
 
     it('recordGameIfNeeded is idempotent for the same session id', async () => {

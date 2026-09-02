@@ -248,13 +248,7 @@ export function StatsScreen() {
   ).current;
 
   const refreshDisplay = useCallback(async () => {
-    if (__DEV__) {
-      console.time('stats-read');
-    }
     await loadStats();
-    if (__DEV__) {
-      console.timeEnd('stats-read');
-    }
     setDisplayStats(useStatsStore.getState().stats);
   }, [loadStats]);
 

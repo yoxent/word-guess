@@ -23,6 +23,7 @@ import { initDatabase } from '../services/storage';
 import * as sound from '../services/sound';
 import { initIap, applyProEntitlementForSession } from '../services/iapService';
 import { hasSignedInPlayer } from '../utils/authState';
+import { loadDictionaries } from '../stores/dictionaryStore';
 
 applyFontScalingDefaults();
 
@@ -66,20 +67,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // D-170 / LAUNCH-07: startup-init performance marker
-    // Measures non-blocking startup init: Remote Config ad unit fetch + sound system init.
-    // Note: dictionary require() calls happen synchronously at module load
-    // (dictionaryStore.ts), BEFORE this effect runs — they cannot be measured here.
-    // Guarded by __DEV__ so it is stripped from production AAB builds.
-    if (__DEV__) {
-      console.time('startup-init');
-    }
-
-    // Load display + UI fonts — blocks first render briefly but
-    // prevents flash of unstyled text. If loading fails, app continues
-    // with system fonts.
     const init = async () => {
       try {
+        // D-170 / LAUNCH-07: time the actual JSON require (inside loadDictionaries).
+        loadDictionaries();
+
+        // Load display + UI fonts — blocks first render briefly but
+        // prevents flash of unstyled text. If loading fails, app continues
+        // with system fonts.
         await loadFonts();
 
         // Open SQLite before any game can complete — stats writes need it
@@ -118,10 +113,6 @@ export default function App() {
           await applyProEntitlementForSession(hasSignedInPlayer(useAuthStore.getState()));
         } catch (error) {
           console.warn('[App] IAP init failed', error);
-        }
-
-        if (__DEV__) {
-          console.timeEnd('startup-init');
         }
       } catch (error) {
         console.error('[App] Startup init failed', error);

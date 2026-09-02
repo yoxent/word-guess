@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getStats, saveGameResult } from '../services/storage';
 import { recordGameToProfile } from '../services/statsProfile';
 import type { PlayerStats, GameMode, GuessFeedback } from '../types';
+import { withDevTimeAsync } from '../utils/devTime';
 
 /** Module-level dedupe so GameScreen + ResultModal can both call safely. */
 const recordedSessionIds = new Set<string>();
@@ -45,52 +46,54 @@ export const useStatsStore = create<StatsState>()((set, get) => ({
   lastGameResult: null,
   loadStats: async () => {
     try {
-      const stats = await getStats();
+      const stats = await withDevTimeAsync('stats-read', () => getStats());
       set({ stats, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
   },
   recordGame: async (result) => {
-    await saveGameResult({
-      id: result.id,
-      mode: result.mode,
-      word: result.word,
-      letterCount: result.letterCount,
-      guesses: result.guesses,
-      won: result.won,
-      hardMode: result.hardMode,
-      extraGuessesUsed: result.extraGuessesUsed,
-      completedAt: result.completedAt,
-    });
-    // Apply on top of the profile (restore-safe) rather than re-reading
-    // getStats(), which would be a no-op once a profile exists anyway.
-    // `gameAlreadyInHistory: true` because saveGameResult (above) already
-    // persisted this game — without the flag, the no-profile branch would
-    // backfill from history (which already includes this game) AND apply it
-    // again, double-counting it.
-    const stats = await recordGameToProfile(
-      {
+    await withDevTimeAsync('stats-write', async () => {
+      await saveGameResult({
+        id: result.id,
         mode: result.mode,
+        word: result.word,
         letterCount: result.letterCount,
         guesses: result.guesses,
         won: result.won,
         hardMode: result.hardMode,
+        extraGuessesUsed: result.extraGuessesUsed,
         completedAt: result.completedAt,
-      },
-      { gameAlreadyInHistory: true }
-    );
-    set({
-      stats,
-      lastGameResult: {
-        mode: result.mode as GameMode,
-        word: result.word,
-        attempts: result.guesses,
-        won: result.won,
-        maxAttempts: result.letterCount + 1,
-        date: result.completedAt,
-        feedback: result.feedback,
-      },
+      });
+      // Apply on top of the profile (restore-safe) rather than re-reading
+      // getStats(), which would be a no-op once a profile exists anyway.
+      // `gameAlreadyInHistory: true` because saveGameResult (above) already
+      // persisted this game — without the flag, the no-profile branch would
+      // backfill from history (which already includes this game) AND apply it
+      // again, double-counting it.
+      const stats = await recordGameToProfile(
+        {
+          mode: result.mode,
+          letterCount: result.letterCount,
+          guesses: result.guesses,
+          won: result.won,
+          hardMode: result.hardMode,
+          completedAt: result.completedAt,
+        },
+        { gameAlreadyInHistory: true }
+      );
+      set({
+        stats,
+        lastGameResult: {
+          mode: result.mode as GameMode,
+          word: result.word,
+          attempts: result.guesses,
+          won: result.won,
+          maxAttempts: result.letterCount + 1,
+          date: result.completedAt,
+          feedback: result.feedback,
+        },
+      });
     });
   },
   recordGameIfNeeded: async (result) => {

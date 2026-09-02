@@ -89,9 +89,6 @@ function recordEndGameSideEffects(currentSession: GameSession): void {
   }
 
   const persistAndSync = async () => {
-    if (__DEV__) {
-      console.time('stats-write');
-    }
     try {
       await useStatsStore.getState().recordGameIfNeeded({
         id: currentSession.id,
@@ -108,10 +105,6 @@ function recordEndGameSideEffects(currentSession: GameSession): void {
     } catch (err) {
       if (__DEV__) {
         console.warn('[stats] recordGame failed', err);
-      }
-    } finally {
-      if (__DEV__) {
-        console.timeEnd('stats-write');
       }
     }
 

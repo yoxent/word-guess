@@ -154,6 +154,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+// LAUNCH-07 markers fire in __DEV__; keep unit output quiet.
+jest.spyOn(console, 'time').mockImplementation(() => {});
+jest.spyOn(console, 'timeEnd').mockImplementation(() => {});
+
 // Mock zustand persist middleware
 jest.mock('zustand/middleware', () => ({
   persist: (fn: any) => fn,
