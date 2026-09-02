@@ -9,4 +9,4 @@ This repo is code only. Do not recreate `brain/` or `.planning/` here.
 
 **Ads are Unity LevelPlay only** (`unity-levelplay-mediation`, `src/stores/adStore.ts`). Do not describe this app’s ads as AdMob or AdSense. Error 509 “Mediation No fill” is a LevelPlay inventory miss. Mentions of AdMob/AdSense in old decisions, research, or `.claude/CLAUDE.md` are historical (or refer to the Pasttime website, not this app).
 
-Cloud Functions live in `functions/` (callable `verifyProPurchase`). Root Jest ignores that tree; use `npm run functions:test`. Deploy is still required before production verifies.
+Cloud Functions live in `functions/` (callable `verifyProPurchase`, live `us-central1` Node 24). Root Jest ignores that tree; use `npm run functions:test`. Next IAP slice is RTDN, not another verify function.
