@@ -17,36 +17,19 @@ import {
   LeaderboardScreen,
 } from '../screens';
 import { useTheme } from '../hooks/useTheme';
-import { useGameStore } from '../stores/gameStore';
+import { handleHardwareBackPress } from './hardwareBackPress';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// D-165-D-167: Centralized BackHandler — block back during tile animation (skip-to-final-state)
-// NOTE: isAdShowing and isIAPActive are not present in the current adStore/settingsStore; the
-// ad and IAP lifecycles are managed in their respective screens. Future phase may add these
-// flags so the BackHandler can block during ad display / IAP flow. (Deviation 06-04-1)
+// D-165–D-167: Centralized BackHandler — block during ads/IAP; skip-to-final on tile reveal.
 // MUST be rendered INSIDE <NavigationContainer> so useFocusEffect has navigation context.
-// Previously this hook was called in the outer Navigation() function alongside the
-// <NavigationContainer> JSX, which crashed with "Couldn't find a navigation object" on RN 0.86.
 function BackHandlerController() {
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        const gameStore = useGameStore.getState();
-
-        // During tile animation: skip to final state (D-167)
-        if (gameStore.isRevealing) {
-          gameStore.setIsRevealing(false);
-          gameStore.flushPendingInputs();
-          gameStore.finalizeRevealOutcome();
-          return true;
-        }
-
-        // Otherwise: allow default back navigation
-        return false;
-      };
-
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        handleHardwareBackPress,
+      );
       return () => subscription.remove();
     }, [])
   );

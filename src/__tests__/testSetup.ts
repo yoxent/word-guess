@@ -169,6 +169,8 @@ jest.mock('unity-levelplay-mediation', () => {
     adUnitId: string;
     listener: unknown = null;
     removed = false;
+    ready = false;
+    showError: Error | null = null;
     constructor(adUnitId: string) {
       this.adUnitId = adUnitId;
     }
@@ -179,10 +181,11 @@ jest.mock('unity-levelplay-mediation', () => {
       return Promise.resolve();
     }
     showAd() {
+      if (this.showError) return Promise.reject(this.showError);
       return Promise.resolve();
     }
     isAdReady() {
-      return Promise.resolve(false);
+      return Promise.resolve(this.ready);
     }
     remove() {
       this.removed = true;
@@ -191,10 +194,17 @@ jest.mock('unity-levelplay-mediation', () => {
   }
 
   const mockRewardedAds: FakeAd[] = [];
+  const mockInterstitialAds: FakeAd[] = [];
   class FakeRewardedAd extends FakeAd {
     constructor(adUnitId: string) {
       super(adUnitId);
       mockRewardedAds.push(this);
+    }
+  }
+  class FakeInterstitialAd extends FakeAd {
+    constructor(adUnitId: string) {
+      super(adUnitId);
+      mockInterstitialAds.push(this);
     }
   }
 
@@ -215,7 +225,7 @@ jest.mock('unity-levelplay-mediation', () => {
         build: () => ({ appKey, userId: null }),
       }),
     },
-    LevelPlayInterstitialAd: FakeAd,
+    LevelPlayInterstitialAd: FakeInterstitialAd,
     LevelPlayRewardedAd: FakeRewardedAd,
     LevelPlayPrivacySettings: {
       setCOPPA: jest.fn().mockResolvedValue(undefined),
@@ -223,8 +233,10 @@ jest.mock('unity-levelplay-mediation', () => {
       setGDPRConsents: jest.fn().mockResolvedValue(undefined),
     },
     __testRewardedAds: mockRewardedAds,
+    __testInterstitialAds: mockInterstitialAds,
     __resetTestRewardedAds: () => {
       mockRewardedAds.length = 0;
+      mockInterstitialAds.length = 0;
     },
   };
 });

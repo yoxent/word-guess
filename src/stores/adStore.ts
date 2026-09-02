@@ -223,16 +223,19 @@ function interstitialListener(): LevelPlayInterstitialAdListener {
       });
       scheduleInterstitialRetry();
     },
-    onAdDisplayed: () => {},
+    onAdDisplayed: () => {
+      useAdStore.setState({ isAdShowing: true });
+    },
     onAdDisplayFailed: () => {
       useAdStore.setState({
         interstitialLoaded: false,
         interstitialLoading: false,
+        isAdShowing: false,
       });
       void useAdStore.getState().preloadInterstitial();
     },
     onAdClosed: () => {
-      useAdStore.setState({ interstitialLoaded: false });
+      useAdStore.setState({ interstitialLoaded: false, isAdShowing: false });
       void useAdStore.getState().preloadInterstitial();
     },
   };
@@ -273,7 +276,9 @@ function extraAttemptListener(): LevelPlayRewardedAdListener {
       });
       scheduleExtraAttemptRetry();
     },
-    onAdDisplayed: () => {},
+    onAdDisplayed: () => {
+      useAdStore.setState({ isAdShowing: true });
+    },
     onAdRewarded: () => {
       pendingExtraAttemptReward?.();
       pendingExtraAttemptReward = null;
@@ -283,11 +288,12 @@ function extraAttemptListener(): LevelPlayRewardedAdListener {
       useAdStore.setState({
         extraAttemptLoaded: false,
         extraAttemptLoading: false,
+        isAdShowing: false,
       });
       void useAdStore.getState().preloadExtraAttempt();
     },
     onAdClosed: () => {
-      useAdStore.setState({ extraAttemptLoaded: false });
+      useAdStore.setState({ extraAttemptLoaded: false, isAdShowing: false });
       void useAdStore.getState().preloadExtraAttempt();
     },
   };
@@ -328,7 +334,9 @@ function letterHintListener(): LevelPlayRewardedAdListener {
       });
       scheduleLetterHintRetry();
     },
-    onAdDisplayed: () => {},
+    onAdDisplayed: () => {
+      useAdStore.setState({ isAdShowing: true });
+    },
     onAdRewarded: () => {
       pendingLetterHintReward?.();
       pendingLetterHintReward = null;
@@ -338,11 +346,12 @@ function letterHintListener(): LevelPlayRewardedAdListener {
       useAdStore.setState({
         letterHintLoaded: false,
         letterHintLoading: false,
+        isAdShowing: false,
       });
       void useAdStore.getState().preloadLetterHint();
     },
     onAdClosed: () => {
-      useAdStore.setState({ letterHintLoaded: false });
+      useAdStore.setState({ letterHintLoaded: false, isAdShowing: false });
       void useAdStore.getState().preloadLetterHint();
     },
   };
@@ -356,6 +365,8 @@ export interface AdStoreState {
   letterHintLoaded: boolean;
   letterHintLoading: boolean;
   gamesSinceLastAd: number;
+  /** Fullscreen LevelPlay ad is on screen (LAUNCH-05 back-button block). */
+  isAdShowing: boolean;
 
   initAds: () => Promise<void>;
   preloadInterstitial: () => Promise<void>;
@@ -385,6 +396,7 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
   letterHintLoaded: false,
   letterHintLoading: false,
   gamesSinceLastAd: 0,
+  isAdShowing: false,
 
   initAds: async () => {
     const ready = await ensureSdkReady();
@@ -539,10 +551,11 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     if (!get().interstitialLoaded || !interstitialAd) return false;
     try {
       if (!(await interstitialAd.isAdReady())) return false;
+      set({ isAdShowing: true });
       await interstitialAd.showAd();
       return true;
     } catch {
-      set({ interstitialLoaded: false, interstitialLoading: false });
+      set({ interstitialLoaded: false, interstitialLoading: false, isAdShowing: false });
       void get().preloadInterstitial();
       return false;
     }
@@ -553,11 +566,12 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     try {
       if (!(await extraAttemptAd.isAdReady())) return false;
       pendingExtraAttemptReward = onRewarded;
+      set({ isAdShowing: true });
       await extraAttemptAd.showAd();
       return true;
     } catch {
       pendingExtraAttemptReward = null;
-      set({ extraAttemptLoaded: false, extraAttemptLoading: false });
+      set({ extraAttemptLoaded: false, extraAttemptLoading: false, isAdShowing: false });
       void get().preloadExtraAttempt();
       return false;
     }
@@ -568,11 +582,12 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
     try {
       if (!(await letterHintAd.isAdReady())) return false;
       pendingLetterHintReward = onRewarded;
+      set({ isAdShowing: true });
       await letterHintAd.showAd();
       return true;
     } catch {
       pendingLetterHintReward = null;
-      set({ letterHintLoaded: false, letterHintLoading: false });
+      set({ letterHintLoaded: false, letterHintLoading: false, isAdShowing: false });
       void get().preloadLetterHint();
       return false;
     }
@@ -648,6 +663,7 @@ export const useAdStore = create<AdStoreState>()((set, get) => ({
       letterHintLoaded: false,
       letterHintLoading: false,
       gamesSinceLastAd: 0,
+      isAdShowing: false,
     });
   },
 }));

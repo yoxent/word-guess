@@ -27,10 +27,20 @@ let initPromise: Promise<boolean> | null = null;
 let updateSub: { remove: () => void } | null = null;
 let errorSub: { remove: () => void } | null = null;
 let uiHandlers: IapUiHandlers = {};
+/** Play purchase sheet is open or a purchase is being finished (LAUNCH-05). */
+let iapActive = false;
 
 /** Register Settings-level toast callbacks (optional; Pro unlock still applied globally). */
 export function setIapUiHandlers(handlers: IapUiHandlers): void {
   uiHandlers = handlers;
+}
+
+export function isIapActive(): boolean {
+  return iapActive;
+}
+
+function setIapActive(active: boolean): void {
+  iapActive = active;
 }
 
 export function isProSku(productId: string | null | undefined): boolean {
@@ -68,34 +78,40 @@ export async function initIap(): Promise<boolean> {
         } catch (error) {
           console.warn('[iap] Failed to finish purchase', error);
           uiHandlers.onPurchaseError?.('Purchase verification failed.');
+        } finally {
+          setIapActive(false);
         }
       });
 
       errorSub = purchaseErrorListener(async (error: PurchaseError) => {
-        if (error.code === ErrorCode.UserCancelled || isUserCancelledError(error)) {
-          uiHandlers.onPurchaseCancelled?.();
-          return;
-        }
-        if (error.code === ErrorCode.AlreadyOwned) {
-          try {
-            const hasPro = await syncProFromStore();
-            if (hasPro) {
-              uiHandlers.onPurchaseSuccess?.();
-            } else {
-              uiHandlers.onPurchaseError?.(
-                'No purchase found to restore.',
-              );
-            }
-          } catch (syncError) {
-            console.warn('[iap] AlreadyOwned sync failed', syncError);
-            uiHandlers.onPurchaseError?.('Purchase verification failed.');
+        try {
+          if (error.code === ErrorCode.UserCancelled || isUserCancelledError(error)) {
+            uiHandlers.onPurchaseCancelled?.();
+            return;
           }
-          return;
+          if (error.code === ErrorCode.AlreadyOwned) {
+            try {
+              const hasPro = await syncProFromStore();
+              if (hasPro) {
+                uiHandlers.onPurchaseSuccess?.();
+              } else {
+                uiHandlers.onPurchaseError?.(
+                  'No purchase found to restore.',
+                );
+              }
+            } catch (syncError) {
+              console.warn('[iap] AlreadyOwned sync failed', syncError);
+              uiHandlers.onPurchaseError?.('Purchase verification failed.');
+            }
+            return;
+          }
+          console.warn('[iap] Purchase error', error.code, error.message);
+          uiHandlers.onPurchaseError?.(
+            error.message || 'Purchase failed. Please try again.',
+          );
+        } finally {
+          setIapActive(false);
         }
-        console.warn('[iap] Purchase error', error.code, error.message);
-        uiHandlers.onPurchaseError?.(
-          error.message || 'Purchase failed. Please try again.',
-        );
       });
 
       return true;
@@ -161,13 +177,19 @@ export async function purchasePro(): Promise<void> {
     throw new Error('PRODUCT_UNAVAILABLE');
   }
 
-  await requestPurchase({
-    request: {
-      google: { skus },
-      apple: { sku: config.proProductId },
-    },
-    type: 'in-app',
-  });
+  setIapActive(true);
+  try {
+    await requestPurchase({
+      request: {
+        google: { skus },
+        apple: { sku: config.proProductId },
+      },
+      type: 'in-app',
+    });
+  } catch (error) {
+    setIapActive(false);
+    throw error;
+  }
 }
 
 /** Explicit restore from Settings. Returns whether Pro was found. */
@@ -192,6 +214,7 @@ export async function teardownIap(): Promise<void> {
   updateSub = null;
   errorSub = null;
   uiHandlers = {};
+  setIapActive(false);
   if (connected) {
     try {
       await endConnection();
