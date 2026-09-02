@@ -72,7 +72,6 @@ export {
   updatePlayerStats,
   getPlayerStats,
   getPlayerStatsResult,
-  submitLeaderboardScore,
   getLeaderboard,
 } from './firestoreService';
 export type { LeaderboardType, CloudPlayerProfile, GetPlayerStatsResult } from './firestoreService';
@@ -87,11 +86,9 @@ export {
 export type { SyncEvent } from './syncQueue';
 
 export {
-  submitScore,
-  updateLeaderboardAfterGame,
   syncLeaderboardForSession,
   reconcileLocalLeaderboardScores,
-  drainLeaderboardScoreEvent,
+  drainLeaderboardGameEvent,
   getLeaderboardData,
 } from './leaderboardService';
 

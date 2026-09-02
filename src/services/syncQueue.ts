@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SyncEvent {
   id: string;
-  type: 'game_result' | 'leaderboard_score';
+  type: 'game_result' | 'leaderboard_score' | 'leaderboard_game';
   data: Record<string, unknown>;
   retryCount: number;
   nextRetryAt: string | null; // ISO timestamp, null = can retry now

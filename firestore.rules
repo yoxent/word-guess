@@ -20,15 +20,6 @@ service cloud.firestore {
       ];
     }
 
-    function hasOnlyLeaderboardFields() {
-      return request.resource.data.keys().hasOnly([
-        'playerId',
-        'playerName',
-        'score',
-        'updatedAt'
-      ]);
-    }
-
     match /playerStats/{playerId} {
       allow read, write: if isOwner(playerId);
     }
@@ -41,15 +32,15 @@ service cloud.firestore {
 
     match /leaderboards/{leaderboardType}/scores/{playerId} {
       allow get, list: if isLeaderboardType(leaderboardType);
-      allow create, update: if isLeaderboardType(leaderboardType)
-        && isOwner(playerId)
-        && hasOnlyLeaderboardFields()
-        && request.resource.data.playerId == playerId
-        && request.resource.data.playerName is string
-        && request.resource.data.score is number
-        && request.resource.data.score > 0;
-      // Own row only — used when a current streak resets so the player leaves the board.
-      allow delete: if isLeaderboardType(leaderboardType) && isOwner(playerId);
+      allow write: if false;
+    }
+
+    match /leaderboardReceipts/{playerId} {
+      allow read, write: if false;
+
+      match /games/{sessionId} {
+        allow read, write: if false;
+      }
     }
   }
 }
