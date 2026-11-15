@@ -36,6 +36,8 @@ wordnet-candidates-enriched.json
 wordnet-candidates-summary.txt
 
 # ── Agent artifacts (canonical copies live under project-docs) ─
+# SCE index is local and rebuilt from sce.config.json
+.sce/
 .pi/
 .pi-subagents/
 .superpowers/
