@@ -15,7 +15,14 @@ import {
   resolveDailyLeaderboardScore,
 } from './endlessLeaderboardCounters';
 import { getLeaderboardMetrics } from './leaderboardMetrics';
-import { resolveLeaderboardWritePlayer } from './leaderboardWritePolicy';
+import {
+  leaderboardChecksum,
+  type LeaderboardChecksumClaimed,
+} from './leaderboardChecksum';
+import {
+  callSubmitLeaderboardGame,
+  type LeaderboardGamePayload,
+} from './submitLeaderboardGame';
 import {
   buildDemoLeaderboard,
   isDemoLeaderboardEnabled,
@@ -25,147 +32,71 @@ import type { LeaderboardData, LeaderboardEntry, GameSession } from '../types';
 /** Prevent GameScreen + ResultModal from double-submitting one session. */
 const syncedSessionIds = new Set<string>();
 
-/**
- * Submit a score to a specific leaderboard.
- * Falls back to sync queue if offline or not signed in.
- */
-export async function submitScore(
-  type: LeaderboardType,
-  score: number,
-  sessionId?: string,
-): Promise<'submitted' | 'queued' | 'failed'> {
-  try {
-    const authState = useAuthStore.getState();
+function withCareerClaimed(
+  claimed: LeaderboardChecksumClaimed,
+  metrics: { bestStreak: number; sharpshooter: number },
+): LeaderboardChecksumClaimed {
+  const next = { ...claimed };
+  if (metrics.bestStreak > 0) next.bestStreak = metrics.bestStreak;
+  if (metrics.sharpshooter > 0) next.sharpshooter = metrics.sharpshooter;
+  return next;
+}
 
-    if (!authState.isLoggedIn || !authState.playerId) {
-      await syncQueue.enqueueEvent('leaderboard_score', {
-        type,
-        score,
-        playerId: 'deferred',
-        playerName: 'Player',
-        sessionId: sessionId ?? `${type}:${score}`,
-      });
-      return 'queued';
-    }
+function buildPayload(
+  session: Pick<GameSession, 'id' | 'mode' | 'status' | 'completedAt'>,
+  claimed: LeaderboardChecksumClaimed,
+  playerName: string,
+): LeaderboardGamePayload {
+  const completedAt = session.completedAt ?? new Date().toISOString();
+  const won = session.status === 'won';
+  return {
+    sessionId: session.id,
+    completedAt,
+    mode: session.mode,
+    won,
+    playerName,
+    claimed,
+    checksum: leaderboardChecksum({
+      sessionId: session.id,
+      completedAt,
+      mode: session.mode,
+      won,
+      claimed,
+    }),
+  };
+}
 
-    const success = await firestoreService.submitLeaderboardScore(
-      type,
-      authState.playerId,
-      authState.playerName ?? 'Player',
-      score,
-    );
+async function publishLeaderboardGame(
+  payload: LeaderboardGamePayload,
+): Promise<void> {
+  const authState = useAuthStore.getState();
+  if (!authState.isLoggedIn || !authState.playerId) {
+    await syncQueue.enqueueEvent('leaderboard_game', payload);
+    return;
+  }
 
-    if (success) {
-      return 'submitted';
-    }
-
-    await syncQueue.enqueueEvent('leaderboard_score', {
-      type,
-      score,
-      playerId: authState.playerId,
-      playerName: authState.playerName ?? 'Player',
-      sessionId: sessionId ?? `${type}:${score}:${Date.now()}`,
-    });
-    return 'queued';
-  } catch {
-    return 'failed';
+  const result = await callSubmitLeaderboardGame(payload);
+  if (result === 'retry') {
+    await syncQueue.enqueueEvent('leaderboard_game', payload);
   }
 }
 
 /**
- * Shared drain helper — always writes as the signed-in user, never as "deferred".
+ * Drain a queued `leaderboard_game`. Returns true to drop the event
+ * (`ok` or poison `drop`); false to retry.
  */
-export async function drainLeaderboardScoreEvent(event: {
+export async function drainLeaderboardGameEvent(event: {
   data: Record<string, unknown>;
 }): Promise<boolean> {
-  const authState = useAuthStore.getState();
-  if (!authState.isLoggedIn) return false;
-
-  const resolved = resolveLeaderboardWritePlayer({
-    queuedPlayerId: event.data.playerId as string | undefined,
-    queuedPlayerName: event.data.playerName as string | undefined,
-    authPlayerId: authState.playerId,
-    authPlayerName: authState.playerName,
-  });
-  if (!resolved) return false;
-
-  const type = event.data.type as LeaderboardType;
-  const score = Number(event.data.score);
-  if (!type || Number.isNaN(score)) return false;
-
-  return firestoreService.submitLeaderboardScore(
-    type,
-    resolved.playerId,
-    resolved.playerName,
-    score,
+  const sessionId = event.data.sessionId;
+  const checksum = event.data.checksum;
+  if (typeof sessionId !== 'string' || typeof checksum !== 'string') {
+    return true;
+  }
+  const result = await callSubmitLeaderboardGame(
+    event.data as LeaderboardGamePayload,
   );
-}
-
-/**
- * Publish career boards derived from local stats (Best streak, Sharpshooter).
- */
-export async function publishCareerLeaderboardScores(
-  metrics: {
-    bestStreak: number;
-    sharpshooter: number;
-  },
-  sessionId?: string,
-): Promise<void> {
-  if (metrics.bestStreak > 0) {
-    await submitScore(
-      'best_streak',
-      metrics.bestStreak,
-      sessionId ? `${sessionId}:best` : undefined,
-    );
-  }
-  if (metrics.sharpshooter > 0) {
-    await submitScore(
-      'sharpshooter',
-      metrics.sharpshooter,
-      sessionId ? `${sessionId}:sharp` : undefined,
-    );
-  }
-}
-
-/**
- * Mode-aware dispatcher after a game completes.
- */
-export async function updateLeaderboardAfterGame(params: {
-  mode: string;
-  won: boolean;
-  sessionId?: string;
-  dailyStreak?: number;
-  endlessStreak?: number;
-  endlessTotalWords?: number;
-}): Promise<void> {
-  if (params.mode === 'daily' && params.won) {
-    const streak =
-      params.dailyStreak && params.dailyStreak > 0 ? params.dailyStreak : 1;
-    await submitScore('daily_streak', streak, params.sessionId);
-  }
-
-  if (params.mode === 'daily' && !params.won) {
-    await submitScore('daily_streak', 0, params.sessionId);
-  }
-
-  if (params.mode === 'endless') {
-    const streak = params.endlessStreak ?? 0;
-    if (streak > 0) {
-      await submitScore(
-        'endless_streak',
-        streak,
-        params.sessionId ? `${params.sessionId}:streak` : undefined,
-      );
-    }
-    const total = params.endlessTotalWords ?? 0;
-    if (total > 0) {
-      await submitScore(
-        'endless_total',
-        total,
-        params.sessionId ? `${params.sessionId}:total` : undefined,
-      );
-    }
-  }
+  return result === 'ok' || result === 'drop';
 }
 
 /**
@@ -173,15 +104,21 @@ export async function updateLeaderboardAfterGame(params: {
  * Safe to call from GameScreen and ResultModal.
  */
 export async function syncLeaderboardForSession(
-  session: Pick<GameSession, 'id' | 'mode' | 'status' | 'hardMode'>,
+  session: Pick<
+    GameSession,
+    'id' | 'mode' | 'status' | 'hardMode' | 'completedAt' | 'isTutorial'
+  >,
 ): Promise<void> {
+  if (session.isTutorial) return;
   if (session.status !== 'won' && session.status !== 'lost') return;
   if (syncedSessionIds.has(session.id)) return;
   syncedSessionIds.add(session.id);
 
+  const playerName =
+    useAuthStore.getState().playerName ?? 'Player';
+
   try {
     if (session.mode === 'daily' && session.status === 'won') {
-      // Prefer refreshed stats after recordGame; fall back to store/storage.
       const stats =
         (await getStats()) ?? useStatsStore.getState().stats;
       const metrics = getLeaderboardMetrics(stats);
@@ -189,28 +126,20 @@ export async function syncLeaderboardForSession(
         true,
         metrics.dailyStreak > 0 ? metrics.dailyStreak : undefined,
       );
-      await updateLeaderboardAfterGame({
-        mode: 'daily',
-        won: true,
-        sessionId: session.id,
-        dailyStreak,
-      });
-      await publishCareerLeaderboardScores(metrics, session.id);
+      const claimed = withCareerClaimed(
+        { dailyStreak: dailyStreak ?? 1 },
+        metrics,
+      );
+      await publishLeaderboardGame(buildPayload(session, claimed, playerName));
       return;
     }
 
     if (session.mode === 'daily' && session.status === 'lost') {
-      // Losing Daily breaks the current streak — clear the ranked row.
-      await updateLeaderboardAfterGame({
-        mode: 'daily',
-        won: false,
-        sessionId: session.id,
-        dailyStreak: 0,
-      });
       const stats =
         (await getStats()) ?? useStatsStore.getState().stats;
       const metrics = getLeaderboardMetrics(stats);
-      await publishCareerLeaderboardScores(metrics, session.id);
+      const claimed = withCareerClaimed({ dailyStreak: 0 }, metrics);
+      await publishLeaderboardGame(buildPayload(session, claimed, playerName));
       return;
     }
 
@@ -223,23 +152,27 @@ export async function syncLeaderboardForSession(
       const stats =
         (await getStats()) ?? useStatsStore.getState().stats;
       const metrics = getLeaderboardMetrics(stats);
-      await updateLeaderboardAfterGame({
-        mode: 'endless',
-        won: session.status === 'won',
-        sessionId: session.id,
-        endlessStreak: endless.endlessStreak,
-        endlessTotalWords: endless.endlessTotalWords,
-      });
-      await publishCareerLeaderboardScores(metrics, session.id);
+      const claimed: LeaderboardChecksumClaimed = {};
+      if (session.status === 'won') {
+        if (endless.endlessStreak > 0) {
+          claimed.endlessStreak = endless.endlessStreak;
+        }
+        if (endless.endlessTotalWords > 0) {
+          claimed.endlessTotalWords = endless.endlessTotalWords;
+        }
+      }
+      await publishLeaderboardGame(
+        buildPayload(session, withCareerClaimed(claimed, metrics), playerName),
+      );
       return;
     }
 
-    // Random / other modes — still publish career boards from refreshed stats.
     const stats = (await getStats()) ?? useStatsStore.getState().stats;
     const metrics = getLeaderboardMetrics(stats);
-    await publishCareerLeaderboardScores(metrics, session.id);
+    await publishLeaderboardGame(
+      buildPayload(session, withCareerClaimed({}, metrics), playerName),
+    );
   } catch (err) {
-    // Allow a later caller to retry if this attempt failed before any write.
     syncedSessionIds.delete(session.id);
     if (__DEV__) {
       console.warn('[leaderboard] syncLeaderboardForSession failed', err);
@@ -248,65 +181,10 @@ export async function syncLeaderboardForSession(
 }
 
 /**
- * Push local streak/total counters to Firestore when opening the leaderboard.
- * Heals stale cloud rows (e.g. Daily stuck at 0) without requiring another game.
+ * Opening the board must not push local totals (no jump without a receipt).
  */
 export async function reconcileLocalLeaderboardScores(): Promise<void> {
-  const authState = useAuthStore.getState();
-  if (!authState.isLoggedIn || !authState.playerId) return;
-
-  try {
-    const stats =
-      useStatsStore.getState().stats ?? (await getStats());
-    const metrics = getLeaderboardMetrics(stats);
-
-    if (metrics.dailyStreak > 0) {
-      await submitScore(
-        'daily_streak',
-        metrics.dailyStreak,
-        `reconcile:daily:${metrics.dailyStreak}`,
-      );
-    } else {
-      // Local streak already broken — remove a stale cloud row instead of ranking 0.
-      await submitScore('daily_streak', 0, 'reconcile:daily:clear');
-    }
-
-    if (metrics.endlessStreak > 0) {
-      await submitScore(
-        'endless_streak',
-        metrics.endlessStreak,
-        `reconcile:streak:${metrics.endlessStreak}`,
-      );
-    }
-
-    if (metrics.endlessTotalWords > 0) {
-      await submitScore(
-        'endless_total',
-        metrics.endlessTotalWords,
-        `reconcile:total:${metrics.endlessTotalWords}`,
-      );
-    }
-
-    if (metrics.bestStreak > 0) {
-      await submitScore(
-        'best_streak',
-        metrics.bestStreak,
-        `reconcile:best:${metrics.bestStreak}`,
-      );
-    }
-
-    if (metrics.sharpshooter > 0) {
-      await submitScore(
-        'sharpshooter',
-        metrics.sharpshooter,
-        `reconcile:sharp:${metrics.sharpshooter}`,
-      );
-    }
-  } catch (err) {
-    if (__DEV__) {
-      console.warn('[leaderboard] reconcileLocalLeaderboardScores failed', err);
-    }
-  }
+  return;
 }
 
 /**
@@ -390,5 +268,3 @@ export async function getLeaderboardData(
     currentPlayerRank,
   };
 }
-
-

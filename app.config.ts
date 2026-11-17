@@ -10,7 +10,7 @@ const playGamesAppId =
 const config: ExpoConfig = {
   name: 'Word Guess',
   slug: 'word-guess',
-  version: '1.0.3',
+  version: '1.1.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',

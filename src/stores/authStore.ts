@@ -56,9 +56,12 @@ const drainHandler = async (event: syncQueue.SyncEvent): Promise<boolean> => {
     );
   }
   if (event.type === 'leaderboard_score') {
+    return true; // drop legacy per-board events
+  }
+  if (event.type === 'leaderboard_game') {
     // Lazy require (not import()) — Hermes can't eval Metro async chunks here.
-    const { drainLeaderboardScoreEvent } = require('../services/leaderboardService') as typeof import('../services/leaderboardService');
-    return drainLeaderboardScoreEvent(event);
+    const { drainLeaderboardGameEvent } = require('../services/leaderboardService') as typeof import('../services/leaderboardService');
+    return drainLeaderboardGameEvent(event);
   }
   return false;
 };

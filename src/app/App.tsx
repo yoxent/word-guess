@@ -157,15 +157,18 @@ export default function App() {
         );
       }
       if (event.type === 'leaderboard_score') {
+        return true; // drop legacy per-board events
+      }
+      if (event.type === 'leaderboard_game') {
         // Lazy require (not import()) — Hermes can't eval Metro async chunks here.
-        const { drainLeaderboardScoreEvent } = require('../services/leaderboardService') as typeof import('../services/leaderboardService');
-        return drainLeaderboardScoreEvent(event);
+        const { drainLeaderboardGameEvent } = require('../services/leaderboardService') as typeof import('../services/leaderboardService');
+        return drainLeaderboardGameEvent(event);
       }
       return false;
     };
 
     // Sequenced, not parallel: drain must not race the profile sync's own
-    // `removeEventsByType('game_result' | 'leaderboard_score')` / re-enqueue,
+    // `removeEventsByType('game_result' | 'leaderboard_score' | 'leaderboard_game')` / re-enqueue,
     // or a prior-owner (or pre-merge) snapshot could be pushed before the
     // sync has a chance to supersede it. Soft-fail via `.catch()` so a pull
     // error can't skip the drain that follows. Shared by both the periodic

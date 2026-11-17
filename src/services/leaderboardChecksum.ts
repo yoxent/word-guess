@@ -1,0 +1,45 @@
+import { sha256 } from 'js-sha256';
+
+export const LEADERBOARD_CHECKSUM_SEED = 'wg-lb-v1-seed-2026';
+
+export type LeaderboardChecksumClaimed = {
+  dailyStreak?: number;
+  endlessStreak?: number;
+  endlessTotalWords?: number;
+  bestStreak?: number;
+  sharpshooter?: number;
+};
+
+export type LeaderboardChecksumInput = {
+  sessionId: string;
+  completedAt: string;
+  mode: string;
+  won: boolean;
+  claimed: LeaderboardChecksumClaimed;
+};
+
+function slot(value: number | undefined): string {
+  return value === undefined ? '' : String(value);
+}
+
+export function leaderboardCanonicalString(
+  input: LeaderboardChecksumInput,
+): string {
+  return [
+    input.sessionId,
+    input.completedAt,
+    input.mode,
+    input.won ? '1' : '0',
+    slot(input.claimed.dailyStreak),
+    slot(input.claimed.endlessStreak),
+    slot(input.claimed.endlessTotalWords),
+    slot(input.claimed.bestStreak),
+    slot(input.claimed.sharpshooter),
+  ].join('|');
+}
+
+export function leaderboardChecksum(input: LeaderboardChecksumInput): string {
+  return sha256(
+    `${leaderboardCanonicalString(input)}:${LEADERBOARD_CHECKSUM_SEED}`,
+  );
+}

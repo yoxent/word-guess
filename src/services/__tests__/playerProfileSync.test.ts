@@ -264,10 +264,11 @@ describe('syncPlayerProfileOnAuth', () => {
     expect(result).toEqual({ ok: true, action: 'replace' });
     expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('game_result');
     expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_score');
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_game');
     // Called once for the early game_result clear, once for the early
-    // leaderboard_score clear, and again for game_result after the
-    // successful push at the end of the function.
-    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(3);
+    // leaderboard_score clear, once for leaderboard_game, and again for
+    // game_result after the successful push at the end of the function.
+    expect((syncQueue.removeEventsByType as jest.Mock).mock.calls.length).toBe(4);
   });
 
   it('owner mismatch → also clears stale leaderboard_score queue events, not just game_result', async () => {
@@ -291,11 +292,17 @@ describe('syncPlayerProfileOnAuth', () => {
 
     expect(result).toEqual({ ok: true, action: 'replace' });
     expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_score');
+    expect(syncQueue.removeEventsByType).toHaveBeenCalledWith('leaderboard_game');
     // Both prior-owner clears happen before hydrate — i.e. before this
     // sync's own writes/push — so a concurrent drain can't push a stale
     // account-A leaderboard score under account B either.
-    expect(callOrder.slice(0, 2).sort()).toEqual(['game_result', 'leaderboard_score']);
+    expect(callOrder.slice(0, 3).sort()).toEqual([
+      'game_result',
+      'leaderboard_game',
+      'leaderboard_score',
+    ]);
     expect(callOrder.indexOf('leaderboard_score')).toBeLessThan(callOrder.indexOf('hydrate'));
+    expect(callOrder.indexOf('leaderboard_game')).toBeLessThan(callOrder.indexOf('hydrate'));
   });
 
   it('no owner mismatch (first sign-in, owner null) → does not call removeEventsByType early', async () => {

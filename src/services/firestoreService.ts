@@ -7,7 +7,6 @@ import {
   setDoc,
   getDoc,
   getDocs,
-  deleteDoc,
   query,
   orderBy,
   limit,
@@ -16,10 +15,6 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 import type { PlayerStats, LeaderboardData, LeaderboardEntry } from '../types';
-import {
-  shouldClearLeaderboardScore,
-  shouldWriteLeaderboardScore,
-} from './leaderboardWritePolicy';
 import { LEADERBOARD_TOP_N } from '../constants/leaderboard';
 import { getEndlessStreak, getEndlessTotalWords } from './storage';
 import type { EndlessCounters } from './mergePlayerStats';
@@ -44,18 +39,6 @@ export type GetPlayerStatsResult =
   | { kind: 'found'; profile: CloudPlayerProfile }
   | { kind: 'missing' }
   | { kind: 'error' };
-
-function isTransientFirestoreError(err: unknown): boolean {
-  const anyErr = err as { code?: string; message?: string } | null;
-  const haystack = `${anyErr?.code ?? ''} ${anyErr?.message ?? err}`.toLowerCase();
-  return (
-    haystack.includes('unavailable') ||
-    haystack.includes('deadline-exceeded') ||
-    haystack.includes('resource-exhausted') ||
-    haystack.includes('network')
-  );
-}
-
 
 // ── Initialisation (modular API) ──
 
@@ -180,84 +163,6 @@ export async function getPlayerStats(
 ): Promise<PlayerStats | null> {
   const result = await getPlayerStatsResult(playerId);
   return result.kind === 'found' ? result.profile.stats : null;
-}
-
-/**
- * Submit or update a leaderboard score for a player.
- * Uses { merge: true } for upsert — duplicate game completions overwrite
- * with latest score.
- *
- * Collection path: leaderboards/{type}/scores/{playerId}
- * Document fields: { playerId, playerName, score, updatedAt }
- *
- * Returns false on failure (network error, not configured).
- */
-export async function submitLeaderboardScore(
-  type: LeaderboardType,
-  playerId: string,
-  playerName: string,
-  score: number,
-): Promise<boolean> {
-  try {
-    const scoreRef = doc(leaderboardRef(type), playerId);
-
-    // Daily streak 0 leaves the board — never rank a zero. Endless Run is kept.
-    if (shouldClearLeaderboardScore(type, score)) {
-      await deleteDoc(scoreRef);
-      return true;
-    }
-
-    // Career boards: skip non-positive scores without touching cloud docs.
-    if (score <= 0) {
-      return true;
-    }
-
-    const existing = await getDoc(scoreRef);
-    const existingScore = existing.data()?.score;
-    const numericExisting =
-      typeof existingScore === 'number' ? existingScore : undefined;
-
-    if (!shouldWriteLeaderboardScore(type, score, numericExisting)) {
-      // shouldWrite only returns false when an existing numeric score is higher.
-      if (typeof numericExisting !== 'number') {
-        return true;
-      }
-      // Always include `score` so rules that require it succeed on merge.
-      await setDoc(
-        scoreRef,
-        {
-          playerId,
-          playerName,
-          score: numericExisting,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
-      return true;
-    }
-
-    await setDoc(
-      scoreRef,
-      {
-        playerId,
-        playerName,
-        score,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-    return true;
-  } catch (err) {
-    if (__DEV__) {
-      if (isTransientFirestoreError(err)) {
-        // Expected while offline / Firebase briefly unreachable — caller queues + retries.
-        console.log('[firestore] submitLeaderboardScore deferred (transient)', type);
-      } else {
-        console.warn('[firestore] submitLeaderboardScore failed', type, err);
-      }
-    }
-    return false;
-  }
 }
 
 /**
